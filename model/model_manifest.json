@@ -1,0 +1,68 @@
+{
+  "model_version": "small-intent-v0.1",
+  "schema_version": "small-intent-schema-v0.3",
+  "rule_version": "entity-rules-v0.1",
+  "data_version": "data-approved-v0.3",
+  "training_file": "data\\train.csv",
+  "training_sha256": "345f986cb8c6cf580aaac0e3d9a3c9c1548dbdad35a9efde0a02383be54607ad",
+  "training_count": 354,
+  "class_counts": {
+    "vote_intent": 57,
+    "discussion": 69,
+    "role_claim": 70,
+    "check_claim": 58,
+    "low_info": 50,
+    "suspected_violation": 50
+  },
+  "fit_feature_columns": [
+    "public_text"
+  ],
+  "excluded_feature_columns": [
+    "sample_id",
+    "intent",
+    "source_group",
+    "source_type",
+    "speaker_id",
+    "entities",
+    "review_fields"
+  ],
+  "group_count": 143,
+  "cv": "3-fold StratifiedGroupKFold; vectorizer fit separately inside each fold",
+  "random_seed": 20261024,
+  "selected_parameters": {
+    "ngram_range": [
+      1,
+      3
+    ],
+    "C": 2.0,
+    "min_df": 1,
+    "max_features": 50000,
+    "sublinear_tf": true,
+    "lowercase": false
+  },
+  "cv_macro_f1_mean": 0.7833614609448859,
+  "selection_data": "training-file group CV only",
+  "feature_count": 14347,
+  "classes": [
+    "check_claim",
+    "discussion",
+    "low_info",
+    "role_claim",
+    "suspected_violation",
+    "vote_intent"
+  ],
+  "confidence_type": "not_calibrated",
+  "score_type": "linear_svc_ovr_decision_function",
+  "python": "3.12.14",
+  "dependencies": {
+    "numpy": "2.2.6",
+    "scipy": "1.16.3",
+    "sklearn": "1.7.2",
+    "joblib": "1.5.2"
+  },
+  "model_path": "classifier.joblib",
+  "training_elapsed_seconds": 0.4403914000140503,
+  "source_test_author_independence": false,
+  "real_game_validation_count": 0,
+  "model_sha256": "f698b4b67f70e85a898ca149200ce4a6665525943c33112155f8fad456c7aef3"
+}

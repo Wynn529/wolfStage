@@ -1,0 +1,514 @@
+{
+  "scope": "known_probe50",
+  "count": 50,
+  "fields": {
+    "player_ids": {
+      "old": {
+        "total": 50,
+        "exact": 50,
+        "accuracy": 1.0,
+        "nonempty_rows": 32,
+        "nonempty_exact": 32,
+        "nonempty_accuracy": 1.0,
+        "gold_items": 48,
+        "pred_items": 48,
+        "tp": 48,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      "new": {
+        "total": 50,
+        "exact": 50,
+        "accuracy": 1.0,
+        "nonempty_rows": 32,
+        "nonempty_exact": 32,
+        "nonempty_accuracy": 1.0,
+        "gold_items": 48,
+        "pred_items": 48,
+        "tp": 48,
+        "precision": 1.0,
+        "recall": 1.0
+      }
+    },
+    "claimed_role": {
+      "old": {
+        "total": 50,
+        "exact": 48,
+        "accuracy": 0.96,
+        "nonempty_rows": 10,
+        "nonempty_exact": 8,
+        "nonempty_accuracy": 0.8,
+        "gold_items": 10,
+        "pred_items": 8,
+        "tp": 8,
+        "precision": 1.0,
+        "recall": 0.8
+      },
+      "new": {
+        "total": 50,
+        "exact": 49,
+        "accuracy": 0.98,
+        "nonempty_rows": 10,
+        "nonempty_exact": 9,
+        "nonempty_accuracy": 0.9,
+        "gold_items": 10,
+        "pred_items": 9,
+        "tp": 9,
+        "precision": 1.0,
+        "recall": 0.9
+      }
+    },
+    "check_claims": {
+      "old": {
+        "total": 50,
+        "exact": 47,
+        "accuracy": 0.94,
+        "nonempty_rows": 9,
+        "nonempty_exact": 6,
+        "nonempty_accuracy": 0.6666666666666666,
+        "gold_items": 10,
+        "pred_items": 6,
+        "tp": 6,
+        "precision": 1.0,
+        "recall": 0.6
+      },
+      "new": {
+        "total": 50,
+        "exact": 48,
+        "accuracy": 0.96,
+        "nonempty_rows": 9,
+        "nonempty_exact": 7,
+        "nonempty_accuracy": 0.7777777777777778,
+        "gold_items": 10,
+        "pred_items": 7,
+        "tp": 7,
+        "precision": 1.0,
+        "recall": 0.7
+      }
+    },
+    "check_target": {
+      "old": {
+        "total": 50,
+        "exact": 48,
+        "accuracy": 0.96,
+        "nonempty_rows": 8,
+        "nonempty_exact": 6,
+        "nonempty_accuracy": 0.75,
+        "gold_items": 8,
+        "pred_items": 6,
+        "tp": 6,
+        "precision": 1.0,
+        "recall": 0.75
+      },
+      "new": {
+        "total": 50,
+        "exact": 49,
+        "accuracy": 0.98,
+        "nonempty_rows": 8,
+        "nonempty_exact": 7,
+        "nonempty_accuracy": 0.875,
+        "gold_items": 8,
+        "pred_items": 7,
+        "tp": 7,
+        "precision": 1.0,
+        "recall": 0.875
+      }
+    },
+    "check_result": {
+      "old": {
+        "total": 50,
+        "exact": 48,
+        "accuracy": 0.96,
+        "nonempty_rows": 8,
+        "nonempty_exact": 6,
+        "nonempty_accuracy": 0.75,
+        "gold_items": 8,
+        "pred_items": 6,
+        "tp": 6,
+        "precision": 1.0,
+        "recall": 0.75
+      },
+      "new": {
+        "total": 50,
+        "exact": 49,
+        "accuracy": 0.98,
+        "nonempty_rows": 8,
+        "nonempty_exact": 7,
+        "nonempty_accuracy": 0.875,
+        "gold_items": 8,
+        "pred_items": 7,
+        "tp": 7,
+        "precision": 1.0,
+        "recall": 0.875
+      }
+    },
+    "vote_target": {
+      "old": {
+        "total": 50,
+        "exact": 46,
+        "accuracy": 0.92,
+        "nonempty_rows": 9,
+        "nonempty_exact": 7,
+        "nonempty_accuracy": 0.7777777777777778,
+        "gold_items": 9,
+        "pred_items": 9,
+        "tp": 7,
+        "precision": 0.7777777777777778,
+        "recall": 0.7777777777777778
+      },
+      "new": {
+        "total": 50,
+        "exact": 47,
+        "accuracy": 0.94,
+        "nonempty_rows": 9,
+        "nonempty_exact": 7,
+        "nonempty_accuracy": 0.7777777777777778,
+        "gold_items": 9,
+        "pred_items": 8,
+        "tp": 7,
+        "precision": 0.875,
+        "recall": 0.7777777777777778
+      }
+    },
+    "follow_target": {
+      "old": {
+        "total": 50,
+        "exact": 49,
+        "accuracy": 0.98,
+        "nonempty_rows": 1,
+        "nonempty_exact": 0,
+        "nonempty_accuracy": 0.0,
+        "gold_items": 1,
+        "pred_items": 0,
+        "tp": 0,
+        "precision": null,
+        "recall": 0.0
+      },
+      "new": {
+        "total": 50,
+        "exact": 49,
+        "accuracy": 0.98,
+        "nonempty_rows": 1,
+        "nonempty_exact": 0,
+        "nonempty_accuracy": 0.0,
+        "gold_items": 1,
+        "pred_items": 0,
+        "tp": 0,
+        "precision": null,
+        "recall": 0.0
+      }
+    },
+    "excluded_vote_targets": {
+      "old": {
+        "total": 50,
+        "exact": 49,
+        "accuracy": 0.98,
+        "nonempty_rows": 3,
+        "nonempty_exact": 2,
+        "nonempty_accuracy": 0.6666666666666666,
+        "gold_items": 3,
+        "pred_items": 2,
+        "tp": 2,
+        "precision": 1.0,
+        "recall": 0.6666666666666666
+      },
+      "new": {
+        "total": 50,
+        "exact": 49,
+        "accuracy": 0.98,
+        "nonempty_rows": 3,
+        "nonempty_exact": 3,
+        "nonempty_accuracy": 1.0,
+        "gold_items": 3,
+        "pred_items": 4,
+        "tp": 3,
+        "precision": 0.75,
+        "recall": 1.0
+      }
+    },
+    "withdrawn_vote_targets": {
+      "old": {
+        "total": 50,
+        "exact": 50,
+        "accuracy": 1.0,
+        "nonempty_rows": 2,
+        "nonempty_exact": 2,
+        "nonempty_accuracy": 1.0,
+        "gold_items": 2,
+        "pred_items": 2,
+        "tp": 2,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      "new": {
+        "total": 50,
+        "exact": 50,
+        "accuracy": 1.0,
+        "nonempty_rows": 2,
+        "nonempty_exact": 2,
+        "nonempty_accuracy": 1.0,
+        "gold_items": 2,
+        "pred_items": 2,
+        "tp": 2,
+        "precision": 1.0,
+        "recall": 1.0
+      }
+    },
+    "vote_mode": {
+      "old": {
+        "total": 50,
+        "exact": 46,
+        "accuracy": 0.92,
+        "nonempty_rows": 50,
+        "nonempty_exact": 46,
+        "nonempty_accuracy": 0.92,
+        "gold_items": 50,
+        "pred_items": 50,
+        "tp": 46,
+        "precision": 0.92,
+        "recall": 0.92
+      },
+      "new": {
+        "total": 50,
+        "exact": 47,
+        "accuracy": 0.94,
+        "nonempty_rows": 50,
+        "nonempty_exact": 47,
+        "nonempty_accuracy": 0.94,
+        "gold_items": 50,
+        "pred_items": 50,
+        "tp": 47,
+        "precision": 0.94,
+        "recall": 0.94
+      }
+    },
+    "agreement_targets": {
+      "old": {
+        "total": 50,
+        "exact": 50,
+        "accuracy": 1.0,
+        "nonempty_rows": 2,
+        "nonempty_exact": 2,
+        "nonempty_accuracy": 1.0,
+        "gold_items": 2,
+        "pred_items": 2,
+        "tp": 2,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      "new": {
+        "total": 50,
+        "exact": 50,
+        "accuracy": 1.0,
+        "nonempty_rows": 2,
+        "nonempty_exact": 2,
+        "nonempty_accuracy": 1.0,
+        "gold_items": 2,
+        "pred_items": 2,
+        "tp": 2,
+        "precision": 1.0,
+        "recall": 1.0
+      }
+    },
+    "suspect_targets": {
+      "old": {
+        "total": 50,
+        "exact": 49,
+        "accuracy": 0.98,
+        "nonempty_rows": 3,
+        "nonempty_exact": 2,
+        "nonempty_accuracy": 0.6666666666666666,
+        "gold_items": 3,
+        "pred_items": 2,
+        "tp": 2,
+        "precision": 1.0,
+        "recall": 0.6666666666666666
+      },
+      "new": {
+        "total": 50,
+        "exact": 47,
+        "accuracy": 0.94,
+        "nonempty_rows": 3,
+        "nonempty_exact": 2,
+        "nonempty_accuracy": 0.6666666666666666,
+        "gold_items": 3,
+        "pred_items": 4,
+        "tp": 2,
+        "precision": 0.5,
+        "recall": 0.6666666666666666
+      }
+    },
+    "support_targets": {
+      "old": {
+        "total": 50,
+        "exact": 48,
+        "accuracy": 0.96,
+        "nonempty_rows": 2,
+        "nonempty_exact": 0,
+        "nonempty_accuracy": 0.0,
+        "gold_items": 2,
+        "pred_items": 0,
+        "tp": 0,
+        "precision": null,
+        "recall": 0.0
+      },
+      "new": {
+        "total": 50,
+        "exact": 49,
+        "accuracy": 0.98,
+        "nonempty_rows": 2,
+        "nonempty_exact": 1,
+        "nonempty_accuracy": 0.5,
+        "gold_items": 2,
+        "pred_items": 1,
+        "tp": 1,
+        "precision": 1.0,
+        "recall": 0.5
+      }
+    },
+    "condition_present": {
+      "old": {
+        "total": 50,
+        "exact": 50,
+        "accuracy": 1.0,
+        "nonempty_rows": 0,
+        "nonempty_exact": 0,
+        "nonempty_accuracy": null,
+        "gold_items": 0,
+        "pred_items": 0,
+        "tp": 0,
+        "precision": null,
+        "recall": null
+      },
+      "new": {
+        "total": 50,
+        "exact": 50,
+        "accuracy": 1.0,
+        "nonempty_rows": 0,
+        "nonempty_exact": 0,
+        "nonempty_accuracy": null,
+        "gold_items": 0,
+        "pred_items": 0,
+        "tp": 0,
+        "precision": null,
+        "recall": null
+      }
+    },
+    "alternative_targets": {
+      "old": {
+        "total": 50,
+        "exact": 50,
+        "accuracy": 1.0,
+        "nonempty_rows": 1,
+        "nonempty_exact": 1,
+        "nonempty_accuracy": 1.0,
+        "gold_items": 1,
+        "pred_items": 1,
+        "tp": 1,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      "new": {
+        "total": 50,
+        "exact": 50,
+        "accuracy": 1.0,
+        "nonempty_rows": 1,
+        "nonempty_exact": 1,
+        "nonempty_accuracy": 1.0,
+        "gold_items": 1,
+        "pred_items": 1,
+        "tp": 1,
+        "precision": 1.0,
+        "recall": 1.0
+      }
+    },
+    "agreement_target": {
+      "old": {
+        "total": 50,
+        "exact": 50,
+        "accuracy": 1.0,
+        "nonempty_rows": 2,
+        "nonempty_exact": 2,
+        "nonempty_accuracy": 1.0,
+        "gold_items": 2,
+        "pred_items": 2,
+        "tp": 2,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      "new": {
+        "total": 50,
+        "exact": 50,
+        "accuracy": 1.0,
+        "nonempty_rows": 2,
+        "nonempty_exact": 2,
+        "nonempty_accuracy": 1.0,
+        "gold_items": 2,
+        "pred_items": 2,
+        "tp": 2,
+        "precision": 1.0,
+        "recall": 1.0
+      }
+    },
+    "suspect_target": {
+      "old": {
+        "total": 50,
+        "exact": 49,
+        "accuracy": 0.98,
+        "nonempty_rows": 3,
+        "nonempty_exact": 2,
+        "nonempty_accuracy": 0.6666666666666666,
+        "gold_items": 3,
+        "pred_items": 2,
+        "tp": 2,
+        "precision": 1.0,
+        "recall": 0.6666666666666666
+      },
+      "new": {
+        "total": 50,
+        "exact": 47,
+        "accuracy": 0.94,
+        "nonempty_rows": 3,
+        "nonempty_exact": 2,
+        "nonempty_accuracy": 0.6666666666666666,
+        "gold_items": 3,
+        "pred_items": 4,
+        "tp": 2,
+        "precision": 0.5,
+        "recall": 0.6666666666666666
+      }
+    },
+    "support_target": {
+      "old": {
+        "total": 50,
+        "exact": 48,
+        "accuracy": 0.96,
+        "nonempty_rows": 2,
+        "nonempty_exact": 0,
+        "nonempty_accuracy": 0.0,
+        "gold_items": 2,
+        "pred_items": 0,
+        "tp": 0,
+        "precision": null,
+        "recall": 0.0
+      },
+      "new": {
+        "total": 50,
+        "exact": 49,
+        "accuracy": 0.98,
+        "nonempty_rows": 2,
+        "nonempty_exact": 1,
+        "nonempty_accuracy": 0.5,
+        "gold_items": 2,
+        "pred_items": 1,
+        "tp": 1,
+        "precision": 1.0,
+        "recall": 0.5
+      }
+    }
+  },
+  "whole_record_exact": {
+    "old": 38,
+    "new": 42
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "data_version": "data-approved-v0.3",
+  "author_independent_test": false,
+  "test_description": "Same-author pool, source-group held out; user approved, C/E independent review not claimed.",
+  "probe_description": "50 assistant-authored simulated agent utterances, not real DeepSeek outputs; no tuning.",
+  "files": {
+    "train.csv": {
+      "sha256": "345f986cb8c6cf580aaac0e3d9a3c9c1548dbdad35a9efde0a02383be54607ad",
+      "count": 354
+    },
+    "test_frozen.csv": {
+      "sha256": "ae05b22f3142ad87a786b9885f8498ac8cd68231b92ec56c0587b005cd572497",
+      "count": 120
+    },
+    "synthetic_agent_probe.csv": {
+      "sha256": "6ef891856dca00435c01ee71ab2b0e3855bfbdcc70db10aed74d7bd942cf2bab",
+      "count": 50
+    }
+  },
+  "real_game_utterances": 0,
+  "CE_independent_review_confirmed": false
+}

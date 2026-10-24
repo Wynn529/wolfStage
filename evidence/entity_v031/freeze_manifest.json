@@ -1,0 +1,15 @@
+{
+  "rule_version": "entity-rules-v0.3.1",
+  "classifier_retrained": false,
+  "independent_new_evaluation_count": 0,
+  "protocol": "Engineering fixes on observed material. All72+36+120+50 cases below are known regression, not independent post-development validation.",
+  "classifier_original_frozen_metrics_unchanged": true,
+  "real_game_count": 0,
+  "hashes": {
+    "model/entities_v031.py": "e99c4a4a540f453266e0b1ccf50869f1f0c35ea00ec046fbea638a0d52c675b0",
+    "model/entities_v03.py": "0683912783dfdd84b35f6691b4f52d21273e56ae7950bc25847a09152220902c",
+    "model/predict_v031.py": "ccc40af8ff2b1711026b0afa759aada7e69a071cde5705c7b26d53ae56535811",
+    "model/server_v031.py": "aebeceaac9a83a4caf12adbd4a12bd14b48cc83cdecea8204107478aabd93af7",
+    "model/classifier.joblib": "f698b4b67f70e85a898ca149200ce4a6665525943c33112155f8fad456c7aef3"
+  }
+}

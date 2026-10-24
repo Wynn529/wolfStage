@@ -1,0 +1,20 @@
+{
+  "repository": "ReneeYe/werewolf_game_reasoning",
+  "revision": "7d7d516f780879dbe9f512ef29655f51548f7578",
+  "files": [
+    {
+      "upstream_path": "README.md",
+      "local_path": "data\\sources\\makto\\README.md",
+      "url": "https://huggingface.co/datasets/ReneeYe/werewolf_game_reasoning/resolve/7d7d516f780879dbe9f512ef29655f51548f7578/README.md",
+      "bytes": 5936,
+      "sha256": "fc8df891aec04654fc9984251e797604e8d863ee98cac7a7c9c63d3264fb74f0"
+    },
+    {
+      "upstream_path": "data/speech_zh.parquet",
+      "local_path": "data\\sources\\makto\\speech_zh.parquet",
+      "url": "https://huggingface.co/datasets/ReneeYe/werewolf_game_reasoning/resolve/7d7d516f780879dbe9f512ef29655f51548f7578/data/speech_zh.parquet",
+      "bytes": 3292231,
+      "sha256": "f51be622afb8fc5531ab15018a891a4626a37bf7aa903cbe48592bc20fb7cf02"
+    }
+  ]
+}

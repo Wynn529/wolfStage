@@ -1,0 +1,935 @@
+{
+  "model_version": "small-intent-v0.1",
+  "results": {
+    "test_frozen": {
+      "dataset": "test_frozen",
+      "count": 120,
+      "class_counts": {
+        "vote_intent": 20,
+        "discussion": 20,
+        "role_claim": 20,
+        "check_claim": 20,
+        "low_info": 20,
+        "suspected_violation": 20
+      },
+      "accuracy": 0.875,
+      "macro_f1": 0.8704753851812675,
+      "classification_report": {
+        "role_claim": {
+          "precision": 0.8,
+          "recall": 1.0,
+          "f1-score": 0.8888888888888888,
+          "support": 20.0
+        },
+        "check_claim": {
+          "precision": 0.8333333333333334,
+          "recall": 1.0,
+          "f1-score": 0.9090909090909091,
+          "support": 20.0
+        },
+        "vote_intent": {
+          "precision": 0.8636363636363636,
+          "recall": 0.95,
+          "f1-score": 0.9047619047619048,
+          "support": 20.0
+        },
+        "discussion": {
+          "precision": 0.8125,
+          "recall": 0.65,
+          "f1-score": 0.7222222222222222,
+          "support": 20.0
+        },
+        "low_info": {
+          "precision": 1.0,
+          "recall": 0.95,
+          "f1-score": 0.9743589743589743,
+          "support": 20.0
+        },
+        "suspected_violation": {
+          "precision": 1.0,
+          "recall": 0.7,
+          "f1-score": 0.8235294117647058,
+          "support": 20.0
+        },
+        "accuracy": 0.875,
+        "macro avg": {
+          "precision": 0.8849116161616162,
+          "recall": 0.875,
+          "f1-score": 0.8704753851812675,
+          "support": 120.0
+        },
+        "weighted avg": {
+          "precision": 0.8849116161616162,
+          "recall": 0.875,
+          "f1-score": 0.8704753851812675,
+          "support": 120.0
+        }
+      },
+      "confusion_matrix_labels": [
+        "role_claim",
+        "check_claim",
+        "vote_intent",
+        "discussion",
+        "low_info",
+        "suspected_violation"
+      ],
+      "confusion_matrix": [
+        [
+          20,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          20,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          0,
+          19,
+          0,
+          0,
+          0
+        ],
+        [
+          3,
+          2,
+          2,
+          13,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          1,
+          19,
+          0
+        ],
+        [
+          1,
+          2,
+          1,
+          2,
+          0,
+          14
+        ]
+      ],
+      "keyword_baseline": {
+        "accuracy": 0.6916666666666667,
+        "macro_f1": 0.6697214653736393,
+        "classification_report": {
+          "role_claim": {
+            "precision": 0.9411764705882353,
+            "recall": 0.8,
+            "f1-score": 0.8648648648648649,
+            "support": 20.0
+          },
+          "check_claim": {
+            "precision": 0.6666666666666666,
+            "recall": 1.0,
+            "f1-score": 0.8,
+            "support": 20.0
+          },
+          "vote_intent": {
+            "precision": 0.5769230769230769,
+            "recall": 0.75,
+            "f1-score": 0.6521739130434783,
+            "support": 20.0
+          },
+          "discussion": {
+            "precision": 0.5333333333333333,
+            "recall": 0.4,
+            "f1-score": 0.45714285714285713,
+            "support": 20.0
+          },
+          "low_info": {
+            "precision": 0.6923076923076923,
+            "recall": 0.9,
+            "f1-score": 0.782608695652174,
+            "support": 20.0
+          },
+          "suspected_violation": {
+            "precision": 1.0,
+            "recall": 0.3,
+            "f1-score": 0.46153846153846156,
+            "support": 20.0
+          },
+          "accuracy": 0.6916666666666667,
+          "macro avg": {
+            "precision": 0.7350678733031675,
+            "recall": 0.6916666666666665,
+            "f1-score": 0.6697214653736393,
+            "support": 120.0
+          },
+          "weighted avg": {
+            "precision": 0.7350678733031674,
+            "recall": 0.6916666666666667,
+            "f1-score": 0.6697214653736393,
+            "support": 120.0
+          }
+        }
+      },
+      "entities": {
+        "player_ids": {
+          "total": 120,
+          "exact_match_count": 120,
+          "exact_match_accuracy": 1.0,
+          "gold_nonempty_rows": 78,
+          "predicted_nonempty_rows": 78,
+          "nonempty_exact_match_count": 78,
+          "nonempty_exact_match_accuracy": 1.0,
+          "gold_items": 125,
+          "predicted_items": 125,
+          "true_positive_items": 125,
+          "precision": 1.0,
+          "recall": 1.0,
+          "note": "Set exact match for arrays; scalar exact match otherwise. Conditions compare literal text, not semantic equivalence."
+        },
+        "claimed_role": {
+          "total": 120,
+          "exact_match_count": 118,
+          "exact_match_accuracy": 0.9833333333333333,
+          "gold_nonempty_rows": 28,
+          "predicted_nonempty_rows": 26,
+          "nonempty_exact_match_count": 26,
+          "nonempty_exact_match_accuracy": 0.9285714285714286,
+          "gold_items": 28,
+          "predicted_items": 26,
+          "true_positive_items": 26,
+          "precision": 1.0,
+          "recall": 0.9285714285714286,
+          "note": "Set exact match for arrays; scalar exact match otherwise. Conditions compare literal text, not semantic equivalence."
+        },
+        "check_claims": {
+          "total": 120,
+          "exact_match_count": 115,
+          "exact_match_accuracy": 0.9583333333333334,
+          "gold_nonempty_rows": 22,
+          "predicted_nonempty_rows": 19,
+          "nonempty_exact_match_count": 18,
+          "nonempty_exact_match_accuracy": 0.8181818181818182,
+          "gold_items": 27,
+          "predicted_items": 25,
+          "true_positive_items": 23,
+          "precision": 0.92,
+          "recall": 0.8518518518518519,
+          "note": "Set exact match for arrays; scalar exact match otherwise. Conditions compare literal text, not semantic equivalence."
+        },
+        "check_target": {
+          "total": 120,
+          "exact_match_count": 116,
+          "exact_match_accuracy": 0.9666666666666667,
+          "gold_nonempty_rows": 17,
+          "predicted_nonempty_rows": 13,
+          "nonempty_exact_match_count": 13,
+          "nonempty_exact_match_accuracy": 0.7647058823529411,
+          "gold_items": 17,
+          "predicted_items": 13,
+          "true_positive_items": 13,
+          "precision": 1.0,
+          "recall": 0.7647058823529411,
+          "note": "Set exact match for arrays; scalar exact match otherwise. Conditions compare literal text, not semantic equivalence."
+        },
+        "check_result": {
+          "total": 120,
+          "exact_match_count": 116,
+          "exact_match_accuracy": 0.9666666666666667,
+          "gold_nonempty_rows": 17,
+          "predicted_nonempty_rows": 13,
+          "nonempty_exact_match_count": 13,
+          "nonempty_exact_match_accuracy": 0.7647058823529411,
+          "gold_items": 17,
+          "predicted_items": 13,
+          "true_positive_items": 13,
+          "precision": 1.0,
+          "recall": 0.7647058823529411,
+          "note": "Set exact match for arrays; scalar exact match otherwise. Conditions compare literal text, not semantic equivalence."
+        },
+        "vote_target": {
+          "total": 120,
+          "exact_match_count": 112,
+          "exact_match_accuracy": 0.9333333333333333,
+          "gold_nonempty_rows": 21,
+          "predicted_nonempty_rows": 16,
+          "nonempty_exact_match_count": 14,
+          "nonempty_exact_match_accuracy": 0.6666666666666666,
+          "gold_items": 21,
+          "predicted_items": 16,
+          "true_positive_items": 14,
+          "precision": 0.875,
+          "recall": 0.6666666666666666,
+          "note": "Set exact match for arrays; scalar exact match otherwise. Conditions compare literal text, not semantic equivalence."
+        },
+        "follow_target": {
+          "total": 120,
+          "exact_match_count": 119,
+          "exact_match_accuracy": 0.9916666666666667,
+          "gold_nonempty_rows": 3,
+          "predicted_nonempty_rows": 2,
+          "nonempty_exact_match_count": 2,
+          "nonempty_exact_match_accuracy": 0.6666666666666666,
+          "gold_items": 3,
+          "predicted_items": 2,
+          "true_positive_items": 2,
+          "precision": 1.0,
+          "recall": 0.6666666666666666,
+          "note": "Set exact match for arrays; scalar exact match otherwise. Conditions compare literal text, not semantic equivalence."
+        },
+        "excluded_vote_targets": {
+          "total": 120,
+          "exact_match_count": 119,
+          "exact_match_accuracy": 0.9916666666666667,
+          "gold_nonempty_rows": 2,
+          "predicted_nonempty_rows": 1,
+          "nonempty_exact_match_count": 1,
+          "nonempty_exact_match_accuracy": 0.5,
+          "gold_items": 2,
+          "predicted_items": 1,
+          "true_positive_items": 1,
+          "precision": 1.0,
+          "recall": 0.5,
+          "note": "Set exact match for arrays; scalar exact match otherwise. Conditions compare literal text, not semantic equivalence."
+        },
+        "withdrawn_vote_targets": {
+          "total": 120,
+          "exact_match_count": 118,
+          "exact_match_accuracy": 0.9833333333333333,
+          "gold_nonempty_rows": 1,
+          "predicted_nonempty_rows": 1,
+          "nonempty_exact_match_count": 0,
+          "nonempty_exact_match_accuracy": 0.0,
+          "gold_items": 1,
+          "predicted_items": 1,
+          "true_positive_items": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "note": "Set exact match for arrays; scalar exact match otherwise. Conditions compare literal text, not semantic equivalence."
+        },
+        "vote_mode": {
+          "total": 120,
+          "exact_match_count": 107,
+          "exact_match_accuracy": 0.8916666666666667,
+          "gold_nonempty_rows": 120,
+          "predicted_nonempty_rows": 120,
+          "nonempty_exact_match_count": 107,
+          "nonempty_exact_match_accuracy": 0.8916666666666667,
+          "gold_items": 120,
+          "predicted_items": 120,
+          "true_positive_items": 107,
+          "precision": 0.8916666666666667,
+          "recall": 0.8916666666666667,
+          "note": "Set exact match for arrays; scalar exact match otherwise. Conditions compare literal text, not semantic equivalence."
+        },
+        "vote_condition": {
+          "total": 120,
+          "exact_match_count": 118,
+          "exact_match_accuracy": 0.9833333333333333,
+          "gold_nonempty_rows": 1,
+          "predicted_nonempty_rows": 1,
+          "nonempty_exact_match_count": 0,
+          "nonempty_exact_match_accuracy": 0.0,
+          "gold_items": 1,
+          "predicted_items": 1,
+          "true_positive_items": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "note": "Set exact match for arrays; scalar exact match otherwise. Conditions compare literal text, not semantic equivalence."
+        },
+        "conditional_vote_alternatives": {
+          "total": 120,
+          "exact_match_count": 120,
+          "exact_match_accuracy": 1.0,
+          "gold_nonempty_rows": 0,
+          "predicted_nonempty_rows": 0,
+          "nonempty_exact_match_count": 0,
+          "nonempty_exact_match_accuracy": null,
+          "gold_items": 0,
+          "predicted_items": 0,
+          "true_positive_items": 0,
+          "precision": null,
+          "recall": null,
+          "note": "Set exact match for arrays; scalar exact match otherwise. Conditions compare literal text, not semantic equivalence."
+        },
+        "agreement_target": {
+          "total": 120,
+          "exact_match_count": 120,
+          "exact_match_accuracy": 1.0,
+          "gold_nonempty_rows": 2,
+          "predicted_nonempty_rows": 2,
+          "nonempty_exact_match_count": 2,
+          "nonempty_exact_match_accuracy": 1.0,
+          "gold_items": 2,
+          "predicted_items": 2,
+          "true_positive_items": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "note": "Set exact match for arrays; scalar exact match otherwise. Conditions compare literal text, not semantic equivalence."
+        },
+        "agreement_targets": {
+          "total": 120,
+          "exact_match_count": 120,
+          "exact_match_accuracy": 1.0,
+          "gold_nonempty_rows": 2,
+          "predicted_nonempty_rows": 2,
+          "nonempty_exact_match_count": 2,
+          "nonempty_exact_match_accuracy": 1.0,
+          "gold_items": 2,
+          "predicted_items": 2,
+          "true_positive_items": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "note": "Set exact match for arrays; scalar exact match otherwise. Conditions compare literal text, not semantic equivalence."
+        },
+        "suspect_target": {
+          "total": 120,
+          "exact_match_count": 111,
+          "exact_match_accuracy": 0.925,
+          "gold_nonempty_rows": 8,
+          "predicted_nonempty_rows": 7,
+          "nonempty_exact_match_count": 3,
+          "nonempty_exact_match_accuracy": 0.375,
+          "gold_items": 8,
+          "predicted_items": 7,
+          "true_positive_items": 3,
+          "precision": 0.42857142857142855,
+          "recall": 0.375,
+          "note": "Set exact match for arrays; scalar exact match otherwise. Conditions compare literal text, not semantic equivalence."
+        },
+        "suspect_targets": {
+          "total": 120,
+          "exact_match_count": 110,
+          "exact_match_accuracy": 0.9166666666666666,
+          "gold_nonempty_rows": 9,
+          "predicted_nonempty_rows": 7,
+          "nonempty_exact_match_count": 3,
+          "nonempty_exact_match_accuracy": 0.3333333333333333,
+          "gold_items": 10,
+          "predicted_items": 7,
+          "true_positive_items": 3,
+          "precision": 0.42857142857142855,
+          "recall": 0.3,
+          "note": "Set exact match for arrays; scalar exact match otherwise. Conditions compare literal text, not semantic equivalence."
+        },
+        "support_target": {
+          "total": 120,
+          "exact_match_count": 116,
+          "exact_match_accuracy": 0.9666666666666667,
+          "gold_nonempty_rows": 10,
+          "predicted_nonempty_rows": 6,
+          "nonempty_exact_match_count": 6,
+          "nonempty_exact_match_accuracy": 0.6,
+          "gold_items": 10,
+          "predicted_items": 6,
+          "true_positive_items": 6,
+          "precision": 1.0,
+          "recall": 0.6,
+          "note": "Set exact match for arrays; scalar exact match otherwise. Conditions compare literal text, not semantic equivalence."
+        },
+        "support_targets": {
+          "total": 120,
+          "exact_match_count": 115,
+          "exact_match_accuracy": 0.9583333333333334,
+          "gold_nonempty_rows": 11,
+          "predicted_nonempty_rows": 6,
+          "nonempty_exact_match_count": 6,
+          "nonempty_exact_match_accuracy": 0.5454545454545454,
+          "gold_items": 12,
+          "predicted_items": 6,
+          "true_positive_items": 6,
+          "precision": 1.0,
+          "recall": 0.5,
+          "note": "Set exact match for arrays; scalar exact match otherwise. Conditions compare literal text, not semantic equivalence."
+        }
+      },
+      "intent_error_count": 15,
+      "any_entity_error_count": 35,
+      "latency_ms": {
+        "median": 0.2914000069722533,
+        "p95": 0.6694399693515152,
+        "batch_seconds": 0.042398200021125376,
+        "scope": "loaded model,classification+entity extraction; initialization excluded"
+      },
+      "limitations": [
+        "Same author as training pool; source-group holdout only.",
+        "Not real DeepSeek game validation.",
+        "Entity condition exact text score is not semantic correctness."
+      ]
+    },
+    "synthetic_probe": {
+      "dataset": "synthetic_probe",
+      "count": 50,
+      "class_counts": {
+        "vote_intent": 10,
+        "role_claim": 8,
+        "check_claim": 8,
+        "discussion": 10,
+        "low_info": 7,
+        "suspected_violation": 7
+      },
+      "accuracy": 0.82,
+      "macro_f1": 0.8291511048863991,
+      "classification_report": {
+        "role_claim": {
+          "precision": 0.875,
+          "recall": 0.875,
+          "f1-score": 0.875,
+          "support": 8.0
+        },
+        "check_claim": {
+          "precision": 0.8888888888888888,
+          "recall": 1.0,
+          "f1-score": 0.9411764705882353,
+          "support": 8.0
+        },
+        "vote_intent": {
+          "precision": 0.875,
+          "recall": 0.7,
+          "f1-score": 0.7777777777777778,
+          "support": 10.0
+        },
+        "discussion": {
+          "precision": 0.6363636363636364,
+          "recall": 0.7,
+          "f1-score": 0.6666666666666666,
+          "support": 10.0
+        },
+        "low_info": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 7.0
+        },
+        "suspected_violation": {
+          "precision": 0.7142857142857143,
+          "recall": 0.7142857142857143,
+          "f1-score": 0.7142857142857143,
+          "support": 7.0
+        },
+        "accuracy": 0.82,
+        "macro avg": {
+          "precision": 0.8315897065897065,
+          "recall": 0.8315476190476191,
+          "f1-score": 0.8291511048863991,
+          "support": 50.0
+        },
+        "weighted avg": {
+          "precision": 0.8244949494949495,
+          "recall": 0.82,
+          "f1-score": 0.8194771241830066,
+          "support": 50.0
+        }
+      },
+      "confusion_matrix_labels": [
+        "role_claim",
+        "check_claim",
+        "vote_intent",
+        "discussion",
+        "low_info",
+        "suspected_violation"
+      ],
+      "confusion_matrix": [
+        [
+          7,
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          8,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          7,
+          3,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          0,
+          7,
+          0,
+          2
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          7,
+          0
+        ],
+        [
+          1,
+          0,
+          1,
+          0,
+          0,
+          5
+        ]
+      ],
+      "keyword_baseline": {
+        "accuracy": 0.6,
+        "macro_f1": 0.5515359477124183,
+        "classification_report": {
+          "role_claim": {
+            "precision": 0.8571428571428571,
+            "recall": 0.75,
+            "f1-score": 0.8,
+            "support": 8.0
+          },
+          "check_claim": {
+            "precision": 0.6666666666666666,
+            "recall": 0.75,
+            "f1-score": 0.7058823529411765,
+            "support": 8.0
+          },
+          "vote_intent": {
+            "precision": 0.6,
+            "recall": 0.9,
+            "f1-score": 0.72,
+            "support": 10.0
+          },
+          "discussion": {
+            "precision": 0.375,
+            "recall": 0.3,
+            "f1-score": 0.3333333333333333,
+            "support": 10.0
+          },
+          "low_info": {
+            "precision": 0.6666666666666666,
+            "recall": 0.8571428571428571,
+            "f1-score": 0.75,
+            "support": 7.0
+          },
+          "suspected_violation": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1-score": 0.0,
+            "support": 7.0
+          },
+          "accuracy": 0.6,
+          "macro avg": {
+            "precision": 0.5275793650793651,
+            "recall": 0.5928571428571429,
+            "f1-score": 0.5515359477124183,
+            "support": 50.0
+          },
+          "weighted avg": {
+            "precision": 0.532142857142857,
+            "recall": 0.6,
+            "f1-score": 0.5566078431372549,
+            "support": 50.0
+          }
+        }
+      },
+      "entities": {
+        "player_ids": {
+          "total": 50,
+          "exact_match_count": 50,
+          "exact_match_accuracy": 1.0,
+          "gold_nonempty_rows": 32,
+          "predicted_nonempty_rows": 32,
+          "nonempty_exact_match_count": 32,
+          "nonempty_exact_match_accuracy": 1.0,
+          "gold_items": 48,
+          "predicted_items": 48,
+          "true_positive_items": 48,
+          "precision": 1.0,
+          "recall": 1.0,
+          "note": "Set exact match for arrays; scalar exact match otherwise. Conditions compare literal text, not semantic equivalence."
+        },
+        "claimed_role": {
+          "total": 50,
+          "exact_match_count": 48,
+          "exact_match_accuracy": 0.96,
+          "gold_nonempty_rows": 10,
+          "predicted_nonempty_rows": 8,
+          "nonempty_exact_match_count": 8,
+          "nonempty_exact_match_accuracy": 0.8,
+          "gold_items": 10,
+          "predicted_items": 8,
+          "true_positive_items": 8,
+          "precision": 1.0,
+          "recall": 0.8,
+          "note": "Set exact match for arrays; scalar exact match otherwise. Conditions compare literal text, not semantic equivalence."
+        },
+        "check_claims": {
+          "total": 50,
+          "exact_match_count": 47,
+          "exact_match_accuracy": 0.94,
+          "gold_nonempty_rows": 9,
+          "predicted_nonempty_rows": 6,
+          "nonempty_exact_match_count": 6,
+          "nonempty_exact_match_accuracy": 0.6666666666666666,
+          "gold_items": 10,
+          "predicted_items": 6,
+          "true_positive_items": 6,
+          "precision": 1.0,
+          "recall": 0.6,
+          "note": "Set exact match for arrays; scalar exact match otherwise. Conditions compare literal text, not semantic equivalence."
+        },
+        "check_target": {
+          "total": 50,
+          "exact_match_count": 48,
+          "exact_match_accuracy": 0.96,
+          "gold_nonempty_rows": 8,
+          "predicted_nonempty_rows": 6,
+          "nonempty_exact_match_count": 6,
+          "nonempty_exact_match_accuracy": 0.75,
+          "gold_items": 8,
+          "predicted_items": 6,
+          "true_positive_items": 6,
+          "precision": 1.0,
+          "recall": 0.75,
+          "note": "Set exact match for arrays; scalar exact match otherwise. Conditions compare literal text, not semantic equivalence."
+        },
+        "check_result": {
+          "total": 50,
+          "exact_match_count": 48,
+          "exact_match_accuracy": 0.96,
+          "gold_nonempty_rows": 8,
+          "predicted_nonempty_rows": 6,
+          "nonempty_exact_match_count": 6,
+          "nonempty_exact_match_accuracy": 0.75,
+          "gold_items": 8,
+          "predicted_items": 6,
+          "true_positive_items": 6,
+          "precision": 1.0,
+          "recall": 0.75,
+          "note": "Set exact match for arrays; scalar exact match otherwise. Conditions compare literal text, not semantic equivalence."
+        },
+        "vote_target": {
+          "total": 50,
+          "exact_match_count": 46,
+          "exact_match_accuracy": 0.92,
+          "gold_nonempty_rows": 9,
+          "predicted_nonempty_rows": 9,
+          "nonempty_exact_match_count": 7,
+          "nonempty_exact_match_accuracy": 0.7777777777777778,
+          "gold_items": 9,
+          "predicted_items": 9,
+          "true_positive_items": 7,
+          "precision": 0.7777777777777778,
+          "recall": 0.7777777777777778,
+          "note": "Set exact match for arrays; scalar exact match otherwise. Conditions compare literal text, not semantic equivalence."
+        },
+        "follow_target": {
+          "total": 50,
+          "exact_match_count": 49,
+          "exact_match_accuracy": 0.98,
+          "gold_nonempty_rows": 1,
+          "predicted_nonempty_rows": 0,
+          "nonempty_exact_match_count": 0,
+          "nonempty_exact_match_accuracy": 0.0,
+          "gold_items": 1,
+          "predicted_items": 0,
+          "true_positive_items": 0,
+          "precision": null,
+          "recall": 0.0,
+          "note": "Set exact match for arrays; scalar exact match otherwise. Conditions compare literal text, not semantic equivalence."
+        },
+        "excluded_vote_targets": {
+          "total": 50,
+          "exact_match_count": 49,
+          "exact_match_accuracy": 0.98,
+          "gold_nonempty_rows": 3,
+          "predicted_nonempty_rows": 2,
+          "nonempty_exact_match_count": 2,
+          "nonempty_exact_match_accuracy": 0.6666666666666666,
+          "gold_items": 3,
+          "predicted_items": 2,
+          "true_positive_items": 2,
+          "precision": 1.0,
+          "recall": 0.6666666666666666,
+          "note": "Set exact match for arrays; scalar exact match otherwise. Conditions compare literal text, not semantic equivalence."
+        },
+        "withdrawn_vote_targets": {
+          "total": 50,
+          "exact_match_count": 50,
+          "exact_match_accuracy": 1.0,
+          "gold_nonempty_rows": 2,
+          "predicted_nonempty_rows": 2,
+          "nonempty_exact_match_count": 2,
+          "nonempty_exact_match_accuracy": 1.0,
+          "gold_items": 2,
+          "predicted_items": 2,
+          "true_positive_items": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "note": "Set exact match for arrays; scalar exact match otherwise. Conditions compare literal text, not semantic equivalence."
+        },
+        "vote_mode": {
+          "total": 50,
+          "exact_match_count": 46,
+          "exact_match_accuracy": 0.92,
+          "gold_nonempty_rows": 50,
+          "predicted_nonempty_rows": 50,
+          "nonempty_exact_match_count": 46,
+          "nonempty_exact_match_accuracy": 0.92,
+          "gold_items": 50,
+          "predicted_items": 50,
+          "true_positive_items": 46,
+          "precision": 0.92,
+          "recall": 0.92,
+          "note": "Set exact match for arrays; scalar exact match otherwise. Conditions compare literal text, not semantic equivalence."
+        },
+        "vote_condition": {
+          "total": 50,
+          "exact_match_count": 50,
+          "exact_match_accuracy": 1.0,
+          "gold_nonempty_rows": 0,
+          "predicted_nonempty_rows": 0,
+          "nonempty_exact_match_count": 0,
+          "nonempty_exact_match_accuracy": null,
+          "gold_items": 0,
+          "predicted_items": 0,
+          "true_positive_items": 0,
+          "precision": null,
+          "recall": null,
+          "note": "Set exact match for arrays; scalar exact match otherwise. Conditions compare literal text, not semantic equivalence."
+        },
+        "conditional_vote_alternatives": {
+          "total": 50,
+          "exact_match_count": 49,
+          "exact_match_accuracy": 0.98,
+          "gold_nonempty_rows": 1,
+          "predicted_nonempty_rows": 1,
+          "nonempty_exact_match_count": 0,
+          "nonempty_exact_match_accuracy": 0.0,
+          "gold_items": 1,
+          "predicted_items": 1,
+          "true_positive_items": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "note": "Set exact match for arrays; scalar exact match otherwise. Conditions compare literal text, not semantic equivalence."
+        },
+        "agreement_target": {
+          "total": 50,
+          "exact_match_count": 50,
+          "exact_match_accuracy": 1.0,
+          "gold_nonempty_rows": 2,
+          "predicted_nonempty_rows": 2,
+          "nonempty_exact_match_count": 2,
+          "nonempty_exact_match_accuracy": 1.0,
+          "gold_items": 2,
+          "predicted_items": 2,
+          "true_positive_items": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "note": "Set exact match for arrays; scalar exact match otherwise. Conditions compare literal text, not semantic equivalence."
+        },
+        "agreement_targets": {
+          "total": 50,
+          "exact_match_count": 50,
+          "exact_match_accuracy": 1.0,
+          "gold_nonempty_rows": 2,
+          "predicted_nonempty_rows": 2,
+          "nonempty_exact_match_count": 2,
+          "nonempty_exact_match_accuracy": 1.0,
+          "gold_items": 2,
+          "predicted_items": 2,
+          "true_positive_items": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "note": "Set exact match for arrays; scalar exact match otherwise. Conditions compare literal text, not semantic equivalence."
+        },
+        "suspect_target": {
+          "total": 50,
+          "exact_match_count": 49,
+          "exact_match_accuracy": 0.98,
+          "gold_nonempty_rows": 3,
+          "predicted_nonempty_rows": 2,
+          "nonempty_exact_match_count": 2,
+          "nonempty_exact_match_accuracy": 0.6666666666666666,
+          "gold_items": 3,
+          "predicted_items": 2,
+          "true_positive_items": 2,
+          "precision": 1.0,
+          "recall": 0.6666666666666666,
+          "note": "Set exact match for arrays; scalar exact match otherwise. Conditions compare literal text, not semantic equivalence."
+        },
+        "suspect_targets": {
+          "total": 50,
+          "exact_match_count": 49,
+          "exact_match_accuracy": 0.98,
+          "gold_nonempty_rows": 3,
+          "predicted_nonempty_rows": 2,
+          "nonempty_exact_match_count": 2,
+          "nonempty_exact_match_accuracy": 0.6666666666666666,
+          "gold_items": 3,
+          "predicted_items": 2,
+          "true_positive_items": 2,
+          "precision": 1.0,
+          "recall": 0.6666666666666666,
+          "note": "Set exact match for arrays; scalar exact match otherwise. Conditions compare literal text, not semantic equivalence."
+        },
+        "support_target": {
+          "total": 50,
+          "exact_match_count": 48,
+          "exact_match_accuracy": 0.96,
+          "gold_nonempty_rows": 2,
+          "predicted_nonempty_rows": 0,
+          "nonempty_exact_match_count": 0,
+          "nonempty_exact_match_accuracy": 0.0,
+          "gold_items": 2,
+          "predicted_items": 0,
+          "true_positive_items": 0,
+          "precision": null,
+          "recall": 0.0,
+          "note": "Set exact match for arrays; scalar exact match otherwise. Conditions compare literal text, not semantic equivalence."
+        },
+        "support_targets": {
+          "total": 50,
+          "exact_match_count": 48,
+          "exact_match_accuracy": 0.96,
+          "gold_nonempty_rows": 2,
+          "predicted_nonempty_rows": 0,
+          "nonempty_exact_match_count": 0,
+          "nonempty_exact_match_accuracy": 0.0,
+          "gold_items": 2,
+          "predicted_items": 0,
+          "true_positive_items": 0,
+          "precision": null,
+          "recall": 0.0,
+          "note": "Set exact match for arrays; scalar exact match otherwise. Conditions compare literal text, not semantic equivalence."
+        }
+      },
+      "intent_error_count": 9,
+      "any_entity_error_count": 12,
+      "latency_ms": {
+        "median": 0.3144000074826181,
+        "p95": 0.39865500875748694,
+        "batch_seconds": 0.016433299984782934,
+        "scope": "loaded model,classification+entity extraction; initialization excluded"
+      },
+      "limitations": [
+        "Same author as training pool; source-group holdout only.",
+        "Not real DeepSeek game validation.",
+        "Entity condition exact text score is not semantic correctness."
+      ]
+    }
+  },
+  "real_domain_check": {
+    "count": 0,
+    "status": "awaiting B/C actual game logs"
+  }
+}

@@ -1,0 +1,19 @@
+# 数据来源与使用边界
+
+主池474条：354条训练、120条按source_group留出测试。另有50条助手编写的模拟代理探针，不用于训练。
+主池中54条来自研究数据的公开发言（42条完整原话、12条有记录的适配），420条由助手编写。
+这些数据不代表全部来自真人，也不是真实项目DeepSeek对局日志。
+
+研究来源：[ReneeYe/werewolf_game_reasoning](https://huggingface.co/datasets/ReneeYe/werewolf_game_reasoning/tree/7d7d516f780879dbe9f512ef29655f51548f7578)。
+固定修订为7d7d516f780879dbe9f512ef29655f51548f7578。
+原数据卡声明MIT许可；原卡副本见sources/makto/dataset_card.md，下载URL和SHA256见download_manifest.json。
+源speech_zh.parquet的SHA256为f51be622afb8fc5531ab15018a891a4626a37bf7aa903cbe48592bc20fb7cf02。
+只取response中的公开“发言”，不读取prompt、私有思考或真实角色作为模型特征。
+样本的source_id、source_row、source_type等列保留追溯信息；适配与合并的原文记录见research_provenance.jsonl。
+
+完整发言只保留一个主标签，同时标注全部支持的实体。同来源变体合并分组；训练与留出组不相交。
+训练仅使用public_text，来源、编号、金标实体和审查状态均不作为特征。
+CSV审查状态来自原始标注快照，不代表C/E已经审核。
+test_frozen.csv是同作者来源组留出集；框架要求的C/E独立测试尚未完成。
+synthetic_agent_probe.csv是模拟风格材料，不是DeepSeek生成或真实日志；domain_check.csv目前无真实样本。
+不能使用已公开的留出错误调参后，继续将同一数据的新分数称为独立测试成绩。

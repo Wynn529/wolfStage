@@ -1,0 +1,360 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Small-model response with entity-rules-v0.3.1",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "game_id": {
+      "type": "string"
+    },
+    "event_id": {
+      "type": "string"
+    },
+    "speaker_id": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 6
+    },
+    "public_text": {
+      "type": "string"
+    },
+    "intent": {
+      "enum": [
+        "role_claim",
+        "check_claim",
+        "vote_intent",
+        "discussion",
+        "low_info",
+        "suspected_violation"
+      ]
+    },
+    "confidence": {
+      "type": "null"
+    },
+    "confidence_type": {
+      "const": "not_calibrated"
+    },
+    "score": {
+      "type": "number"
+    },
+    "score_type": {
+      "const": "linear_svc_ovr_decision_function"
+    },
+    "score_gap": {
+      "type": "number"
+    },
+    "class_scores": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "role_claim": {
+          "type": "number"
+        },
+        "check_claim": {
+          "type": "number"
+        },
+        "vote_intent": {
+          "type": "number"
+        },
+        "discussion": {
+          "type": "number"
+        },
+        "low_info": {
+          "type": "number"
+        },
+        "suspected_violation": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "role_claim",
+        "check_claim",
+        "vote_intent",
+        "discussion",
+        "low_info",
+        "suspected_violation"
+      ]
+    },
+    "extracted_entities": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "player_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 6
+          },
+          "uniqueItems": true
+        },
+        "claimed_role": {
+          "enum": [
+            null,
+            "villager",
+            "seer",
+            "werewolf"
+          ]
+        },
+        "check_claims": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "target",
+              "result",
+              "night"
+            ],
+            "properties": {
+              "target": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 6
+              },
+              "result": {
+                "enum": [
+                  "wolf",
+                  "non_wolf"
+                ]
+              },
+              "night": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 1
+              }
+            }
+          }
+        },
+        "check_target": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 6
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "check_result": {
+          "enum": [
+            null,
+            "wolf",
+            "non_wolf"
+          ]
+        },
+        "vote_target": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 6
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "follow_target": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 6
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "excluded_vote_targets": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 6
+          },
+          "uniqueItems": true
+        },
+        "withdrawn_vote_targets": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 6
+          },
+          "uniqueItems": true
+        },
+        "vote_mode": {
+          "enum": [
+            "affirmative",
+            "negative",
+            "conditional",
+            "follow_unresolved",
+            "multiple_unresolved",
+            "abstain",
+            "withdrawn_unresolved",
+            "not_expressed_or_unresolved"
+          ]
+        },
+        "vote_condition": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "conditional_vote_alternatives": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "target",
+              "condition"
+            ],
+            "properties": {
+              "target": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 6
+              },
+              "condition": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "agreement_target": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 6
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "agreement_targets": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 6
+          },
+          "uniqueItems": true
+        },
+        "suspect_target": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 6
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "suspect_targets": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 6
+          },
+          "uniqueItems": true
+        },
+        "support_target": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 6
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "support_targets": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 6
+          },
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "player_ids",
+        "claimed_role",
+        "check_claims",
+        "check_target",
+        "check_result",
+        "vote_target",
+        "follow_target",
+        "excluded_vote_targets",
+        "withdrawn_vote_targets",
+        "vote_mode",
+        "vote_condition",
+        "conditional_vote_alternatives",
+        "agreement_target",
+        "agreement_targets",
+        "suspect_target",
+        "suspect_targets",
+        "support_target",
+        "support_targets"
+      ]
+    },
+    "advisory_flags": {
+      "type": "array",
+      "items": {
+        "const": "suspected_violation"
+      },
+      "maxItems": 1
+    },
+    "model_version": {
+      "const": "small-intent-v0.1"
+    },
+    "schema_version": {
+      "const": "small-intent-schema-v0.3"
+    },
+    "entity_rule_version": {
+      "const": "entity-rules-v0.3.1"
+    },
+    "entity_source": {
+      "const": "deterministic_public_text_rules"
+    },
+    "latency_ms": {
+      "type": "number",
+      "minimum": 0
+    }
+  },
+  "required": [
+    "game_id",
+    "event_id",
+    "speaker_id",
+    "public_text",
+    "intent",
+    "confidence",
+    "confidence_type",
+    "score",
+    "score_type",
+    "score_gap",
+    "class_scores",
+    "extracted_entities",
+    "advisory_flags",
+    "model_version",
+    "schema_version",
+    "entity_rule_version",
+    "entity_source",
+    "latency_ms"
+  ]
+}

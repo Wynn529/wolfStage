@@ -1,0 +1,18 @@
+{
+  "model_version": "small-intent-v0.1",
+  "timestamp_utc": "2026-10-24T03:57:59.069998+00:00",
+  "code_and_data_frozen_before_external_scoring": true,
+  "hashes": {
+    "model\\classifier.joblib": "f698b4b67f70e85a898ca149200ce4a6665525943c33112155f8fad456c7aef3",
+    "data\\test_frozen.csv": "ae05b22f3142ad87a786b9885f8498ac8cd68231b92ec56c0587b005cd572497",
+    "data\\synthetic_agent_probe.csv": "6ef891856dca00435c01ee71ab2b0e3855bfbdcc70db10aed74d7bd942cf2bab",
+    "model\\baseline.py": "6b6e57fe18cf8b58d9c3bbaeade0c89084225199eb5eaf08a7215f0b8b6ee026",
+    "model\\common.py": "b39aec5f9ace869b62bcb5aab962f157f349de05931419b5ff680766c7f8c661",
+    "model\\entities.py": "f0ab8965c630faddd00199a5107b37edfd1bd97c015b3cb9453b2ff676022bc8",
+    "model\\evaluate.py": "57f8518240ce9eee7b09522673418b944f584551020c93dada470dc307c75aa3",
+    "model\\predict.py": "d76269adcd48bfb65898cdbbf5365748ec55e432d1b39db3a92335afb0a919ed",
+    "model\\train.py": "3354697a93290018dcf3228eafbe15f9863b6e4927ae3609f51e2a6acd6f0e76",
+    "model\\__init__.py": "7ab64067180c3ef6efabbb2d925aadafcabca566613ba4c9f5b945a75b244e0e"
+  },
+  "protocol": "Select on training group CV; freeze model and rules; evaluate test and probe once; no feedback tuning."
+}
