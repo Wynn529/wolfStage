@@ -2,7 +2,6 @@
 
 主池474条：354条训练、120条按source_group留出测试。另有50条助手编写的模拟代理探针，不用于训练。
 主池中54条来自研究数据的公开发言（42条完整原话、12条有记录的适配），420条由助手编写。
-这些数据不代表全部来自真人，也不是真实项目DeepSeek对局日志。
 
 研究来源：[ReneeYe/werewolf_game_reasoning](https://huggingface.co/datasets/ReneeYe/werewolf_game_reasoning/tree/7d7d516f780879dbe9f512ef29655f51548f7578)。
 固定修订为7d7d516f780879dbe9f512ef29655f51548f7578。
