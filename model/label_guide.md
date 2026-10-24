@@ -1,8 +1,8 @@
 # 完整发言标注规范 v0.3
 
-当前推荐实现为entity-rules-v0.3.1，见interface.md。下文是已经批准的标注口径；没有为提高回归数字而改写原数据。
+这里的实现为entity-rules-v0.3.1，见interface.md。
 
-输入只含公开文本与公开说话人编号。禁止读隐藏真实身份、私密行动、私有推理。每条发言一个主标签，优先级：suspected_violation > check_claim > role_claim > vote_intent > discussion > low_info。实体是另外的人工标注目标；当前实现entity-rules-v0.3.1确定性抽取器；原实验保留v0.1，其预测与本标注规范的实际差距见分版本实测报告，不能把人工标注直接当作抽取结果。
+输入只含公开文本与公开说话人编号。禁止读隐藏真实身份、私密行动、私有推理。每条发言一个主标签，优先级：suspected_violation > check_claim > role_claim > vote_intent > discussion > low_info。当前实现了entity-rules-v0.3.1确定性抽取器，实验保留了v0.1。
 
 |标签|属于|不属于|
 |---|---|---|
