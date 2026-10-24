@@ -1,6 +1,6 @@
 # A 部分接口与复现
 
-分类模型：small-intent-v0.1；推荐实体规则：entity-rules-v0.3.1；输出结构：small-intent-schema-v0.3。
+分类模型：small-intent-v0.1 实体规则：entity-rules-v0.3.1 输出结构：small-intent-schema-v0.3。
 
 在仓库根目录使用 Python 3.12，安装：
 
@@ -45,9 +45,9 @@ python -m model.evaluate --output outputs/reproduced_v01
 python -m unittest discover -s tests -p "test_a_*.py" -v
 ```
 
-依赖版本包含运行和训练所需库；上述测试仅使用标准库与运行依赖。
-训练重新执行分组交叉验证；评估入口复现旧规则，不能当成新版实体规则成绩。
-上传用测试集是从同作者数据池按来源组留出的120条，未满足C/E独立作者测试要求。
+依赖版本包含运行和训练所需，上述测试使用标准库与运行依赖。
+训练重新执行分组交叉验证，评估入口复现旧规则。
+上传用测试集是从同作者数据池按来源组留出的120条，还需要C/E独立测试。
 50条探针是助手手写模拟代理风格，不是真实DeepSeek输出；真实对局验证目前为0。
 domain_check.csv 是空模板，待真实B/C对局日志；不可将模拟数据填入并称为真实域内验证。
 旧分类结果见 evidence/small_model_report.md；当前实体诊断见 evidence/entity_v031/report.md。
