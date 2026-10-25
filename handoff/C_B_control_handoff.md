@@ -1,6 +1,6 @@
-# C → B：控制适配完成交接（v0.2）
+# C → B：控制适配完成交接（v0.3）
 
-本次按《B接口核查与待补清单》中的C责任完成，不按原日程等待。B源码及interface_protocol.md未修改。C成果使用独立c-ui-baseline分支交接；本交接没有替B确认契约，也没有代用户发送消息。
+本次按《B接口核查与待补清单》中的C责任完成，不按原日程等待。B源码及interface_protocol.md未修改。C成果已按用户要求合入main；本交接没有替B确认契约，也没有代用户发送消息。
 
 ## C已经交什么
 
@@ -12,14 +12,18 @@
 | K03 状态适配 | 配置映射字段/路径，校验game_id、状态、游标、布尔字段；非法契约拒绝启用 | 跨局、未知状态、错误布尔、非法游标、paused仍在途等异常回归 |
 | G04/K04 统计核对 | 保留B汇总原件，按calls重算玩家/主持/小模型/评审、首轮/重试、失败/fallback；未知token不记0，差异提示不修原件 | 部分缺失/全部本地不适用/调用数不一致测试；费用未计算 |
 | K05 失败停机 | failed/finished/incomplete/degraded、模型/分类失败、控制歧义、事件错误都停止自动；只读刷新不越过未决控制 | 四类终态、legacy超时后刷新仍锁定、连续无进展上限回归 |
-| 第六节1—6 | 单请求顺序自动调度、稳定局号与操作ID、等待/暂停展示、终态停、超时只读恢复、增量消费 | C自动化28项全部通过；同一完整测试中原项目32项也通过 |
+| 第六节1—6 | 单请求顺序自动调度、稳定局号与操作ID、等待/暂停展示、终态停、超时只读恢复、增量消费 | C自动化29项全部通过；同一完整测试中原项目32项也通过 |
 
 后台任务不写Streamlit会话，只有页面轮询收集结果。记录恢复不会自动继续运行。浏览器关闭后不承诺后台持续自动调度，已发请求可能仍会完成；重连应按操作ID核对。每个控制器只管理一个浏览器会话，不能替代B的全局互斥或跨进程幂等。
 
+## v0.3补充
+
+投票/重投/放逐/终局已采用中文展示并保留B原始记录；新增回放前缀与不重算票数的回归。独立Python3.12环境安装、pip check、A/B/UI启动与全量回归通过（61项，37.53秒）。使用同机独立副本和端口，无付费调用，不代表跨机器验收。安装见docs/c_quick_start.md，完整验收见evidence/c_ui_v03_acceptance.md。C/E人工核验与独立数据空表已备好，实际评分/新增独立样本仍为0。
+
 ## 核查结果
 
-- `scripts/verify-c-control.ps1 -PythonExe <python.exe> -FullSuite`：**60 passed，34.61s**，2条上游WebSocket弃用提示（包含完整stub局回放扩展验收）。
-- 其中C相关28项，原项目32项；与此前针对性13项检查不是可以直接累加的“全部通过”数字。
+- `scripts/verify-c-control.ps1 -PythonExe <python.exe> -FullSuite`：**61 passed，34.38s**，2条上游WebSocket弃用提示（包含完整stub局回放扩展验收）。
+- 其中C相关29项，原项目32项；与此前针对性13项检查不是可以直接累加的“全部通过”数字。
 - 增强控制在 `tests/reference_control_service.py` 参考服务上通过。它明显标REFERENCE_TEST_ONLY，使用虚构测试事件，不是B实现、DeepSeek游戏或正式场次数。
 - 旧服务兼容通过：A真实本地HTTP + B原GameEngine/FastAPI + C AppTest，玩家明确StubAgent；无付费API请求。
 - 扩展验收：网页控制完整stub局至终态，再回放多次前进/后退；回放期间禁止全部B HTTP，原件字节/修改时间不变。实际浏览器在已有历史stub局完成0→1→7游标及下载，下载ZIP与B原件逐字节一致；见evidence/c_replay_browser_check.json。
@@ -53,7 +57,7 @@ python -m venv .venv
 .\scripts\verify-c-control.ps1 -FullSuite
 ```
 
-脚本临时清除当前进程的API密钥/接口配置，测试后恢复，避免带真实密钥调用。默认仅跑C的28项；FullSuite包含原项目。生成的verify日志/XML会更新，初始失败记录不会被覆盖。
+脚本临时清除当前进程的API密钥/接口配置，测试后恢复，避免带真实密钥调用。默认仅跑C的29项；FullSuite包含原项目。生成的verify日志/XML会更新，初始失败记录不会被覆盖。
 
 若只运行pytest，命令为 `python -m pytest -q tests/test_ui_control.py tests/test_ui.py`。测试应在离线玩家模式；测试中自行启动临时本地HTTP，不需要外网API。
 

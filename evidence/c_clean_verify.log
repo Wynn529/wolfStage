@@ -1,0 +1,13 @@
+.............................................................            [100%]
+============================== warnings summary ===============================
+tests/test_ui.py::test_streamlit_controls_use_b_and_attach_actual_a_labels
+  C:\Users\coco_\Documents\Codex\2026-10-25\new-chat-2\work\clean-c-env\Lib\site-packages\websockets\legacy\__init__.py:6: DeprecationWarning: websockets.legacy is deprecated; see https://websockets.readthedocs.io/en/stable/howto/upgrade.html for upgrade instructions
+    warnings.warn(  # deprecated in 14.0 - 2024-11-09
+
+tests/test_ui.py::test_streamlit_controls_use_b_and_attach_actual_a_labels
+  C:\Users\coco_\Documents\Codex\2026-10-25\new-chat-2\work\clean-c-env\Lib\site-packages\uvicorn\protocols\websockets\websockets_impl.py:17: DeprecationWarning: websockets.server.WebSocketServerProtocol is deprecated
+    from websockets.server import WebSocketServerProtocol
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: C:\Users\coco_\Documents\Codex\2026-10-25\new-chat-2\work\c-clean-source\evidence\c_control_verify.xml -
+61 passed, 2 warnings in 37.53s

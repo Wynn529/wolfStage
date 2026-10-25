@@ -1,0 +1,17 @@
+{
+  "python": "fresh Python 3.12 venv",
+  "source": "git archive f368d0b plus C changes under validation",
+  "a_health": {
+    "status": "ok",
+    "model_version": "small-intent-v0.1",
+    "schema_version": "small-intent-schema-v0.3",
+    "confidence_type": "not_calibrated"
+  },
+  "ui_http": 200,
+  "game_id": "c69f2a358d80",
+  "steps": 5,
+  "events": 7,
+  "classification_model": "small-intent-v0.1",
+  "entity_rule": "entity-rules-v0.3.1",
+  "source_scope": "StubAgent players, real local A; no real DeepSeek"
+}

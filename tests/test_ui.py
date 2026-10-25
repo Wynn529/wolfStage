@@ -55,6 +55,66 @@ def test_export_preserves_original_bytes_and_does_not_touch_calls(tmp_path):
         evidence_zip(tmp_path, '../')
 
 
+def test_replay_vote_rounds_keep_b_tally_and_hide_future_results(tmp_path, monkeypatch):
+    """故意让测试票数与逐票不相等，确保页面忠实显示B原件而非偷偷重算。"""
+    from pathlib import Path
+    from streamlit.testing.v1 import AppTest
+    from app.ui_client import GameClient
+    from app.ui_presenter import describe_public
+
+    monkeypatch.delenv('C_SERVICE_CONTRACT', raising=False)
+    monkeypatch.setenv('C_RUNS_DIR', str(tmp_path))
+    monkeypatch.setenv('C_JOURNAL_DIR', str(tmp_path/'journals'))
+    def forbid_http(*args, **kwargs):
+        raise AssertionError('read-only presentation must not request B')
+    monkeypatch.setattr(GameClient, '_request', forbid_http)
+    events = [event(1,'game_created',roles={'1':'wolf','2':'seer'},alive=[1,2,3,4]),
+              event(2,'vote',actor=1,target=2,valid=True),
+              event(3,'vote',actor=2,target=3,valid=True),
+              event(4,'vote_tally',counts={'2':3,'3':3},target=None,revote=False),
+              event(5,'vote',actor=1,target=4),
+              event(6,'vote_tally',counts={'4':1},target=4,revote=True),
+              event(7,'exile',target=4),
+              event(8,'game_over',winner='wolves')]
+    for e in events:
+        e.update(visibility='public',day=1,source='C_PRESENTATION_TEST_ONLY')
+    events[0]['visibility']='host'
+    folder = tmp_path/'g'
+    folder.mkdir()
+    original = '\n'.join(json.dumps(e) for e in events).encode()
+    (folder/'events.jsonl').write_bytes(original)
+    app = AppTest.from_file(str(Path(__file__).resolve().parents[1]/'app/ui.py')).run()
+    app.radio[0].set_value('本地只读回放').run()
+    def move(cursor):
+        app.slider[0].set_value(cursor).run()
+        assert not app.exception
+    def counts():
+        return [item.value['票数（B原件）'].tolist() for item in app.dataframe
+                if '票数（B原件）' in item.value.columns]
+    move(2)
+    assert not counts()
+    assert any('尚未收到这组计票结果' in c.value for c in app.caption)
+    move(4)
+    assert counts() and all(v == [3,3] for v in counts())
+    assert not app.success
+    move(5)
+    assert any('有效性未提供' in item.value.to_string() for item in app.dataframe)
+    move(6)
+    assert [1] in counts()
+    assert not app.success
+    assert next(m.value for m in app.metric if m.label=='存活人数') == '4'
+    move(8)
+    assert any('终局：狼人胜' in item.value for item in app.success)
+    assert next(m.value for m in app.metric if m.label=='存活人数') == '3'
+    move(4)
+    assert not app.success
+    assert next(m.value for m in app.metric if m.label=='存活人数') == '4'
+    assert (folder/'events.jsonl').read_bytes() == original
+    assert describe_public(event(9,'inspection',visibility=[2],result='wolf')) is None
+    assert '未完成' in describe_public(event(10,'game_limit',visibility='public'))
+    assert '未提供' in describe_public(event(11,'vote',visibility='public'))
+
+
 def test_streamlit_controls_use_b_and_attach_actual_a_labels(tmp_path, monkeypatch):
     """真实本地 A HTTP、B HTTP、Streamlit AppTest；玩家为 stub。"""
     import socket

@@ -18,10 +18,11 @@ from app.ui_controller import SessionController
 from app.ui_helpers import (LABELS, ROLES, STATUS, PHASES, project,
                             local_games, read_events, evidence_zip)
 from app.ui_metrics import read_calls, summarize_calls
+from app.ui_presenter import EVENT_NAMES, WINNERS, describe_public, player as player_label, tally_rows, vote_rounds, vote_validity
 
 st.set_page_config(page_title='AI 狼人杀 · 上帝视角', page_icon='🐺', layout='wide')
 st.title('AI 狼人杀 · 上帝视角')
-st.caption('C 控制适配 v0.2 · 2 狼人 / 1 预言家 / 3 平民 · 角色自述依据仅供观察者')
+st.caption('C 界面 v0.3 · 2 狼人 / 1 预言家 / 3 平民 · 角色自述依据仅供观察者')
 st.info('接口联调页面：显示实际来源，不把stub玩家或参考服务称为真实DeepSeek对局。')
 ss = st.session_state
 if 'controller' not in ss:
@@ -44,7 +45,7 @@ with st.sidebar:
     st.header('运行与回放')
     mode = st.radio('模式', ['实时联调', '本地只读回放'])
     url = st.text_input('B 服务地址', os.getenv('B_API_URL', 'http://127.0.0.1:8000'))
-    st.caption('A分类：8765；B游戏：8000；本网页：8501。')
+    st.caption('默认端口：A分类8765、B游戏8000、网页8501；自定义时以启动输出及B地址为准。')
     st.caption(f'契约：{contract.version}；确认人：{contract.confirmed_by or "尚无增强能力确认"}')
     if not contract.ready:
         st.warning('现有B仅开放手动兼容模式。自动调度代码已备好，待B增强契约确认后启用。')
@@ -90,14 +91,16 @@ def render_events(events, status, phase, metrics, game_id, live):
             st.write(ROLES.get(state['roles'].get(player), '身份未提供'))
             st.caption('存活' if player in state['alive'] else '已出局')
     if state['winner']:
-        st.success('终局：' + {'wolves':'狼人胜', 'villagers':'好人胜'}.get(state['winner'],state['winner']))
-    public_tab, private_tab, stats_tab = st.tabs(['公开事件与分类', '仅上帝视角', '统计与原始事件'])
+        st.success('终局：' + WINNERS.get(state['winner'],state['winner']))
+    elif state['status'] == 'incomplete':
+        st.warning('本局达到服务上限，未完成；没有已确认胜方。')
+    public_tab, vote_tab, private_tab, stats_tab = st.tabs(['公开事件与分类', '投票与结果', '仅上帝视角', '统计与原始事件'])
     with public_tab:
         for event in events:
             if event.get('visibility') != 'public' or event['type'] == 'utterance_classification':
                 continue
             with st.container(border=True):
-                st.caption(f"event_id={event['event_id']} · day={event.get('day')} · {event['type']}")
+                st.caption(f"event_id={event['event_id']} · day={event.get('day')} · {EVENT_NAMES.get(event['type'],event['type'])}")
                 if event['type'] == 'public_speech':
                     st.write(f"{event.get('actor')} 号：{event.get('text', '')}")
                     label = state['classifications'].get(str(event['event_id']))
@@ -108,7 +111,45 @@ def render_events(events, status, phase, metrics, game_id, live):
                     else:
                         st.caption('尚无对应分类，请核对A配置或失败记录。')
                 else:
-                    st.json({k:v for k,v in event.items() if k not in {'reason','timestamp'}},expanded=False)
+                    description = describe_public(event)
+                    if description:
+                        st.write(description)
+                    if event['type'] == 'vote_tally':
+                        rows = tally_rows(event)
+                        if rows:
+                            st.dataframe(rows,hide_index=True,use_container_width=True)
+                        else:
+                            st.caption('服务未提供票数。' if rows is None else 'B返回空票数表。')
+                    with st.expander('查看原始公开记录'):
+                        st.json({k:v for k,v in event.items() if k not in {'reason','timestamp'}},expanded=False)
+    with vote_tab:
+        st.caption('按当前已显示事件整理；票数、有效性与裁决沿用B原件，页面不补算。')
+        groups = vote_rounds(events)
+        if not groups:
+            st.info('当前游标尚无公开投票记录。')
+        for index, group in enumerate(groups, 1):
+            with st.container(border=True):
+                st.subheader(f'投票记录 {index} · day={group["day"]}')
+                if group['votes']:
+                    st.dataframe([{'事件':e['event_id'], '投票人':player_label(e.get('actor')),
+                                   '目标':player_label(e.get('target')), '有效性':vote_validity(e.get('valid'))}
+                                  for e in group['votes']],hide_index=True,use_container_width=True)
+                else:
+                    st.caption('当前事件中没有这组逐票记录。')
+                tally = group['tally']
+                if tally is None:
+                    st.caption('尚未收到这组计票结果。')
+                else:
+                    st.write(describe_public(tally))
+                    rows = tally_rows(tally)
+                    if rows:
+                        st.dataframe(rows,hide_index=True,use_container_width=True)
+                    else:
+                        st.caption('服务未提供票数。' if rows is None else 'B返回空票数表。')
+                    st.caption(f'计票原件 event_id={tally["event_id"]}')
+        results = [e for e in events if e.get('visibility')=='public' and e['type'] in {'exile','game_over','game_limit'}]
+        for event in results:
+            st.write(f'#{event["event_id"]} · day={event.get("day")} · {describe_public(event)}')
     with private_tab:
         st.caption('只供本地观察者；页面不回传玩家输入。reason是角色自述依据。')
         for event in events:

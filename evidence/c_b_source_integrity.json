@@ -15,8 +15,8 @@
   },
   "scope": "B source and interface protocol only; C modules are separate files",
   "test_results": {
-    "total_passed": 60,
-    "c_related_passed": 28,
+    "total_passed": 61,
+    "c_related_passed": 29,
     "original_project_passed": 32,
     "warnings": 2,
     "real_deepseek_games": 0,
