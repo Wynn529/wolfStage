@@ -1,0 +1,38 @@
+{
+  "case": "C09 browser replay and raw export",
+  "game_id": "bb4389d30d23",
+  "source": "existing stub players + local A HTTP; unfinished integration game",
+  "browser_actions": [
+    "select local read-only replay",
+    "cursor 0 -> 1 -> 7",
+    "verify 5 alive, speech 6 with classification 7",
+    "download raw ZIP"
+  ],
+  "verified": {
+    "all_original_run_files_sha256_unchanged": true,
+    "download_matches_original_bytes": true,
+    "export_excludes_state": true,
+    "all_original_run_files_mtime_unchanged": true
+  },
+  "checked_files": [
+    "runs\\19e89d90faaf\\calls.jsonl",
+    "runs\\19e89d90faaf\\events.jsonl",
+    "runs\\19e89d90faaf\\state.json",
+    "runs\\19e89d90faaf\\summary.json",
+    "runs\\bb4389d30d23\\calls.jsonl",
+    "runs\\bb4389d30d23\\events.jsonl",
+    "runs\\bb4389d30d23\\state.json",
+    "runs\\bb4389d30d23\\summary.json"
+  ],
+  "export_entries": [
+    "calls.jsonl",
+    "events.jsonl",
+    "summary.json"
+  ],
+  "screenshot": "c_replay_browser_check.png",
+  "automated_full_game": "tests/test_ui.py::test_streamlit_controls_use_b_and_attach_actual_a_labels: full stub game via UI, replay refuses all HTTP, cursor rewind, raw bytes and mtime unchanged",
+  "limits": [
+    "not a real DeepSeek game",
+    "not formal human quality scoring"
+  ]
+}

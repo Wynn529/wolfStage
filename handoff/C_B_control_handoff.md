@@ -18,10 +18,11 @@
 
 ## 核查结果
 
-- `scripts/verify-c-control.ps1 -PythonExe <python.exe> -FullSuite`：**60 passed，24.10s**，2条上游WebSocket弃用提示。
+- `scripts/verify-c-control.ps1 -PythonExe <python.exe> -FullSuite`：**60 passed，34.61s**，2条上游WebSocket弃用提示（包含完整stub局回放扩展验收）。
 - 其中C相关28项，原项目32项；与此前针对性13项检查不是可以直接累加的“全部通过”数字。
 - 增强控制在 `tests/reference_control_service.py` 参考服务上通过。它明显标REFERENCE_TEST_ONLY，使用虚构测试事件，不是B实现、DeepSeek游戏或正式场次数。
 - 旧服务兼容通过：A真实本地HTTP + B原GameEngine/FastAPI + C AppTest，玩家明确StubAgent；无付费API请求。
+- 扩展验收：网页控制完整stub局至终态，再回放多次前进/后退；回放期间禁止全部B HTTP，原件字节/修改时间不变。实际浏览器在已有历史stub局完成0→1→7游标及下载，下载ZIP与B原件逐字节一致；见evidence/c_replay_browser_check.json。
 - 初轮全量回归曾有1失败/58通过：C在操作完成但旧snapshot仍pending时可能停止轮询。已修为needs_poll持续查询，并加回归；旧失败日志保留为 `evidence/c_control_initial_failure.log`，最终结果见verify日志/XML。
 - B的9项文件与之前核查SHA-256一致，并且Git diff为空；确认结果保存在 `evidence/c_b_source_integrity.json`。
 - C实际结果台账：`tests/ui_results.csv`；C修复/B待办：`tests/defect_log.csv`。

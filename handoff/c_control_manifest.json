@@ -45,7 +45,7 @@
     },
     {
       "path": "handoff/C_B_control_handoff.md",
-      "sha256": "9eb55a6a8abbe691c78b6e6955d0e9ef27f6508b884f572c41ca36df0a210e70"
+      "sha256": "c9c547be1ed8a943855b1d7fbeed1badcb7b2dcccd2c8a107539224c390f3cb2"
     },
     {
       "path": "handoff/B接口核查与待补清单.md",
@@ -53,7 +53,7 @@
     },
     {
       "path": "tests/test_ui.py",
-      "sha256": "0a90c4945fa3cf01392540804ef28d930ba73e29fb09ce8feca8be2eff25cae1"
+      "sha256": "45680478916f43eb95dd80c8a9a85c457b3221d2c344b2b406a161f11fa210a6"
     },
     {
       "path": "tests/test_ui_control.py",
@@ -65,11 +65,11 @@
     },
     {
       "path": "tests/ui_cases.md",
-      "sha256": "d5dbb9ce49a9b3d78e9cb5df16629af2a3699fa13b653d682cf880700f94b28b"
+      "sha256": "320c588ed0b96c9ba6a0ea29ec82bb5d8bf6d7ecacfea0fb7f013e7f6b59a8cb"
     },
     {
       "path": "tests/ui_results.csv",
-      "sha256": "e2d8a3160677c88d20cca2b654d5cbced56e7514156c3ab1904a3cf9dcdf1780"
+      "sha256": "fe2a01eb578bc48ef9e306ba0e741ea34cef55db67cc67ae0980061514b68ce0"
     },
     {
       "path": "tests/defect_log.csv",
@@ -89,11 +89,11 @@
     },
     {
       "path": "evidence/c_control_verify.log",
-      "sha256": "7727f1db23289a74721c8a0f93506dd0b0b9f5ca019095957d9f57a54f466a1a"
+      "sha256": "63d0f294ae77937379371e8be8769b1a32638528d1ec68c1731a7c1b2ecb7046"
     },
     {
       "path": "evidence/c_control_verify.xml",
-      "sha256": "3dade66428e91a221e5069e650bb04707405d0513561408a26ac8ce7c1af850b"
+      "sha256": "480167a7b760c6a17b2c1a0826d132eb1875e1491419dd45e7c6197336d16c25"
     },
     {
       "path": "evidence/c_control_initial_failure.log",
@@ -102,6 +102,14 @@
     {
       "path": "evidence/c_b_source_integrity.json",
       "sha256": "9c91cef4ba4b52a4c00c2f1ab2680d9b84d6b101680a8124082fc639974c9d15"
+    },
+    {
+      "path": "evidence/c_replay_browser_check.json",
+      "sha256": "41367dba11da7dede79f15100c0326863ad9dfadbab556918f79295998268a47"
+    },
+    {
+      "path": "evidence/c_replay_browser_check.png",
+      "sha256": "32bfda48a3a1cd9cecb382827d6467285e8b95284e93f609970fd9571911a21c"
     }
   ],
   "entry": "handoff/C_B_control_handoff.md",

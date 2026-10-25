@@ -71,6 +71,7 @@ def test_streamlit_controls_use_b_and_attach_actual_a_labels(tmp_path, monkeypat
 
     monkeypatch.delenv('C_SERVICE_CONTRACT',raising=False)
     monkeypatch.setenv('C_JOURNAL_DIR',str(tmp_path/'journals'))
+    monkeypatch.setenv('C_RUNS_DIR',str(tmp_path/'runs'))
 
     a = make_server(port=0)
     a_thread = threading.Thread(target=a.serve_forever, daemon=True)
@@ -114,6 +115,49 @@ def test_streamlit_controls_use_b_and_attach_actual_a_labels(tmp_path, monkeypat
         click('刷新事件')
         assert len(engine.store.read_calls(gid)) == before
         assert len({e['event_id'] for e in app.session_state['events']}) == len(app.session_state['events'])
+
+        # 完整离线对局经同一网页控制完成，再切本机回放；不算真实API场次。
+        for _ in range(100):
+            if engine.games[gid].status != 'running':
+                break
+            click('单步推进')
+        assert engine.games[gid].status == 'finished'
+        assert next(b for b in app.button if b.label == '单步推进').disabled
+        original_events = engine.store.read(gid)
+        folder = tmp_path/'runs'/gid
+        originals = {p.name:p.read_bytes() for p in folder.iterdir() if p.is_file()}
+        times = {p.name:p.stat().st_mtime_ns for p in folder.iterdir() if p.is_file()}
+        calls_before_replay = len(engine.store.read_calls(gid))
+
+        # 切入只读模式后任何B请求都会使测试失败，包括意外的只读轮询。
+        from app.ui_client import GameClient
+        def forbid_http(*args, **kwargs):
+            raise AssertionError('local replay must not request B or a model')
+        monkeypatch.setattr(GameClient, '_request', forbid_http)
+        app.radio[0].set_value('本地只读回放').run(timeout=20)
+        assert not app.exception
+        assert app.slider[0].value == 0
+        assert not any(m.label == '存活人数' for m in app.metric)
+        last = original_events[-1]['event_id']
+        speech_id = next(e['event_id'] for e in original_events if e['type']=='public_speech')
+        for cursor in (speech_id, last, 0, last):
+            app.slider[0].set_value(cursor).run(timeout=20)
+            assert not app.exception
+            if cursor:
+                assert next(m.value for m in app.metric if m.label=='最后显示 event_id') == str(cursor)
+            if cursor == speech_id:
+                assert not any('终局：' in item.value for item in app.success)
+                assert any('尚无对应分类' in item.value for item in app.caption)
+            if cursor == last:
+                assert any('终局：' in item.value for item in app.success)
+        with zipfile.ZipFile(io.BytesIO(evidence_zip(tmp_path/'runs', gid))) as archive:
+            expected = {n for n in originals if n in {'events.jsonl','calls.jsonl','errors.jsonl','summary.json'}}
+            assert set(archive.namelist()) == {f'{gid}/{n}' for n in expected}
+            for name in expected:
+                assert archive.read(f'{gid}/{name}') == originals[name]
+        assert len(engine.store.read_calls(gid)) == calls_before_replay
+        assert {p.name:p.read_bytes() for p in folder.iterdir() if p.is_file()} == originals
+        assert {p.name:p.stat().st_mtime_ns for p in folder.iterdir() if p.is_file()} == times
     finally:
         server.should_exit = True
         worker.join(timeout=10)
