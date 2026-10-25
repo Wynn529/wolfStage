@@ -1,0 +1,25 @@
+{
+  "baseline_commit": "c4b64e4828cf3ee64d440d37a31aab72eea40945",
+  "b_files_unchanged": true,
+  "compared_count": 9,
+  "sha256": {
+    "app/api.py": "c98f168435e89a3f2dfba862b98dd13e97c4168920a3a887b5b2b126405178f0",
+    "app/engine.py": "4e55645539a7bae7c68b3f3ab1670ac118c75dc77294e210d3c54940c9ec00d2",
+    "app/agents.py": "371c2b1b9c53f9b5fcc057dc8c501edd500c0308dfb9096c34fd35f7390298e0",
+    "app/rules.py": "6e8a49cc5001273baaa872edbcefb72eaf075921ea8105725355ab8103f4e676",
+    "app/metrics.py": "2007280c293eebeedd342ef17172d34f0dc79a6fb056126918585a3440fffe05",
+    "app/events.py": "6ecba22a6c070a5875fd98b2b2403c241fe980e4ec135d02913377bc67aa1fd3",
+    "app/classifier.py": "eba1e147e85956ee06cafbc4b7816af5bd48a35219a5ecdf4f23965b4f605966",
+    "app/deepseek_client.py": "2d8f0e77cb43cde8a3b664310c22d23bf6b6c3079ea8a62a4e562b78ba58b203",
+    "interface_protocol.md": "2218064361e1c777593ef1c473f9599f44211c6a7d8f8fce009b5a6676a49e1e"
+  },
+  "scope": "B source and interface protocol only; C modules are separate files",
+  "test_results": {
+    "total_passed": 60,
+    "c_related_passed": 28,
+    "original_project_passed": 32,
+    "warnings": 2,
+    "real_deepseek_games": 0,
+    "reference_service_is_B_implementation": false
+  }
+}

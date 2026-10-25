@@ -1,0 +1,52 @@
+.......................................................F...              [100%]
+================================== FAILURES ===================================
+_______________ test_streamlit_reference_auto_pause_and_finish ________________
+
+tmp_path = WindowsPath('C:/Users/coco_/Documents/Codex/2026-10-25/new-chat-2/work/pip-tmp/pytest-of-coco_/pytest-6/test_streamlit_reference_auto_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000142D5D06FC0>
+
+    def test_streamlit_reference_auto_pause_and_finish(tmp_path,monkeypatch):
+        from dataclasses import asdict
+        from streamlit.testing.v1 import AppTest
+        contract_path=tmp_path/'test-only-contract.json'
+        contract_path.write_text(json.dumps(asdict(reference_contract())),encoding='utf-8')
+        monkeypatch.setenv('C_SERVICE_CONTRACT',str(contract_path))
+        monkeypatch.setenv('C_JOURNAL_DIR',str(tmp_path/'journals'))
+        with serve_reference(delay=.5) as (service,url):
+            monkeypatch.setenv('B_API_URL',url)
+            app=AppTest.from_file(str(Path(__file__).resolve().parents[1]/'app/ui.py')).run(timeout=15)
+            def click(label):
+                next(b for b in app.button if b.label==label).click().run(timeout=15)
+                assert not app.exception
+            click('新建对局')
+            click('自动运行')
+            c=app.session_state['controller']
+            assert c.busy
+            click('暂停')
+            deadline=time.monotonic()+5
+            while (c.busy or c.status!='paused') and time.monotonic()<deadline:
+                time.sleep(.03);app.run(timeout=15)
+>           assert not app.exception and c.status=='paused' and not c.auto
+E           AssertionError: assert (not ElementList() and 'pending' == 'paused'
+E            +  where ElementList() = AppTest(\n    _script_path='C:\\Users\\coco_\\Documents\\Codex\\2026-10-25\\new-chat-2\\outputs\\wolfStage\\app\\ui.py'...on(label='恢复记录（只读查询，不重发）')\n            }\n        ),\n        2: SpecialBlock(\n            type='event'\n        )\n    }\n).exception
+E             
+E             - paused
+E             + pending)
+
+tests\test_ui_control.py:258: AssertionError
+---------------------------- Captured stderr call -----------------------------
+2026-10-25 15:12:33.780 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+============================== warnings summary ===============================
+tests/test_ui.py::test_streamlit_controls_use_b_and_attach_actual_a_labels
+  C:\Users\coco_\Documents\Codex\2026-10-25\new-chat-2\work\check-env\Lib\site-packages\websockets\legacy\__init__.py:6: DeprecationWarning: websockets.legacy is deprecated; see https://websockets.readthedocs.io/en/stable/howto/upgrade.html for upgrade instructions
+    warnings.warn(  # deprecated in 14.0 - 2024-11-09
+
+tests/test_ui.py::test_streamlit_controls_use_b_and_attach_actual_a_labels
+  C:\Users\coco_\Documents\Codex\2026-10-25\new-chat-2\work\check-env\Lib\site-packages\uvicorn\protocols\websockets\websockets_impl.py:17: DeprecationWarning: websockets.server.WebSocketServerProtocol is deprecated
+    from websockets.server import WebSocketServerProtocol
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: C:\Users\coco_\Documents\Codex\2026-10-25\new-chat-2\outputs\wolfStage\evidence\c_control_pytest.xml -
+=========================== short test summary info ===========================
+FAILED tests/test_ui_control.py::test_streamlit_reference_auto_pause_and_finish
+1 failed, 58 passed, 2 warnings in 26.55s

@@ -1,0 +1,15 @@
+# C 本地开发基线
+
+## 本轮C控制适配范围
+
+C实现业务操作ID、同会话单次提交、后台控制请求、只读轮询、等待/暂停申请显示、超时后按操作查询恢复、终态停机、增量去重和统计核对。现有B维持legacy模式，自动功能继续锁定；参考控制契约在docs/c_control_contract.md中单独说明，未冒称B已实现。只有提供已确认契约且实际状态查询验证成功，页面才允许自动运行。参考服务仅用于测试，不混入真实对局证据。B源码/协议保持不变。
+
+本分支开发 C 的 Streamlit 网页，复用 A 的8765分类服务和 B 的8000游戏服务；网页端口8501。先使用离线玩家与真实本地分类模型，界面明确标注来源。真实 DeepSeek 验收另行进行。
+
+入口为 app/ui.py，服务请求集中于 app/ui_client.py，事件投影及只读日志操作集中于 app/ui_helpers.py。UI 不修改 B 的规则、胜负、原始日志或角色输入。当前自动推进暂不开放：B 尚未提供重复提交/并发推进保障。网络超时后先刷新，不自动重试控制请求。
+
+环境安装：Python3.12，依次安装 requirements.txt、model/requirements.txt、requirements-ui.txt。A入口：python -m model.server_v031 --port 8765；B入口：python -m uvicorn app.api:app --host 127.0.0.1 --port 8000；C入口：python -m streamlit run app/ui.py --server.address 127.0.0.1 --server.port 8501。
+
+本地只读日志方案：页面从仓库 runs/ 下读取对局列表与原始日志；回放与导出不请求模型。此方式只适用于 A/B/C 在同一台电脑运行，远程部署需 B 补对应接口。导出保留原始文件字节，不将页面筛选结果当成原始日志。
+
+验收前提：B 已知的 reason 隔离、狼队友击杀、协商、重投、用量和重试记录缺陷仍须由 B 修复；本分支界面不掩盖这些问题。当前只能称为接口联调基线。

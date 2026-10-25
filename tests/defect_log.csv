@@ -1,0 +1,9 @@
+﻿defect_id,owner,problem,observed,action_or_dependency,status,evidence_path
+C-001,C,操作完成但旧snapshot仍pending时页面提前停轮询,全量回归1失败/58通过，保留原日志,补needs_poll持续查询至停稳；已加回归,fixed,evidence/c_control_initial_failure.log;tests/test_ui_control.py::test_pending_snapshot_keeps_polling_after_operation_completed
+C-002,C,旧B控制超时后仅刷新事件不应解除歧义,原界面刷新清除needs_refresh，代码核查修正,legacy保持锁定；增强按同operation_id只读恢复,fixed,tests/test_ui_control.py::test_legacy_timeout_remains_locked_after_read_refresh
+B-G01,B/C,单步单位与new_event返回语义,上一轮实际新增0/1/2/3事件,C多事件适配完成；B确认并更新协议,C_ready_B_confirmation_pending,handoff/B接口核查与待补清单.md
+B-G02,B,模型在途时pause提前确认paused,上一轮受控HTTP已复现,C申请/等待适配完成；B补事件边界确认,open_B,handoff/B接口核查与待补清单.md
+B-G03,B,同局并发advance重复调用同一actor,"上一轮actor=[1,1]，日志/计数不完整",C单会话串行与UUID完成；B仍须互斥和幂等,open_B,handoff/B接口核查与待补清单.md
+B-G04,B,DeepSeek元数据丢弃，未知token汇总为0,上一轮模拟123/45得到0/0,C未知/不适用显示和重算完成；B保存usage,open_B,handoff/B接口核查与待补清单.md
+B-K02,B,旧B缺已确认状态/操作查询,本轮代码核查；增强仅参考服务验证,C接口与字段映射完成；待B真实样例/配置,open_B,docs/c_control_contract.md
+B-K05,B,重试成功标记与分类失败状态,既有核查已发现，本轮不冒称重测,C失败停调度完成；B修日志和恢复语义,open_B,handoff/B接口核查与待补清单.md

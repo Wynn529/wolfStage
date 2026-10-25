@@ -1,0 +1,22 @@
+{
+  "version": "c-control-proposal-v1",
+  "confirmed_by": "",
+  "confirmed_commit": "",
+  "capabilities": {
+    "per_game_serialization": false,
+    "idempotency": false,
+    "boundary_pause": false,
+    "state_query": false,
+    "operation_query": false
+  },
+  "paths": {
+    "state": "/games/{game_id}/state",
+    "operation": "/games/{game_id}/operations/{operation_id}"
+  },
+  "fields": {
+    "operation_id": "operation_id",
+    "expected_event_id": "expected_event_id"
+  },
+  "state_fields": {},
+  "idempotency_header": ""
+}

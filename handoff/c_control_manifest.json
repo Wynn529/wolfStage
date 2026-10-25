@@ -1,0 +1,116 @@
+{
+  "type": "C-only overlay; does not contain B source",
+  "baseline": "c4b64e4828cf3ee64d440d37a31aab72eea40945",
+  "build": "c-ui-v0.2",
+  "files": [
+    {
+      "path": "app/ui.py",
+      "sha256": "9c061d2c45558680295e9e1bd77929f10a52ba842ca011f88261a7f02281f58c"
+    },
+    {
+      "path": "app/ui_client.py",
+      "sha256": "c24e17cd7f2960fc8c77e6df21481379094008667c9fed972c588cacbf1a0a69"
+    },
+    {
+      "path": "app/ui_helpers.py",
+      "sha256": "93551f416ef845c9996378fc4ac7c5ae536199db01dd36d994b8d399c5b9f303"
+    },
+    {
+      "path": "app/ui_contract.py",
+      "sha256": "7229871f5e4974e1425c855ad72abbeeecf593f6891a7ac908cfe02e8e0e003e"
+    },
+    {
+      "path": "app/ui_controller.py",
+      "sha256": "364aaf93ab6aa5f8f8600e29f6b3064460ae73de95d1f15b6b1f218793c2049d"
+    },
+    {
+      "path": "app/ui_metrics.py",
+      "sha256": "18bf7e5b3564a262303e31753978298338db96338c0ecac9d48b3d980a5d3337"
+    },
+    {
+      "path": "requirements-ui.txt",
+      "sha256": "96acad962c7af372f511cbe859636187d66916527a561bffdefe5aa02905b173"
+    },
+    {
+      "path": "config/c_service_contract.example.json",
+      "sha256": "7da8e526208371ffeae5e8c3cf7e8e54011538f8d57ce7aaa7aa2d78dc33acf8"
+    },
+    {
+      "path": "docs/c_development.md",
+      "sha256": "65d57c9e799ad27ceee82c32c65bf49c4a688ce9b96d3341e21eea65c106f02d"
+    },
+    {
+      "path": "docs/c_control_contract.md",
+      "sha256": "c2e8278217c6d3457af5f2b193d3ffbd09c72dc1c829d8c890f3eb43bbda8521"
+    },
+    {
+      "path": "handoff/C_B_control_handoff.md",
+      "sha256": "9eb55a6a8abbe691c78b6e6955d0e9ef27f6508b884f572c41ca36df0a210e70"
+    },
+    {
+      "path": "handoff/B接口核查与待补清单.md",
+      "sha256": "6e608cf3892a1a19264b7b7fcaefaa4516d64d5afc9b6bfe5b2a360c5a4588bb"
+    },
+    {
+      "path": "tests/test_ui.py",
+      "sha256": "0a90c4945fa3cf01392540804ef28d930ba73e29fb09ce8feca8be2eff25cae1"
+    },
+    {
+      "path": "tests/test_ui_control.py",
+      "sha256": "60a142e776cfa9a9c28b2fbb8dd7fbbbcdd2a5de964db5cdf0e5ce12194d3138"
+    },
+    {
+      "path": "tests/reference_control_service.py",
+      "sha256": "2ab39d7b1328264e046b8fd6e615339e29629aa98120079054818efc20c31d92"
+    },
+    {
+      "path": "tests/ui_cases.md",
+      "sha256": "d5dbb9ce49a9b3d78e9cb5df16629af2a3699fa13b653d682cf880700f94b28b"
+    },
+    {
+      "path": "tests/ui_results.csv",
+      "sha256": "e2d8a3160677c88d20cca2b654d5cbced56e7514156c3ab1904a3cf9dcdf1780"
+    },
+    {
+      "path": "tests/defect_log.csv",
+      "sha256": "cb348e7b5918636a8695c1c31bc0bad26d6d5104d0fae9d9687bfa601617abc1"
+    },
+    {
+      "path": "scripts/verify-c-control.ps1",
+      "sha256": "91f3910fcb69fc71edd4923a0b680a15ff0c92c07d8688fb76e36e3fc43ff4f2"
+    },
+    {
+      "path": "scripts/start-demo.ps1",
+      "sha256": "fb610664e4d3b3086832db3a445b5f6e5d568573045491fe001b191f37568ca6"
+    },
+    {
+      "path": "scripts/stop-demo.ps1",
+      "sha256": "f03c2fe5687c05ff38b145fc83f7126cf859f2306656a75ba175191b88acd6a9"
+    },
+    {
+      "path": "evidence/c_control_verify.log",
+      "sha256": "7727f1db23289a74721c8a0f93506dd0b0b9f5ca019095957d9f57a54f466a1a"
+    },
+    {
+      "path": "evidence/c_control_verify.xml",
+      "sha256": "3dade66428e91a221e5069e650bb04707405d0513561408a26ac8ce7c1af850b"
+    },
+    {
+      "path": "evidence/c_control_initial_failure.log",
+      "sha256": "9c92dbe05bcd10a7395d261262e0bd9409923c1ce0797b89e6800ce239e89911"
+    },
+    {
+      "path": "evidence/c_b_source_integrity.json",
+      "sha256": "9c91cef4ba4b52a4c00c2f1ab2680d9b84d6b101680a8124082fc639974c9d15"
+    }
+  ],
+  "entry": "handoff/C_B_control_handoff.md",
+  "tests": {
+    "total_passed": 60,
+    "c_related_passed": 28,
+    "original_project_passed": 32,
+    "warnings": 2,
+    "real_deepseek_games": 0,
+    "reference_service_is_B_implementation": false
+  }
+}
