@@ -24,7 +24,8 @@ def engine():
 def test_create_and_advance(engine):
     created = engine.create_game(42)
     result = engine.advance_one_event(created["game_id"])
-    assert result["new_event"] == 2
+    assert result["new_events"] == [2, 3]
+    assert result["cursor"] == 3
 
 
 def test_full_stub_game_finishes_or_limits(engine):
@@ -110,3 +111,28 @@ def test_restart_recovers_state(tmp_path=None):
     second = GameEngine(root)
     assert gid in second.games
     assert second.games[gid].event_id == first.games[gid].event_id
+
+
+def test_operation_id_is_idempotent(engine):
+    gid = engine.create_game(12)["game_id"]
+    first = engine.advance_one_event(gid, "op-1")
+    second = engine.advance_one_event(gid, "op-1")
+    assert first == second
+    assert len(engine.store.read(gid)) == first["cursor"]
+    conflict = engine.advance_one_event(gid, "op-2", expected_cursor=0)
+    assert conflict["status"] == "conflict"
+    assert engine.get_operation(gid, "op-1")["status"] == "completed"
+
+
+def test_reason_is_not_public(engine):
+    gid = engine.create_game(13)["game_id"]
+    for _ in range(30):
+        engine.advance_one_event(gid)
+        events = engine.store.read(gid)
+        speech = next((e for e in events if e["type"] == "public_speech"), None)
+        if speech:
+            public_view = engine.get_events(gid, view="4")
+            assert "reason" not in speech
+            assert all(e.get("type") != "agent_reason" or e.get("actor") == 4 for e in public_view)
+            return
+    raise AssertionError("stub game did not reach public speech")

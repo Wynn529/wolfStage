@@ -27,15 +27,17 @@ class GameState:
     day_speakers: list[int] = field(default_factory=list)
     day_voted: set[int] = field(default_factory=set)
     classification_by_event: dict[int, dict[str, Any]] = field(default_factory=dict)
+    operation_results: dict[str, dict[str, Any]] = field(default_factory=dict)
+    pause_requested: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         """把集合和整数键转换成 JSON 可保存的状态快照。"""
-        return {"game_id": self.game_id, "seed": self.seed, "roles": self.roles, "alive": sorted(self.alive), "phase": self.phase, "day": self.day, "status": self.status, "event_id": self.event_id, "pending": self.pending, "votes": self.votes, "revote": self.revote, "winner": self.winner, "night_done": list(self.night_done), "day_speakers": self.day_speakers, "day_voted": list(self.day_voted), "classification_by_event": self.classification_by_event}
+        return {"game_id": self.game_id, "seed": self.seed, "roles": self.roles, "alive": sorted(self.alive), "phase": self.phase, "day": self.day, "status": self.status, "event_id": self.event_id, "pending": self.pending, "votes": self.votes, "revote": self.revote, "winner": self.winner, "night_done": list(self.night_done), "day_speakers": self.day_speakers, "day_voted": sorted(self.day_voted), "classification_by_event": self.classification_by_event, "operation_results": self.operation_results, "pause_requested": self.pause_requested}
 
     @classmethod
     def from_dict(cls, value: dict[str, Any]) -> "GameState":
         """从 state.json 快照恢复 GameState，复原集合和整数键。"""
-        return cls(value["game_id"], value.get("seed"), {int(k): v for k, v in value["roles"].items()}, set(value["alive"]), value["phase"], value["day"], value["status"], value["event_id"], value.get("pending", {}), {int(k): int(v) for k, v in value.get("votes", {}).items()}, value.get("revote", False), value.get("winner"), set(value.get("night_done", [])), value.get("day_speakers", []), set(value.get("day_voted", [])), {int(k): v for k, v in value.get("classification_by_event", {}).items()})
+        return cls(value["game_id"], value.get("seed"), {int(k): v for k, v in value["roles"].items()}, set(value["alive"]), value["phase"], value["day"], value["status"], value["event_id"], value.get("pending", {}), {int(k): int(v) for k, v in value.get("votes", {}).items()}, value.get("revote", False), value.get("winner"), set(value.get("night_done", [])), value.get("day_speakers", []), set(value.get("day_voted", [])), {int(k): v for k, v in value.get("classification_by_event", {}).items()}, value.get("operation_results", {}), value.get("pause_requested", False))
 
 
 def assign_roles(seed: int | None = None, role_config: dict[int, str] | None = None) -> dict[int, str]:
