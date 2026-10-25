@@ -1,0 +1,9 @@
+shot_id,stage,required_visible_fields,log_lookup,source_owner,status,notes
+S01,建局,"game_id;seed;六人局角色配置;程序/规则版本","runs/<game_id>/events.jsonl;summary.json",B/C,pending,"录屏从点击建局前开始；角色表只供上帝视角"
+S02,首夜行动,"day;phase;行动玩家;目标;角色自述依据","events.jsonl:event_id;calls.jsonl:call_id",B/C,pending,"秘密仅在上帝视角；不声称展示模型内部推理"
+S03,白天公开发言,"game_id;event_id;speaker_id;public_text;phase","events.jsonl:public_speech",B/C,pending,"完整原文可读"
+S04,小模型分类,"source_event_id;intent;score;model_version;entity_rule_version","events.jsonl:utterance_classification;calls.jsonl",A/B/C,pending,"score为未校准决策分数；投票意向不是正式选票"
+S05,后续代理输入,"前序public_text与intent;后续call_id;行动结果","calls.jsonl:后续请求输入;events.jsonl:正式行动",B/C,pending,"若请求日志未记录授权输入，先补证据，不能推断真实进入"
+S06,投票与规则裁决,"正式票;有效/无效;票数;平票重投状态;放逐结果","events.jsonl:vote/tally/exile",B/C,pending,"规则程序裁决；无效票保留但不计票"
+S07,终局与统计,"胜方或未完成;game_id;模型调用数;失败重试;token","events.jsonl;calls.jsonl;summary.json;GET /metrics",B/C,pending,"同一局、同版；缺失usage写缺失"
+S08,控制与回放,"自动运行;暂停;单步;回放标识;事件定位","界面操作记录;events.jsonl;calls.jsonl",C,pending,"回放不新增模型调用"

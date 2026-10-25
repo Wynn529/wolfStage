@@ -1,0 +1,13 @@
+slide_no,claim_or_visual,source_owner,source_path,game_id,event_id,version,checked_by,status
+1,固定六人配置,B,rules.md,,,rules-v1.0,,available_unchecked
+2,架构与A接口,A/B,"slides/assets/diagrams/fig1_architecture.svg;slides/assets/diagrams/fig1_architecture.pptx;D:/狼人杀小组合作/A_图1模块与接口_精简版/图1_A模块与接口/图1_A模块.csv;app/engine.py;app/rules.py;model/server_v031.py",,,D-draft-2026-10-24,,design_draft_unchecked
+3,代理信息边界,B/C,"rules.md;app/agents.py;tests/test_visibility.py",,,rules-v1.0,,available_unchecked
+4,昼夜规则,B/C,"rules.md;app/engine.py;app/rules.py;slides/assets/diagrams/fig2_state_flow.svg;slides/assets/diagrams/fig2_state_flow.pptx;D:/狼人杀小组合作/图二当前缺口.md",,,rules-v1.0,,design_draft_unchecked
+5,真实协同链,A/B/C,"runs/<game_id>/events.jsonl;runs/<game_id>/calls.jsonl",pending,pending,pending,,pending
+6,界面截图,C,evidence/screenshots/<game_id>/,pending,pending,pending,,pending
+7,完整对局视频,B/C,"video/full_run_original.mp4;runs/<game_id>/events.jsonl;runs/<game_id>/summary.json",pending,pending,pending,,pending
+8,小模型冻结测试,A,"evidence/evaluation_v01/small_model_metrics.json;evidence/evaluation_v01/test_frozen_predictions.json;model/model_manifest.json",,,small-intent-v0.1,,available_unchecked
+9,规则与隔离测试,B/C,"tests/;evidence/test_summary.md",,,pending,,pending
+10,逐场调用与用量,B/C,"runs/<game_id>/calls.jsonl;evidence/run_metrics.csv",pending,,pending,,pending
+11,误判与结论边界,A/B/C,"evidence/small_model_report.md;evidence/entity_v031/report.md;runs/<game_id>/errors.jsonl",pending,,pending,,partially_available
+12,实际贡献及交付,E,"report/evidence_index.csv;DELIVERY_MANIFEST.md",,,pending,,pending
