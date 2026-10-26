@@ -1,0 +1,10 @@
+{
+  "game_id": "b4e7eaa6a071",
+  "events": 56,
+  "source": "stub players and recorded local A classification",
+  "mode": "read-only static replay",
+  "deepseek_calls": 0,
+  "initial_cursor": 10,
+  "scene_sha256": "aeb713b5ac60ead598e04d7213215c3c42ac50372bec8186268b05d4b79ae6c4",
+  "html_sha256": "a25d0773036d75784410d7dc5cdd9dd465e0035559e4e5c3a4c78d57c6f25121"
+}

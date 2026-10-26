@@ -1,0 +1,20 @@
+{
+  "snapshot_count": 57,
+  "source_events": 56,
+  "initial_classification_event": 10,
+  "future_winner_hidden": true,
+  "future_full_game_metrics_hidden": true,
+  "embedded_scene": true,
+  "external_network_disabled_by_csp": true,
+  "source_game": "b4e7eaa6a071",
+  "source_events_sha256": "c3474b6c5889478d048e5fedd33182363ca325243168bb80dc6149c9d890bd4b",
+  "public_deployment_completed": false,
+  "local_render_checks": {
+    "loaded_scene": true,
+    "play_to_end": true,
+    "pause": true,
+    "night_jump": true,
+    "speech_classification_jump": true,
+    "vote_jump": true
+  }
+}
