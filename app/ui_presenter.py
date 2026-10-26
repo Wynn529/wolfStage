@@ -8,6 +8,7 @@ EVENT_NAMES = {
     'vote': '投票', 'vote_tally': '计票结果', 'exile': '放逐公告',
     'game_over': '对局结束', 'game_limit': '达到对局上限',
     'game_paused': '暂停记录', 'game_resumed': '继续记录',
+    'agent_reason': '角色私密自述', 'wolf_negotiation': '狼人分歧裁决',
     'wolf_proposal': '狼人击杀提案', 'inspection': '预言家查验',
     'model_failure': '模型调用失败',
     'utterance_classification_failed': '发言分类失败',

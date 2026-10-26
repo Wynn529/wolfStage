@@ -13,7 +13,7 @@ def scene_model(events, *, status='unknown', phase=None, metrics=None, game_id=N
     latest = events[-1] if events else {}
     phase = phase or latest.get('phase') or 'night'
     current = next((e for e in reversed(events) if e['type'] not in
-                    {'utterance_classification','game_paused','game_resumed'}), {})
+                    {'utterance_classification','agent_reason','game_paused','game_resumed'}), {})
     speech = next((e for e in reversed(events) if e['type']=='public_speech'), None)
     label = state['classifications'].get(str(speech['event_id'])) if speech else None
     kind = current.get('type', '')
@@ -32,6 +32,11 @@ def scene_model(events, *, status='unknown', phase=None, metrics=None, game_id=N
         body = '本次调用未完成，已停止推进。请展开检查记录查看原因。'
     if not body:
         body = '点击“开始对局”，看六名机器人围桌推理。' if not events else '等待下一条服务记录。'
+    if kind == 'wolf_negotiation':
+        body = f'狼人意见不同，B按固定规则选择 {current.get("resolved_target", "未提供")} 号。'
+    reason_event = next((e for e in reversed(events) if e.get('type')=='agent_reason'
+                         and e.get('source_event_id')==current.get('event_id')
+                         and e.get('actor')==current.get('actor')), {})
     actor, target = current.get('actor'), current.get('target')
     if type(actor) is not int or actor not in range(1,7): actor = None
     if type(target) is not int or target not in range(1,7): target = None
@@ -46,7 +51,7 @@ def scene_model(events, *, status='unknown', phase=None, metrics=None, game_id=N
         'current':{'id':current.get('event_id',0),'kind':kind,'title':title,'body':body,
                    'actor':actor,'target':target,'speech':kind=='public_speech',
                    'private':bool(current and current.get('visibility')!='public'),
-                   'reason':current.get('reason') or ''},
+                   'reason':reason_event.get('reason') or current.get('reason') or ''},
         'analysis':{'speech':speech.get('text') if speech else '',
                     'speaker':speech.get('actor') if speech else None,
                     'event_id':speech.get('event_id') if speech else None,

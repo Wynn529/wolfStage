@@ -1,4 +1,4 @@
-param([string]$PythonExe = "", [switch]$KeepAlive,
+﻿param([string]$PythonExe = "", [switch]$KeepAlive,
       [ValidateRange(1,65535)][int]$APort=8765,
       [ValidateRange(1,65535)][int]$BPort=8000,
       [ValidateRange(1,65535)][int]$UiPort=8501)
@@ -23,7 +23,7 @@ New-Item -ItemType Directory -Force -Path $logRoot | Out-Null
 $previousKey = $env:DEEPSEEK_API_KEY
 $previousClassifier = $env:A_CLASSIFIER_URL
 $previousEncoding = $env:PYTHONIOENCODING
-$demoNames = @('B_API_URL','C_SERVICE_CONTRACT','C_RUNS_DIR','C_JOURNAL_DIR')
+$demoNames = @('B_API_URL','C_SERVICE_CONTRACT','C_RUNS_DIR','C_JOURNAL_DIR','C_B_REVISION')
 $previousDemo = @{}
 foreach ($name in $demoNames) { $previousDemo[$name]=[Environment]::GetEnvironmentVariable($name,'Process') }
 $started = @()
@@ -33,6 +33,7 @@ try {
     $env:PYTHONIOENCODING = "utf-8"
     $env:B_API_URL = "http://127.0.0.1:$BPort"
     Remove-Item Env:C_SERVICE_CONTRACT -ErrorAction SilentlyContinue
+    $env:C_B_REVISION = '3898b95'
     $env:C_RUNS_DIR = Join-Path $projectRoot 'runs'
     $env:C_JOURNAL_DIR = Join-Path $logRoot 'c_operations'
     $commands = @(

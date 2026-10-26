@@ -115,7 +115,8 @@ def test_replay_vote_rounds_keep_b_tally_and_hide_future_results(tmp_path, monke
     assert '未提供' in describe_public(event(11,'vote',visibility='public'))
 
 
-def test_streamlit_controls_use_b_and_attach_actual_a_labels(tmp_path, monkeypatch):
+@pytest.mark.parametrize('b_revision',['legacy','3898b95'])
+def test_streamlit_controls_use_b_and_attach_actual_a_labels(tmp_path, monkeypatch, b_revision):
     """真实本地 A HTTP、B HTTP、Streamlit AppTest；玩家为 stub。"""
     import socket
     import threading
@@ -133,6 +134,7 @@ def test_streamlit_controls_use_b_and_attach_actual_a_labels(tmp_path, monkeypat
     monkeypatch.setenv('C_JOURNAL_DIR',str(tmp_path/'journals'))
     monkeypatch.setenv('C_RUNS_DIR',str(tmp_path/'runs'))
 
+    monkeypatch.setenv('C_B_REVISION',b_revision)
     a = make_server(port=0)
     a_thread = threading.Thread(target=a.serve_forever, daemon=True)
     a_thread.start()
@@ -153,12 +155,19 @@ def test_streamlit_controls_use_b_and_attach_actual_a_labels(tmp_path, monkeypat
         assert server.started
         app = AppTest.from_file(str(Path(__file__).resolve().parents[1] / 'app/ui.py')).run(timeout=20)
         def click(label):
-            next(button for button in app.button if button.label == label).click().run(timeout=20)
+            app.run(timeout=20)  # AppTest须先消费fragment重新渲染，再向当前控件派发点击。
+            previous_steps=app.session_state['controller'].steps if app.session_state['controller'] else 0
+            button=next(button for button in app.button if button.label == label)
+            assert not button.disabled, (label,app.session_state['controller'].error if app.session_state['controller'] else '')
+            button.click().run(timeout=20)
             deadline=time.monotonic()+5
-            while app.session_state['controller'].busy and time.monotonic()<deadline:
+            while (app.session_state['controller'].busy or not app.session_state['controller'].synced) and time.monotonic()<deadline:
                 time.sleep(.02)
                 app.run(timeout=20)
+            app.run(timeout=20)
             assert not app.exception
+            if label=='单步推进':
+                assert app.session_state['controller'].steps==previous_steps+1, (previous_steps,app.session_state['controller'].steps,app.session_state['controller'].error)
         click('开始对局')
         gid = app.session_state['game_id']
         assert gid in engine.games
@@ -167,7 +176,9 @@ def test_streamlit_controls_use_b_and_attach_actual_a_labels(tmp_path, monkeypat
         click('继续')
         for _ in range(5):
             click('单步推进')
-        events = app.session_state['events']
+        app.run(timeout=20)
+        events = app.session_state['controller'].events
+        assert any(e['type']=='utterance_classification' for e in events), (app.session_state['controller'].error, app.session_state['controller'].status, [e['type'] for e in events])
         label = next(e for e in events if e['type'] == 'utterance_classification')
         assert label['result']['entity_rule_version'] == 'entity-rules-v0.3.1'
         assert label['result']['confidence'] is None
@@ -281,4 +292,4 @@ def test_scene_replay_play_pause_restart_never_requests_service(tmp_path,monkeyp
     app.slider[0].set_value(3).run()
     next(b for b in app.button if b.label=='重新播放').click().run()
     assert not app.exception and app.slider[0].value < 3
-    assert path.read_bytes()==original and path.stat().st_mtime_ns==before\n
+    assert path.read_bytes()==original and path.stat().st_mtime_ns==before

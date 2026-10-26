@@ -93,3 +93,48 @@ class GameClient:
                 or result.get('state') not in {'pending', 'succeeded', 'failed', 'rejected'}):
             raise ServiceError('操作查询响应无效或ID不匹配。')
         return result
+
+
+class BRevisionClient(GameClient):
+    """B 3898b95 的部分兼容；推进可查询，暂停/继续没有操作查询保证。"""
+    advance_query_supported = True
+
+    def control(self, game_id, action, *, operation_id=None, expected_event_id=None):
+        if action not in {'advance', 'pause', 'resume'}:
+            raise ValueError('unsupported control')
+        payload = None
+        if action == 'advance':
+            if not operation_id or type(expected_event_id) is not int:
+                raise ValueError('推进缺少操作编号或游标')
+            payload = {'operation_id': operation_id, 'expected_cursor': expected_event_id}
+        result = self._request('POST', f'/games/{quote(game_id, safe="")}/{action}', payload)
+        if not isinstance(result, dict) or result.get('game_id') != game_id:
+            raise ServiceError('B控制响应局号不匹配；请只读核查。')
+        if result.get('status') == 'conflict':
+            raise ServiceError('游标已变化，本次推进被B拒绝；请刷新后核对。', ambiguous=False)
+        if result.get('status') == 'waiting_model':
+            result = {**result, 'status': 'pending'}
+        return result
+
+    def service_status(self, game_id):
+        value = self._request('GET', f'/games/{quote(game_id, safe="")}/status')
+        if (not isinstance(value, dict) or value.get('game_id') != game_id
+                or value.get('status') not in {'running','waiting_model','paused','finished','failed','incomplete'}
+                or type(value.get('cursor')) is not int or value['cursor'] < 0
+                or not isinstance(value.get('phase'), str) or not value['phase']):
+            raise ServiceError('B状态响应无效。')
+        # paused 仅为B报告值；本版本不能据此证明当前业务操作已停稳。
+        return {**value, 'status': 'pending' if value['status']=='waiting_model' else value['status']}
+
+    def operation(self, game_id, operation_id):
+        value = self._request('GET', f'/games/{quote(game_id, safe="")}/operations/{quote(operation_id, safe="")}')
+        if (not isinstance(value, dict) or value.get('game_id') != game_id
+                or value.get('operation_id') != operation_id or value.get('status') not in {'completed','unknown'}):
+            raise ServiceError('B操作查询响应无效。')
+        result = value.get('result')
+        if value['status'] == 'completed' and (not isinstance(result,dict)
+                or result.get('game_id') != game_id or result.get('operation_id') != operation_id):
+            raise ServiceError('B已完成操作缺少匹配的结果。')
+        # unknown 不能解释成未执行；持续只读等待，绝不自动重发。
+        return {'game_id':game_id,'operation_id':operation_id,'action':'advance',
+                'state':'succeeded' if value['status']=='completed' else 'pending','result':result}

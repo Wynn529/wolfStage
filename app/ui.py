@@ -12,7 +12,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import streamlit as st
-from app.ui_client import GameClient, ServiceError
+from app.ui_client import GameClient, BRevisionClient, ServiceError
 from app.ui_contract import ServiceContract, TERMINAL
 from app.ui_controller import SessionController
 from app.ui_helpers import (LABELS, ROLES, STATUS, PHASES, project,
@@ -52,6 +52,7 @@ if 'events' not in ss:
 
 runs = Path(os.getenv('C_RUNS_DIR', str(ROOT / 'runs')))
 journals = Path(os.getenv('C_JOURNAL_DIR', str(ROOT / '.local/c_operations')))
+Client = BRevisionClient if os.getenv('C_B_REVISION')=='3898b95' else GameClient
 try:
     contract = ServiceContract.load(os.getenv('C_SERVICE_CONTRACT'))
 except (OSError, TypeError, ValueError) as exc:
@@ -66,9 +67,10 @@ with st.sidebar:
 
     url = st.text_input('B 服务地址', os.getenv('B_API_URL', 'http://127.0.0.1:8000'))
     st.caption('默认端口：A分类8765、B游戏8000、网页8501；自定义时以启动输出及B地址为准。')
+    st.caption('B适配：3898b95（部分能力）' if Client is BRevisionClient else 'B适配：旧版兼容')
     st.caption(f'契约：{contract.version}；确认人：{contract.confirmed_by or "尚无增强能力确认"}')
     if not contract.ready:
-        st.warning('现有B仅开放手动兼容模式。自动调度代码已备好，待B增强契约确认后启用。')
+        st.warning('当前采用手动推进。B新版已支持推进去重和结果查询；事件边界暂停仍待通过复验，自动运行暂未开放。')
     record_files = sorted(journals.glob('*.jsonl')) if journals.exists() else []
     if record_files:
         record_path = st.selectbox('本机控制记录', record_files, format_func=lambda p:p.stem)
@@ -78,12 +80,12 @@ with st.sidebar:
                     raise ValueError('当前仍有待确认操作，先核对当前局')
                 if ss.controller:
                     ss.controller.close()
-                ss.controller = SessionController.restore(GameClient(url, contract=contract), record_path)
+                ss.controller = SessionController.restore(Client(url, contract=contract), record_path)
             except (ServiceError, ValueError, OSError, KeyError) as exc:
                 st.error(str(exc))
 
 try:
-    client = GameClient(url, contract=contract)
+    client = Client(url, contract=contract)
 except ValueError as exc:
     st.error(str(exc))
     st.stop()

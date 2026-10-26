@@ -66,7 +66,7 @@ class SessionController:
     @property
     def needs_poll(self):
         # 状态快照可能先于操作完成读到，不能因操作已完成就停止查询旧pending。
-        return bool(self.busy or self.auto or self.pause_intent or self.status in {'unknown','pending'}
+        return bool(self.busy or self.auto or self.pause_intent or (getattr(self.client,'advance_query_supported',False) and not self.synced and not self.fatal) or self.status in {'unknown','pending'}
                     or (self.snapshot and (self.snapshot['in_flight'] or self.snapshot['pause_requested'])))
 
     @property
@@ -171,7 +171,7 @@ class SessionController:
             del self.futures[operation_id]
             try:
                 result = future.result()
-                if self.client.contract.ready:
+                if self.client.contract.ready or (getattr(self.client, 'advance_query_supported', False) and op.action=='advance'):
                     if op.state not in {'succeeded', 'failed', 'rejected'}:
                         op.state = 'accepted'
                         self._operation_log(op)
@@ -184,7 +184,7 @@ class SessionController:
                 definite = isinstance(exc, ServiceError) and not exc.ambiguous
                 op.state = 'rejected' if definite else 'uncertain'
                 self._operation_log(op)
-                self.fail(str(exc), fatal=not self.client.contract.ready and not definite)
+                self.fail(str(exc), fatal=not (self.client.contract.ready or (getattr(self.client, 'advance_query_supported', False) and op.action=='advance')) and not definite)
 
     def refresh(self):
         try:
@@ -220,6 +220,18 @@ class SessionController:
                         self._operation_log(op)
                         self.fail('B确认操作失败或被拒绝：' + op.action, fatal=True)
                 if self.status == 'paused' and not snapshot['in_flight']:
+                    self.pause_intent = False
+            elif getattr(self.client, 'advance_query_supported', False):
+                b_state = self.client.service_status(self.game_id)
+                self.status, self.phase = b_state['status'], b_state['phase']
+                for op in list(self.unresolved):
+                    if op.action != 'advance':
+                        continue  # B未登记暂停/继续操作；超时后保持锁定，不以快照猜测成功。
+                    response = self.client.operation(self.game_id, op.operation_id)
+                    if response['state'] == 'succeeded':
+                        self._completed(op)
+                self.synced = not self.fatal and not self.unresolved and self.cursor == b_state['cursor']
+                if self.status == 'paused' and not self.busy:
                     self.pause_intent = False
             else:
                 inferred = project(self.events)
@@ -271,6 +283,6 @@ class SessionController:
                 controller.operations[row['operation_id']] = Operation(
                     row['operation_id'], row['action'], row['expected_event_id'], row['state'])
         if controller.unresolved:
-            controller.fail('已恢复待确认操作；只读查询结果，不重新提交', fatal=not client.contract.ready)
+            controller.fail('已恢复待确认操作；只读查询结果，不重新提交', fatal=not (client.contract.ready or (getattr(client,'advance_query_supported',False) and all(op.action=='advance' for op in controller.unresolved))))
         controller.refresh()
         return controller
