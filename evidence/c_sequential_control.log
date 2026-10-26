@@ -1,0 +1,23 @@
+.................xxxxxx.xx.............................................. [ 86%]
+...........                                                              [100%]
+============================== warnings summary ===============================
+tests/test_ui.py::test_streamlit_controls_use_b_and_attach_actual_a_labels[legacy]
+  C:\Users\coco_\Documents\Codex\2026-10-25\new-chat-2\work\check-env\Lib\site-packages\websockets\legacy\__init__.py:6: DeprecationWarning: websockets.legacy is deprecated; see https://websockets.readthedocs.io/en/stable/howto/upgrade.html for upgrade instructions
+    warnings.warn(  # deprecated in 14.0 - 2024-11-09
+
+tests/test_ui.py::test_streamlit_controls_use_b_and_attach_actual_a_labels[legacy]
+  C:\Users\coco_\Documents\Codex\2026-10-25\new-chat-2\work\check-env\Lib\site-packages\uvicorn\protocols\websockets\websockets_impl.py:17: DeprecationWarning: websockets.server.WebSocketServerProtocol is deprecated
+    from websockets.server import WebSocketServerProtocol
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: C:\Users\coco_\Documents\Codex\2026-10-25\new-chat-2\outputs\wolfStage\evidence\c_sequential_control.xml -
+=========================== short test summary info ===========================
+XFAIL tests/test_b_update_c.py::test_b_paused_means_operation_fully_committed - B-P01: paused在当前业务事件落盘前已可被查询到
+XFAIL tests/test_b_update_c.py::test_b_new_events_complete_on_night_resolution - B-P02: pending.clear丢失操作起始游标，new_events漏报死亡/结束事件
+XFAIL tests/test_b_update_c.py::test_b_rejects_wolf_teammate_kill - B-P03: 狼人杀队友仍被接受
+XFAIL tests/test_b_update_c.py::test_b_revote_limits_candidates - B-P04: 重投仍允许非平票候选人
+XFAIL tests/test_b_update_c.py::test_b_retry_success_log_is_accurate - B-P05: 重试成功仍继承success=False及旧validation_error
+XFAIL tests/test_b_update_c.py::test_b_wolf_reason_links_to_its_proposal - B-P06: 狼人私密理由source_event_id指向前一事件
+XFAIL tests/test_b_update_c.py::test_b_real_response_usage_is_preserved - B-P07: DeepSeek usage and latency discarded
+XFAIL tests/test_b_update_c.py::test_b_classifier_failure_has_explicit_service_state - B-P08: classification failure still reports running
+75 passed, 8 xfailed, 2 warnings in 75.25s (0:01:15)

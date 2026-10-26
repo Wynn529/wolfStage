@@ -72,7 +72,8 @@ def test_b_client_queries_completed_unknown_and_rejects_stale_cursor(tmp_path,mo
     assert c.operation(gid,'unknown')['state']=='pending'
     controller=SessionController(c,gid,journal=tmp_path/'journal.jsonl')
     try:
-        controller.refresh();assert controller.synced and not controller.auto_ready
+        controller.refresh();assert controller.synced and controller.auto_ready
+        assert not c.contract.ready  # C顺序调度不冒充B完整增强契约。
         oid=controller.submit('advance')
         controller.futures[oid].result(timeout=2)
         controller.tick()
@@ -228,3 +229,79 @@ def test_b_wolf_disagreement_is_seeded_and_private(tmp_path):
     assert event['resolved_target'] in {4,5} and event['resolution']=='seeded_rule'
     assert not any(v['type']=='wolf_negotiation' for v in e.get_events(gid,view='4'))
     assert any(v['type']=='wolf_negotiation' for v in e.get_events(gid,view='1'))
+
+
+@pytest.fixture
+def b_sequential_controller(tmp_path, monkeypatch):
+    from urllib.parse import parse_qs, urlsplit
+    from app.metrics import summarize
+    e,gid=make(tmp_path)
+    client=BRevisionClient('http://test')
+    posts=[]
+    def request(method,path,payload=None,headers=None):
+        route=urlsplit(path)
+        action=route.path.rsplit('/',1)[-1]
+        if method=='POST':
+            posts.append(action)
+            if action=='advance':return e.advance_one_event(gid,payload['operation_id'],payload['expected_cursor'])
+            if action=='pause':return e.pause_game(gid)
+            if action=='resume':return e.resume_game(gid)
+        if action=='status':return e.get_status(gid)
+        if action=='events':return e.get_events(gid,int(parse_qs(route.query)['after_event_id'][0]),'god')
+        if action=='metrics':return summarize(e.store,gid)
+        if '/operations/' in path:return e.get_operation(gid,action)
+        raise AssertionError((method,path))
+    monkeypatch.setattr(client,'_request',request)
+    controller=SessionController(client,gid,journal=tmp_path/'control.jsonl',interval=.001)
+    controller.refresh()
+    try:yield e,gid,controller,posts
+    finally:controller.close()
+
+
+def test_c_sequential_auto_completes_actual_b_game(b_sequential_controller):
+    from tests.test_ui_control import until
+    e,gid,c,posts=b_sequential_controller
+    c.start_auto()
+    until(c,lambda:c.status=='finished' and not c.busy,timeout=8)
+    assert not c.auto and not c.error
+    assert len([a for a in posts if a=='advance'])==c.steps
+    assert len(e.games[gid].operation_results)==c.steps
+    assert [v['event_id'] for v in c.events]==list(range(1,c.cursor+1))
+
+
+def test_c_queues_pause_until_whole_b_operation_finishes(b_sequential_controller):
+    from tests.test_ui_control import until
+    e,gid,c,posts=b_sequential_controller
+    entered=threading.Event();release=threading.Event()
+    class Slow(StubAgent):
+        def act(self,*args):
+            entered.set();assert release.wait(4)
+            return super().act(*args)
+    e.agent=Slow()
+    c.start_auto();c.tick()
+    assert entered.wait(3)
+    try:
+        c.tick()
+        assert c.busy and '等待' in c.message
+        c.submit('pause');c.submit('pause')
+        assert c.deferred_pause and not c.auto
+        assert posts==['advance']  # 当前步骤未完成，绝不能调用B的在途pause。
+        assert '本步结束后暂停' in c.message
+        release.set()
+        until(c,lambda:c.status=='paused' and not c.busy)
+        assert posts==['advance','pause']
+        assert len(e.store.read_calls(gid))==1
+        assert e.get_operation(gid,next(iter(c.operations)))['status']=='completed'
+        assert not c.deferred_pause and not c.pause_intent
+        c.submit('resume')
+        until(c,lambda:c.status=='running' and not c.busy)
+        assert not c.auto and '准备就绪' in c.message
+    finally:release.set()
+
+
+def test_c_pause_immediately_after_auto_start_prevents_first_advance(b_sequential_controller):
+    from tests.test_ui_control import until
+    e,gid,c,posts=b_sequential_controller
+    c.start_auto();c.submit('pause')
+    until(c,lambda:c.status=='paused' and not c.busy)
+    assert posts==['pause'] and not c.auto and c.steps==0

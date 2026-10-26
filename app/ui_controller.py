@@ -38,6 +38,7 @@ class SessionController:
         self.pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix='c-control')
         self.auto = False
         self.pause_intent = False
+        self.deferred_pause = False
         self.error = ''
         self.fatal = False
         self.synced = False
@@ -71,8 +72,9 @@ class SessionController:
 
     @property
     def auto_ready(self):
-        return bool(self.client.contract.ready and self.snapshot is not None and self.synced
-                    and not self.fatal and not self.error)
+        return bool(((self.client.contract.ready and self.snapshot is not None)
+                     or getattr(self.client, 'advance_query_supported', False))
+                    and self.synced and not self.fatal and not self.error)
 
     @property
     def message(self):
@@ -81,11 +83,13 @@ class SessionController:
                 return '已申请暂停：正在等待模型返回，本步结束后暂停'
         if self.busy or (self.snapshot and self.snapshot['in_flight']):
             return '正在等待模型返回或查询操作结果'
+        if self.status == 'paused' and not self.busy:
+            return '已暂停；点击“继续”解除暂停，再选择单步或自动运行'
         if self.fatal:
             return '控制已锁定：请按证据核对接口'
         if self.status in TERMINAL:
             return '自动调度已停止：' + self.status
-        return '自动运行中' if self.auto else '当前无自动调度'
+        return '自动运行中：每一步完成后继续下一步' if self.auto else '准备就绪：可单步推进或自动运行'
 
     def _log(self, kind, **fields):
         if self.journal:
@@ -121,6 +125,13 @@ class SessionController:
             if self.pause_intent:
                 return next((op.operation_id for op in self.operations.values() if op.action == 'pause'
                              and op.state not in {'failed', 'rejected'}), None)
+            if (self.busy or not self.synced) and getattr(self.client, 'advance_query_supported', False):
+                if self.status not in {'running', 'pending'}:
+                    raise ValueError('当前状态不能申请暂停')
+                self.pause_intent = True
+                self.deferred_pause = True
+                self._log('pause_queued_locally', last_event_id=self.cursor)
+                return None  # 等整步完成且传输结束；此处不向B发送任何暂停请求。
             if self.busy and not self.client.contract.ready:
                 raise ValueError('旧B不支持在途暂停确认，请等待当前请求结束')
             if self.status not in {'running', 'pending'}:
@@ -233,6 +244,7 @@ class SessionController:
                 self.synced = not self.fatal and not self.unresolved and self.cursor == b_state['cursor']
                 if self.status == 'paused' and not self.busy:
                     self.pause_intent = False
+                    self.deferred_pause = False
             else:
                 inferred = project(self.events)
                 if inferred['status'] in TERMINAL or self.status == 'unknown':
@@ -246,6 +258,8 @@ class SessionController:
                 self.fail('对局含模型/分类失败，请人工核对后交B处理', fatal=True)
             if self.status in TERMINAL:
                 self.auto = False
+                self.pause_intent = False
+                self.deferred_pause = False
         except (ServiceError, ValueError, TypeError, KeyError) as exc:
             self.fail(str(exc), fatal=isinstance(exc, ValueError))
 
@@ -259,10 +273,15 @@ class SessionController:
             self.no_progress = self.no_progress + 1 if before == (self.cursor, self.phase) else 0
         if self.auto and (self.steps >= self.max_steps or self.no_progress >= self.no_progress_limit):
             self.fail('达到C调度上限或连续无进展，已停止；不判定游戏胜负', fatal=True)
+        if (self.deferred_pause and not self.busy and self.synced and not self.error
+                and not self.fatal and self.status == 'running'):
+            self.deferred_pause = False
+            self.pause_intent = False
+            self.submit('pause')
         now = time.monotonic()
         if (self.auto and self.auto_ready and not self.busy and self.status == 'running'
-                and not self.pause_intent and not self.snapshot['in_flight']
-                and not self.snapshot['pause_requested'] and now >= self.next_due):
+                and not self.pause_intent and (not self.snapshot or (not self.snapshot['in_flight']
+                and not self.snapshot['pause_requested'])) and now >= self.next_due):
             self.submit('advance')
             self.next_due = now + self.interval
 

@@ -70,7 +70,10 @@ with st.sidebar:
     st.caption('B适配：3898b95（部分能力）' if Client is BRevisionClient else 'B适配：旧版兼容')
     st.caption(f'契约：{contract.version}；确认人：{contract.confirmed_by or "尚无增强能力确认"}')
     if not contract.ready:
-        st.warning('当前采用手动推进。B新版已支持推进去重和结果查询；事件边界暂停仍待通过复验，自动运行暂未开放。')
+        if Client is BRevisionClient:
+            st.caption('逐步自动运行：每步确认后继续。暂停会等待本步结束；请在一个页面控制当前局。')
+        else:
+            st.warning('旧版服务尚未确认操作查询，当前仅开放单步；请使用新版联调启动脚本。')
     record_files = sorted(journals.glob('*.jsonl')) if journals.exists() else []
     if record_files:
         record_path = st.selectbox('本机控制记录', record_files, format_func=lambda p:p.stem)
@@ -264,7 +267,11 @@ def live_panel():
         return
     ss.game_id=controller.game_id
     ss.events=controller.events
-    # 详细局号、状态与调用信息保留在下方检查区，不占场景首屏。
+    # 让等待和暂停状态直接可见，不必打开检查记录。
+    if controller.busy or controller.pause_intent:
+        st.info(controller.message)
+    else:
+        st.caption(controller.message)
     if controller.error:
         st.error(controller.error)
     if controller.unresolved:
@@ -274,16 +281,16 @@ def live_panel():
     locked=controller.fatal or bool(controller.error)
     if buttons[0].button('单步推进',disabled=locked or controller.busy or controller.auto or controller.pause_intent or controller.status!='running' or not controller.synced):
         action='advance'
-    if buttons[1].button('暂停',disabled=locked or controller.pause_intent or controller.status not in {'running','pending'} or (controller.busy and not contract.ready)):
+    if buttons[1].button('暂停',disabled=locked or controller.pause_intent or controller.status not in {'running','pending'} or (controller.busy and not contract.ready and not getattr(controller.client,'advance_query_supported',False)),help='停止安排下一步，等待当前一步完成后暂停；不会取消已经发出的模型请求。'):
         action='pause'
-    if buttons[2].button('继续',disabled=locked or controller.busy or controller.status!='paused'):
+    if buttons[2].button('继续',disabled=locked or controller.busy or controller.status!='paused',help='解除暂停后，可选择单步或重新点击自动运行。'):
         action='resume'
     if buttons[3].button('刷新事件'):
         controller.collect()
         controller.refresh()
         ss.events=controller.events
         st.rerun()
-    if buttons[4].button('自动运行',disabled=not controller.auto_ready or controller.busy or controller.auto or controller.status!='running' or controller.pause_intent):
+    if buttons[4].button('自动运行',disabled=not controller.auto_ready or controller.busy or controller.auto or controller.status!='running' or controller.pause_intent,help='按顺序推进，每一步确认完成后才开始下一步；等待是运行状态，无需点击。'):
         try:
             controller.start_auto()
             controller.tick()
