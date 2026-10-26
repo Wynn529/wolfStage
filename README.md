@@ -327,7 +327,7 @@ $env:DEEPSEEK_MODEL="deepseek-chat"
 
 ## API
 
-`POST /games`（可传 `{"seed": 42}`）创建对局；`POST /games/{id}/advance` 单步推进；`POST /games/{id}/pause`、`/resume` 控制暂停；`GET /games/{id}/events?view=god` 获取事件；`GET /games/{id}/metrics` 获取统计；`GET /games/{id}/replay` 只读回放。
+`POST /games`（可传 `{"seed": 42}`）创建对局；`POST /games/{id}/advance` 单步推进（可传 `{"operation_id":"op-001","expected_cursor":3}`）；`POST /games/{id}/pause`、`/resume` 控制暂停；`GET /games/{id}/status` 查询状态；`GET /games/{id}/operations/{operation_id}` 查询操作结果；`GET /games/{id}/events?view=god` 获取事件；`GET /games/{id}/metrics` 获取统计；`GET /games/{id}/replay` 只读回放。
 
 原始证据位于 `runs/<game_id>/events.jsonl`、`calls.jsonl`、`errors.jsonl` 和 `summary.json`。回放不会重新调用模型。`app.engine.GameEngine` 也可直接在 Python 中调用。
 

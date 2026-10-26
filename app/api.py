@@ -24,10 +24,11 @@ if app:
         return engine.create_game(payload.get("seed"), payload.get("role_config"))
 
     @app.post("/games/{game_id}/advance")
-    def advance(game_id: str):
-        """只推进指定对局的一个事件。"""
+    def advance(game_id: str, payload: dict[str, Any] | None = None):
+        """只推进一个业务操作；重复 operation_id 返回同一结果。"""
         if game_id not in engine.games: raise HTTPException(404, "unknown game")
-        return engine.advance_one_event(game_id)
+        payload = payload or {}
+        return engine.advance_one_event(game_id, payload.get("operation_id"), payload.get("expected_cursor"))
 
     @app.post("/games/{game_id}/pause")
     def pause(game_id: str):
@@ -46,6 +47,18 @@ if app:
         """按游标读取指定视角可见的事件。"""
         if game_id not in engine.games: raise HTTPException(404, "unknown game")
         return engine.get_events(game_id, after_event_id, view)
+
+    @app.get("/games/{game_id}/status")
+    def status(game_id: str):
+        """只读查询等待、暂停、游标和胜负状态。"""
+        if game_id not in engine.games: raise HTTPException(404, "unknown game")
+        return engine.get_status(game_id)
+
+    @app.get("/games/{game_id}/operations/{operation_id}")
+    def operation(game_id: str, operation_id: str):
+        """只读查询一次推进操作的结果。"""
+        if game_id not in engine.games: raise HTTPException(404, "unknown game")
+        return engine.get_operation(game_id, operation_id)
 
     @app.get("/games/{game_id}/metrics")
     def metrics(game_id: str):
