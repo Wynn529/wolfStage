@@ -1,0 +1,13 @@
+{
+  "test": "real_start_stop_local_smoke",
+  "configuration": "invalid test placeholder; no real credential",
+  "ready_agent": "DeepSeekAgent",
+  "A_B_UI_ready": true,
+  "created_games": 0,
+  "advance_posts": 0,
+  "deepseek_requests_by_startup": 0,
+  "services_stopped": true,
+  "ports_released": true,
+  "account_authentication_tested": false,
+  "balance_tested": false
+}

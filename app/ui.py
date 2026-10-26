@@ -52,6 +52,7 @@ if 'events' not in ss:
 
 runs = Path(os.getenv('C_RUNS_DIR', str(ROOT / 'runs')))
 journals = Path(os.getenv('C_JOURNAL_DIR', str(ROOT / '.local/c_operations')))
+real_mode = os.getenv('C_LIVE_MODE') == '1'
 Client = BRevisionClient if os.getenv('C_B_REVISION')=='3898b95' else GameClient
 try:
     contract = ServiceContract.load(os.getenv('C_SERVICE_CONTRACT'))
@@ -60,6 +61,9 @@ except (OSError, TypeError, ValueError) as exc:
     st.stop()
 
 mode = st.radio('观看方式', ['现场对局', '历史回放'],index=1 if st.query_params.get('view')=='history' else 0,horizontal=True,label_visibility='collapsed')
+
+if real_mode:
+    st.info('真实 DeepSeek 模式：启动和建局不调用模型；单步推进可能产生API费用。请先确认额度与测试上限，本准备阶段仅开放单步。')
 
 with st.sidebar:
     st.header('运行与回放')
@@ -271,7 +275,8 @@ def live_panel():
     if controller.busy or controller.pause_intent:
         st.info(controller.message)
     else:
-        st.caption(controller.message)
+        st.caption('真实模式准备就绪：确认额度后再单步测试；自动运行暂未开放'
+                   if real_mode and controller.status=='running' else controller.message)
     if controller.error:
         st.error(controller.error)
     if controller.unresolved:
@@ -290,7 +295,7 @@ def live_panel():
         controller.refresh()
         ss.events=controller.events
         st.rerun()
-    if buttons[4].button('自动运行',disabled=not controller.auto_ready or controller.busy or controller.auto or controller.status!='running' or controller.pause_intent,help='按顺序推进，每一步确认完成后才开始下一步；等待是运行状态，无需点击。'):
+    if buttons[4].button('自动运行',disabled=real_mode or not controller.auto_ready or controller.busy or controller.auto or controller.status!='running' or controller.pause_intent,help='按顺序推进，每一步确认完成后才开始下一步；等待是运行状态，无需点击。'):
         try:
             controller.start_auto()
             controller.tick()

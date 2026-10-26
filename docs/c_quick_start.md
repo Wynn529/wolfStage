@@ -36,6 +36,7 @@ $env:A_CLASSIFIER_URL='http://127.0.0.1:8765/classify'
 # 终端3：C
 Remove-Item Env:C_SERVICE_CONTRACT -ErrorAction SilentlyContinue
 $env:B_API_URL='http://127.0.0.1:8000'
+$env:C_B_REVISION='3898b95'
 $env:C_RUNS_DIR=(Join-Path (Get-Location) 'runs')
 $env:C_JOURNAL_DIR=(Join-Path (Get-Location) '.local/c_operations')
 .\.venv\Scripts\python.exe -m streamlit run app/ui.py --server.address 127.0.0.1 --server.port 8501 --browser.gatherUsageStats false
@@ -45,12 +46,12 @@ $env:C_JOURNAL_DIR=(Join-Path (Get-Location) '.local/c_operations')
 
 ## 页面操作
 
-1. 侧栏选“实时联调”，新建 seed=42 对局，记下 game_id。
+1. 选择“现场对局”，点击“开始对局”（默认 seed=42），在检查记录或日志中记下 game_id。
 2. 单步推进，查看阶段、六人存活和发言分类。一次推进可能新增0／1／多条事件，阶段切换时可能没有新事件。
 3. “投票与结果”显示逐票、B原始计票、首轮／重投标记、放逐及终局；缺字段会明确提示。页面不会代B修票数或胜负。
 4. “仅上帝视角”查看私密动作与角色自述依据；这些内容不作为玩家输入。
-5. 暂停／继续适用于当前手动兼容模式。控制请求未确认时不要反复点击；自动按钮需B增强能力确认后启用，不能手改配置跳过。
-6. 侧栏切“本地只读回放”，选择game_id并移动游标；原始日志导出不会请求模型，不导出state.json。真实日志保存在该仓库的runs下，请自行备份。
+5. 使用3898b95适配时可点“自动运行”：每步查询确认后再推进。点“暂停”先停止后续调度，等本步结束再暂停；“继续”解除暂停后，按需再次点“自动运行”。等待是状态提示。此方式只保障本页面顺序调度，不代替B跨会话/多进程契约；超时未知结果不重发。
+6. 选择“历史回放”，选择game_id并移动游标；原始日志导出不会请求模型，不导出state.json。真实日志保存在该仓库的runs下，请自行备份。
 
 ## 验证与停止
 
@@ -63,3 +64,10 @@ $env:C_JOURNAL_DIR=(Join-Path (Get-Location) '.local/c_operations')
 测试使用临时本地服务和离线模型调用替身；完整结果见 `evidence/c_control_verify.log` 和 XML。测试不会自动证明真实API对局或所有规则分支已通过。手动启动的三个终端分别按 Ctrl+C 停止。
 
 启动脚本会为子服务固定本机地址、本仓库日志目录和legacy模式，并临时清除其真实API密钥配置；退出时恢复父进程原配置，不修改系统环境变量。增强B联调另按双方确认的契约配置执行。
+
+
+## 真实 API 测试前
+
+本脚本是离线演示入口，会移除子进程DEEPSEEK_API_KEY。仅把密钥写入环境后再次运行此脚本，不会切到真实模式。当前B入口按进程环境选择代理。真实模式请使用独立入口`scripts/start-real.ps1`，用法见[真实模式启动说明](c_real_start.md)；启动器不自动读取.env。不要把密钥写入代码、仓库或聊天。
+
+先确认模型、可用额度及测试上限；只做小规模连通性检查时明确记录当前已知缺陷。正式游戏规则/费用统计证据须先复验B的对应修复，尤其队友击杀、重投限制、重试成功标志和usage保存。先检查一条真实请求的source、事件、调用日志与用量，再扩大到完整对局，不把stub数据计入真实场次。
