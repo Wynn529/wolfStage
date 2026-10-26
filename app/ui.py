@@ -18,12 +18,29 @@ from app.ui_controller import SessionController
 from app.ui_helpers import (LABELS, ROLES, STATUS, PHASES, project,
                             local_games, read_events, evidence_zip)
 from app.ui_metrics import read_calls, summarize_calls
+from app.ui_scene import render_scene
 from app.ui_presenter import EVENT_NAMES, WINNERS, describe_public, player as player_label, tally_rows, vote_rounds, vote_validity
 
-st.set_page_config(page_title='AI 狼人杀 · 上帝视角', page_icon='🐺', layout='wide')
-st.title('AI 狼人杀 · 上帝视角')
-st.caption('C 界面 v0.3 · 2 狼人 / 1 预言家 / 3 平民 · 角色自述依据仅供观察者')
-st.info('接口联调页面：显示实际来源，不把stub玩家或参考服务称为真实DeepSeek对局。')
+st.set_page_config(page_title='狼境 · AI圆桌', page_icon='🐺', layout='wide', initial_sidebar_state='collapsed')
+st.markdown("""
+<style>
+[data-testid="stMainBlockContainer"]{padding:1.1rem 1.6rem 2rem;max-width:1480px}
+[data-testid="stHeader"]{background:transparent;height:2.1rem}
+[data-testid="stToolbar"]{display:none}
+[data-testid="stMainBlockContainer"]>div{gap:.55rem}
+.stButton>button{border-radius:12px;min-height:37px;font-size:12px;border-color:#d9e1d5;background:#fffef9;color:#526750}
+.stButton>button[kind="primary"]{background:#326a50;color:white;border-color:#326a50}
+.brand{display:flex;align-items:center;justify-content:space-between;margin:0 0 5px}
+.brand h1{font-size:24px;letter-spacing:2px;font-weight:700;margin:0;padding:0;color:inherit}
+.brand h1 span{font-size:11px;letter-spacing:2px;opacity:.45;font-weight:500;margin-left:12px}
+.brand p{font-size:11px;margin:0;opacity:.6}
+[data-testid="stSidebar"]{background:#172a3a;color:#d5e3e8}
+.stButton>button:disabled{color:#839486!important;border-color:#a7b3a655!important;background:transparent!important}
+.stButton>button:hover{border-color:#61947b;color:#326a50}
+.stButton>button:focus:not(:active){border-color:#61947b;box-shadow:0 0 0 .1rem #61947b33}
+@media(max-width:800px){[data-testid="stMainBlockContainer"]{padding:1rem .7rem}.brand p{display:none}.brand h1{font-size:20px}}
+</style><div class="brand"><h1>狼境 <span>AI ROUND TABLE</span></h1><p>六位 AI · 一场推理 · 由你观察</p></div>
+""",unsafe_allow_html=True)
 ss = st.session_state
 if 'controller' not in ss:
     ss.controller = None
@@ -41,9 +58,12 @@ except (OSError, TypeError, ValueError) as exc:
     st.error('增强契约加载失败，自动控制已锁定：' + str(exc))
     st.stop()
 
+mode = st.radio('观看方式', ['现场对局', '历史回放'],index=1 if st.query_params.get('view')=='history' else 0,horizontal=True,label_visibility='collapsed')
+
 with st.sidebar:
     st.header('运行与回放')
-    mode = st.radio('模式', ['实时联调', '本地只读回放'])
+    seed = st.number_input('随机种子 seed',min_value=0,max_value=2147483647,value=42,step=1)
+
     url = st.text_input('B 服务地址', os.getenv('B_API_URL', 'http://127.0.0.1:8000'))
     st.caption('默认端口：A分类8765、B游戏8000、网页8501；自定义时以启动输出及B地址为准。')
     st.caption(f'契约：{contract.version}；确认人：{contract.confirmed_by or "尚无增强能力确认"}')
@@ -69,7 +89,7 @@ except ValueError as exc:
     st.stop()
 
 
-def render_events(events, status, phase, metrics, game_id, live):
+def render_details(events, status, phase, metrics, game_id, live):
     if not events:
         st.caption('当前游标尚无事件。')
         return
@@ -120,7 +140,7 @@ def render_events(events, status, phase, metrics, game_id, live):
                             st.dataframe(rows,hide_index=True,use_container_width=True)
                         else:
                             st.caption('服务未提供票数。' if rows is None else 'B返回空票数表。')
-                    with st.expander('查看原始公开记录'):
+                    with st.container(border=True):
                         st.json({k:v for k,v in event.items() if k not in {'reason','timestamp'}},expanded=False)
     with vote_tab:
         st.caption('按当前已显示事件整理；票数、有效性与裁决沿用B原件，页面不补算。')
@@ -154,7 +174,8 @@ def render_events(events, status, phase, metrics, game_id, live):
         st.caption('只供本地观察者；页面不回传玩家输入。reason是角色自述依据。')
         for event in events:
             if event.get('visibility') != 'public' or event.get('reason'):
-                with st.expander(f"#{event['event_id']} {event['type']} · {event.get('actor','系统')}"):
+                with st.container(border=True):
+                    st.caption(f"#{event['event_id']} {event['type']} · {event.get('actor','系统')}")
                     if event.get('reason'):
                         st.write('角色自述依据：' + str(event['reason']))
                     st.json(event)
@@ -182,6 +203,26 @@ def render_events(events, status, phase, metrics, game_id, live):
         st.json(events,expanded=False)
 
 
+def render_events(events, status, phase, metrics, game_id, live):
+    actual_phase = phase or (events[-1].get('phase') if events else 'night')
+    night = actual_phase == 'night'
+    bg, fg = ('#101e2e','#e1eaf0') if night else ('#f2f4e9','#314737')
+    st.markdown(f'''<style>
+.stApp{{background:{bg};color:{fg};transition:background 1s,color 1s}}
+[data-testid="stMain"] [role="radiogroup"] p{{color:{fg}!important;font-size:12px}}
+[data-testid="stMain"] label p{{color:{fg}!important;font-size:11px}}
+[data-testid="stMain"] [role="radiogroup"]{{width:fit-content;padding:5px 12px;border:1px solid #7f9b7833;border-radius:12px}}
+[data-testid="stMain"] [data-testid="stExpander"]{{background:#172a3a;color:#d5e3e8;border-radius:14px}}
+</style>''',unsafe_allow_html=True)
+    controller = ss.controller if live else None
+    render_scene(events,status=status,phase=actual_phase,metrics=metrics,game_id=game_id,
+                 replay=not live,busy=bool(controller and controller.busy),
+                 message=controller.message if controller else '')
+    if events:
+        with st.expander('检查记录 · 完整事件 / 投票原件 / 调用统计', expanded=False):
+            render_details(events,status,phase,metrics,game_id,live)
+
+
 @st.fragment(run_every=.5)
 def live_panel():
     controller = ss.controller
@@ -191,8 +232,8 @@ def live_panel():
         return
     if controller:
         controller.tick(refresh=controller.needs_poll)
-    seed = st.number_input('随机种子 seed',min_value=0,max_value=2147483647,value=42,step=1)
-    if st.button('新建对局',type='primary',disabled=bool(ss.create_uncertain or (controller and controller.busy))):
+    controls = st.columns([1.35,1,1,1,1,1,1])
+    if controls[0].button('开始对局',type='primary',disabled=bool(ss.create_uncertain or (controller and controller.busy))):
         try:
             # 在POST前保存意图；页面重运行不能再次提交结果尚未确认的建局。
             ss.create_operation_id=uuid.uuid4().hex
@@ -216,17 +257,17 @@ def live_panel():
         if ss.create_uncertain:
             st.caption('建局结果未确认，禁止自动重建。请用本地历史日志核对后重新加载页面。')
     if not controller:
-        st.write('点击“新建对局”，从夜间开始逐步观察。')
+        render_events([], 'unknown', 'night', {}, None, True)
+        st.caption('点击开始，身份卡会发到机器人头顶。当前联调版可单步观察，也可在左侧播放历史对局。')
         return
     ss.game_id=controller.game_id
     ss.events=controller.events
-    st.code(f'game_id: {controller.game_id}   seed: {controller.seed}',language=None)
-    st.write(controller.message)
+    # 详细局号、状态与调用信息保留在下方检查区，不占场景首屏。
     if controller.error:
         st.error(controller.error)
     if controller.unresolved:
         st.caption('待确认操作：' + ', '.join(op.action+':'+op.operation_id for op in controller.unresolved))
-    buttons=st.columns(6)
+    buttons=controls[1:]
     action=None
     locked=controller.fatal or bool(controller.error)
     if buttons[0].button('单步推进',disabled=locked or controller.busy or controller.auto or controller.pause_intent or controller.status!='running' or not controller.synced):
@@ -256,30 +297,53 @@ def live_panel():
         except (ValueError,OSError) as exc:
             controller.fail(str(exc))
         st.rerun()
-    if not contract.ready:
-        st.caption('旧B模式：自动运行锁定。若控制超时，刷新只读事件也不会冒充已确认完成。')
     render_events(controller.events,controller.status,controller.phase,controller.metrics,controller.game_id,True)
 
 
-if mode=='实时联调':
+@st.fragment(run_every=1)
+def replay_panel():
+    games=local_games(runs)
+    if not games:
+        render_events([], 'unknown', 'night', {}, None, False)
+        st.info('还没有保存的对局，请先开始一局。')
+        return
+    selection_col,timeline_col,action_col=st.columns([2,4,1.1])
+    selected=selection_col.selectbox('选择本地对局',games,index=games.index(st.query_params['game']) if st.query_params.get('game') in games else 0,label_visibility='collapsed')
+    try:
+        all_events=read_events(runs,selected)
+        if all_events:
+            last=max(int(e['event_id']) for e in all_events)
+            key='cursor_'+selected
+            if ss.pop('replay_restart',False):
+                ss[key]=0
+            if ss.get('replay_playing') and ss.get('replay_selected')==selected:
+                ss[key]=min(last,ss.get(key,0)+1)
+                if ss[key]>=last: ss.replay_playing=False
+            elif ss.get('replay_selected')!=selected:
+                ss.replay_playing=False
+            ss.replay_selected=selected
+            left,right=timeline_col,action_col
+            try:
+                initial_cursor=max(0,min(last,int(st.query_params.get('event','0')))) if selected==st.query_params.get('game') else 0
+            except (ValueError,TypeError):
+                initial_cursor=0
+            cursor=left.slider('回放到 event_id',min_value=0,max_value=last,value=initial_cursor,key=key,label_visibility='collapsed')
+            if right.button('暂停回放' if ss.get('replay_playing') else '重新播放' if cursor>=last else '播放回放'):
+                ss.replay_playing=not ss.get('replay_playing',False)
+                if ss.replay_playing and cursor>=last:
+                    ss.replay_restart=True
+                st.rerun()
+            events=[e for e in all_events if int(e['event_id'])<=cursor]
+            render_events(events,project(events)['status'],None,{},selected,False)
+            with st.expander('回放文件与导出',expanded=False):
+                st.code(f'回放 game_id: {selected}   event_id: {cursor}',language=None)
+                st.download_button('导出 B 原始日志包',evidence_zip(runs,selected),file_name=selected+'_raw_logs.zip',mime='application/zip')
+    except (OSError,ValueError,KeyError) as exc:
+        st.error('读取回放失败：'+str(exc))
+
+if mode=='现场对局':
     live_panel()
 else:
     if ss.controller:
         ss.controller.stop_auto()
-    st.warning('回放 · 只读取本机日志，不请求玩家或分类模型。自动调度已停止。')
-    games=local_games(runs)
-    if not games:
-        st.write('尚无本地对局。')
-    else:
-        selected=st.selectbox('选择本地对局',games)
-        try:
-            all_events=read_events(runs,selected)
-            if all_events:
-                last=max(int(e['event_id']) for e in all_events)
-                cursor=st.slider('回放到 event_id',min_value=0,max_value=last,value=0,key='cursor_'+selected)
-                events=[e for e in all_events if int(e['event_id'])<=cursor]
-                st.code(f'回放 game_id: {selected}   event_id: {cursor}',language=None)
-                st.download_button('导出 B 原始日志包',evidence_zip(runs,selected),file_name=selected+'_raw_logs.zip',mime='application/zip')
-                render_events(events,project(events)['status'],None,{},selected,False)
-        except (OSError,ValueError,KeyError) as exc:
-            st.error('读取回放失败：'+str(exc))
+    replay_panel()

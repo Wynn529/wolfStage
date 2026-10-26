@@ -84,7 +84,7 @@ def test_replay_vote_rounds_keep_b_tally_and_hide_future_results(tmp_path, monke
     original = '\n'.join(json.dumps(e) for e in events).encode()
     (folder/'events.jsonl').write_bytes(original)
     app = AppTest.from_file(str(Path(__file__).resolve().parents[1]/'app/ui.py')).run()
-    app.radio[0].set_value('本地只读回放').run()
+    app.radio[0].set_value('历史回放').run()
     def move(cursor):
         app.slider[0].set_value(cursor).run()
         assert not app.exception
@@ -159,7 +159,7 @@ def test_streamlit_controls_use_b_and_attach_actual_a_labels(tmp_path, monkeypat
                 time.sleep(.02)
                 app.run(timeout=20)
             assert not app.exception
-        click('新建对局')
+        click('开始对局')
         gid = app.session_state['game_id']
         assert gid in engine.games
         click('暂停')
@@ -194,7 +194,7 @@ def test_streamlit_controls_use_b_and_attach_actual_a_labels(tmp_path, monkeypat
         def forbid_http(*args, **kwargs):
             raise AssertionError('local replay must not request B or a model')
         monkeypatch.setattr(GameClient, '_request', forbid_http)
-        app.radio[0].set_value('本地只读回放').run(timeout=20)
+        app.radio[0].set_value('历史回放').run(timeout=20)
         assert not app.exception
         assert app.slider[0].value == 0
         assert not any(m.label == '存活人数' for m in app.metric)
@@ -225,3 +225,60 @@ def test_streamlit_controls_use_b_and_attach_actual_a_labels(tmp_path, monkeypat
         a.shutdown()
         a.server_close()
         a_thread.join(timeout=5)
+
+def test_scene_projects_only_current_prefix_and_separates_action_from_speech():
+    from app.ui_scene import scene_model
+    values = [
+        event(1,'game_created',roles={'1':'villager','2':'wolf','3':'seer'},alive=[1,2,3],phase='night'),
+        event(2,'wolf_proposal',actor=2,target=1,visibility=[2],source='stub',phase='night'),
+        event(3,'night_death',target=1,visibility='public',phase='night'),
+        event(4,'public_speech',actor=2,text='<b>我是2号</b>',visibility='public',phase='day_speak'),
+        event(5,'utterance_classification',source_event_id=4,result={'intent':'role_claim','confidence':None},phase='day_speak'),
+        event(6,'exile',target=2,visibility='public',phase='day_vote'),
+        event(7,'game_over',winner='villagers',visibility='public',phase='day_vote'),
+    ]
+    idle=scene_model([])
+    assert len(idle['players'])==6 and all(p['role'] is None and p['alive'] for p in idle['players'])
+    night=scene_model(values[:2])
+    assert night['night'] and night['current']['private'] and not night['current']['speech']
+    assert night['current']['actor']==2 and night['current']['target']==1
+    assert night['analysis']['classified'] is False and not night['analysis']['speech']
+    day=scene_model(values[:5],replay=True)
+    assert not day['night'] and day['current']['speech']
+    assert day['current']['id']==4 and day['analysis']['event_id']==4
+    assert day['analysis']['intent']=='身份声明' and day['analysis']['classified']
+    assert day['analysis']['speech']=='<b>我是2号</b>'  # 原文由前端text转义，Python不改写。
+    assert not day['players'][0]['alive'] and day['players'][1]['alive']
+    assert day['winner']==''
+    assert scene_model(values)['winner']=='好人胜'
+    assert scene_model(values[:5])['players'][1]['alive']  # 回退不携带未来放逐。
+
+
+def test_scene_replay_play_pause_restart_never_requests_service(tmp_path,monkeypatch):
+    from pathlib import Path
+    from streamlit.testing.v1 import AppTest
+    from app.ui_client import GameClient
+    monkeypatch.delenv('C_SERVICE_CONTRACT',raising=False)
+    monkeypatch.setenv('C_RUNS_DIR',str(tmp_path))
+    monkeypatch.setenv('C_JOURNAL_DIR',str(tmp_path/'journals'))
+    def forbid(*args,**kwargs):
+        raise AssertionError('replay presentation must never call game service')
+    monkeypatch.setattr(GameClient,'_request',forbid)
+    folder=tmp_path/'g';folder.mkdir()
+    data=[event(1,'game_created',roles={'1':'wolf'},alive=[1,2],phase='night'),
+          event(2,'public_speech',actor=1,text='原文',visibility='public',phase='day_speak'),
+          event(3,'game_over',winner='wolves',visibility='public',phase='day_vote')]
+    original='\n'.join(json.dumps(e) for e in data).encode()
+    path=folder/'events.jsonl';path.write_bytes(original)
+    before=path.stat().st_mtime_ns
+    app=AppTest.from_file(str(Path(__file__).resolve().parents[1]/'app/ui.py')).run()
+    app.radio[0].set_value('历史回放').run()
+    next(b for b in app.button if b.label=='播放回放').click().run()
+    assert not app.exception and app.session_state['replay_playing']
+    cursor=app.slider[0].value
+    next(b for b in app.button if b.label=='暂停回放').click().run()
+    assert not app.exception and not app.session_state['replay_playing']
+    app.slider[0].set_value(3).run()
+    next(b for b in app.button if b.label=='重新播放').click().run()
+    assert not app.exception and app.slider[0].value < 3
+    assert path.read_bytes()==original and path.stat().st_mtime_ns==before\n

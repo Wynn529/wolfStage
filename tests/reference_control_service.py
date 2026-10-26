@@ -16,7 +16,8 @@ def reference_contract():
 
 
 class ReferenceService:
-    def __init__(self, delay=.03, response_delay=0, plan=None, corrupt_state=None):
+    def __init__(self, delay=.03, response_delay=0, plan=None, corrupt_state=None, advance_gate=None):
+        self.advance_gate=advance_gate
         self.delay=delay
         self.response_delay=response_delay
         self.plan=plan
@@ -83,6 +84,8 @@ class ReferenceService:
             return dict(op)
 
     def advance(self,s,op):
+        if self.advance_gate is not None:
+            self.advance_gate.wait(timeout=5)
         time.sleep(self.delay)
         with self.lock:
             self.executions.append(op['operation_id'])

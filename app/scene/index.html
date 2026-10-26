@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:"Segoe UI","Microsoft YaHei",sans-serif;color:#233630;background:transparent}
+button,summary{font:inherit}button{cursor:pointer}
+:root{--ink:#263d36;--muted:#77867e;--paper:#fffef9;--line:#dce6da;--green:#2c6e51;--bg:#eaf1df}
+.layout{height:650px;display:grid;grid-template-rows:430px 212px;gap:8px}
+.stage{position:relative;border-radius:28px;overflow:hidden;background:radial-gradient(ellipse at 50% 36%,#fbf6df 0,#edf2df 50%,#d9e6ce 100%);border:1px solid #dbe5d1;transition:background 1s,color 1s;color:#283f34}
+.stage.night{background:radial-gradient(ellipse at 50% 48%,#253c51 0,#17283e 55%,#111e31 100%);border-color:#304458;color:#ecf4f3}
+.sky{position:absolute;inset:0;overflow:hidden;pointer-events:none}.sky::before{content:"";position:absolute;width:220px;height:220px;border-radius:50%;right:-65px;top:-70px;background:#ffe6a6;box-shadow:0 0 90px #ffedb6aa;opacity:.65}
+.night .sky::before{width:100px;height:100px;top:30px;right:60px;background:#d5e4ee;box-shadow:0 0 45px #a7c6e84a;opacity:.17}
+.stars{display:none;position:absolute;inset:0;background-image:radial-gradient(circle,#d5e9f5 1px,transparent 1.5px);background-size:97px 69px;opacity:.3}.night .stars{display:block}
+.stagebar{position:absolute;left:22px;right:22px;top:16px;z-index:5;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.badge{font-size:11px;font-weight:600;border-radius:20px;padding:6px 10px;background:#ffffffc7;color:#45634f;border:1px solid #ffffff99;letter-spacing:.3px}
+.night .badge{color:#d0e2ed;background:#263c54cc;border-color:#45607766}.badge.private{background:#f3e5ff;color:#75518b}
+.table{position:absolute;width:49%;height:56%;left:25.5%;top:25%;border-radius:50%;background:radial-gradient(ellipse,#e5e6c9,#c9d7b8 70%);border:10px solid #d5bc91;box-shadow:0 10px 0 #aa916c,0 18px 30px #50644225,inset 0 0 0 2px #f3f1d2}
+.night .table{background:radial-gradient(ellipse,#294658,#1d3549);border-color:#48606a;box-shadow:0 10px 0 #283d49,0 18px 40px #0004,inset 0 0 0 2px #4c6d7d}
+.table::after{content:"WOLF / STAGE";position:absolute;bottom:18px;left:0;right:0;text-align:center;letter-spacing:5px;font-size:10px;font-weight:700;color:#6f80644d}.night .table::after{color:#c4dfe52d}
+.orbit{position:absolute;left:8%;top:16%;width:84%;height:78%;border:1px dashed #97ac8d4d;border-radius:50%}.night .orbit{border-color:#b7d9df1a}
+.seat{position:absolute;transform:translate(-50%,-50%);width:160px;text-align:center;z-index:3;display:flex;align-items:center;flex-direction:column;gap:2px}
+.robot{width:94px;height:104px;overflow:visible;filter:drop-shadow(0 7px 3px #173f3920);transition:filter .8s,opacity .8s}
+.active .robot{animation:bob 2s ease-in-out infinite;filter:drop-shadow(0 0 10px #9fe9bf90)}
+.seat.active::before{content:"";width:85px;height:17px;border:2px solid #5aa279;border-radius:50%;position:absolute;bottom:17px;background:#9bce9833}
+.night .seat.active::before{border-color:#91dcd7}.dead .robot{filter:grayscale(1);opacity:.42}.dead .identity{opacity:.65}
+.identity{display:flex;gap:5px;align-items:center;justify-content:center;min-width:92px;height:29px;border-radius:9px;background:#fff9eb;border:1px solid #e5d7b8;color:#7d6740;box-shadow:0 3px 9px #394b3010;font-size:11px;font-weight:700;backface-visibility:hidden}
+.identity.wolf{background:#ffedeb;color:#aa544e;border-color:#edbbb3}.identity.seer{background:#eee9ff;color:#7657a8;border-color:#d2c2ee}.identity.villager{background:#eef5e5;color:#597743;border-color:#c8d9b3}
+.identity.unknown{background:#e4e9e6;color:#78867c;border-color:#cbd4cb}
+.deal .identity{animation:deal .9s cubic-bezier(.2,.7,.2,1) both;animation-delay:var(--delay)}
+.name{font-size:11px;font-weight:650;letter-spacing:1px;white-space:nowrap}.name span{font-size:9px;letter-spacing:0;font-weight:400;opacity:.6;margin-left:4px}.dead .name{text-decoration:line-through;opacity:.55}
+.seatnote{position:absolute;right:12px;top:35px;background:#e8ebea;color:#7b8580;border-radius:5px;font-size:9px;padding:3px 5px;transform:rotate(8deg)}
+.center{position:absolute;left:50%;top:49%;transform:translate(-50%,-50%);z-index:6;width:31%;max-width:360px;min-width:245px;text-align:center}
+.eyebrow{font-size:9px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;margin-bottom:7px;color:#69846b}.night .eyebrow{color:#a8c5d1}
+.bubble{text-align:left;position:relative;box-shadow:0 10px 24px #172f3012;animation:arrive .35s ease-out;padding:14px 16px;background:#fffcf1;color:#354a3e;border:1px solid #e8dfc9}
+.bubble.speech{border-radius:20px 20px 20px 4px;background:#fffef9;border-color:#d9e4d6}
+.bubble.action{border-radius:4px 15px 4px 15px;border-left:4px solid #c6955d;background:#fff6e7}
+.bubble.action.private-action{border-left-color:#9b7bb6;background:#f5effc;color:#5a4770}
+.bubble.speech::after{content:"";position:absolute;bottom:-9px;left:18px;border-top:10px solid #fffef9;border-right:11px solid transparent}
+.bubble.action::after{content:"";position:absolute;bottom:-7px;left:20px;width:11px;height:11px;background:inherit;transform:rotate(45deg);border-bottom:1px solid #e8dfc9;border-right:1px solid #e8dfc9}
+.bubblehead{display:flex;align-items:center;justify-content:space-between;font-size:10px;color:#7c8778;margin-bottom:7px;gap:5px}.bubblehead b{font-weight:700;color:#4c6354}
+.bubbletext{font-size:13px;line-height:1.75;max-height:100px;overflow:auto;overflow-wrap:anywhere}.bubble small{display:block;margin-top:8px;font-size:9px;color:#8c897c}
+.reason{margin-top:7px;padding-top:7px;border-top:1px dashed #cbbdd2;color:#86778f;font-size:10px;line-height:1.5;max-height:40px;overflow:auto}
+.timeline{position:absolute;bottom:12px;left:22px;right:22px;display:flex;justify-content:space-between;font-size:10px;opacity:.7;z-index:5}
+.progressdots{display:flex;align-items:center;gap:7px}.dot{width:5px;height:5px;border-radius:50%;background:#779b79}.night .dot{background:#9bc6d5}.dot.now{width:17px;border-radius:4px}
+.target-line{position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none}
+.analysis{border-radius:22px;background:#fffef9;border:1px solid #e0e7db;padding:16px 20px;overflow:auto;color:#334b3c}
+.analysisbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;font-size:11px}.analysisbar strong{font-size:14px;letter-spacing:.5px}.analysisbar small{font-size:10px;color:#8b998c}
+.analysisgrid{display:grid;grid-template-columns:1.35fr 1fr 1fr;gap:22px}.analysiscol+ .analysiscol{border-left:1px solid #e7ece1;padding-left:22px}
+.label{color:#899786;font-size:9px;letter-spacing:1.5px;font-weight:600;margin-bottom:8px}
+.quote{font-size:12px;line-height:1.7;margin-bottom:10px;max-height:47px;overflow:auto}.intent{display:inline-block;border-radius:7px;padding:5px 9px;font-size:11px;font-weight:650;background:#e7efdd;color:#557243}
+.chips{display:flex;flex-wrap:wrap;gap:5px}.chip{padding:4px 7px;background:#f1f3e9;border-radius:5px;color:#6e7b61;font-size:10px}.subtle{font-size:10px;color:#8a9587;line-height:1.6;margin-top:7px}
+.pipeline{display:flex;align-items:center;gap:5px;font-size:10px;color:#74896d}.step{background:#edf3e7;padding:6px;border-radius:6px}.step.pending{background:#f3f0e8;color:#9b9486}
+.numbers{display:flex;gap:19px}.number b{font-size:23px;font-weight:600;display:block;letter-spacing:-1px;color:#436b4c}.number span{font-size:9px;color:#85957e}
+details{margin-top:8px;font-size:10px;color:#7c8a74}summary{cursor:pointer;list-style:none}summary::before{content:"+ ";color:#5c7e52}details[open] summary::before{content:"− "}pre{white-space:pre-wrap;font-size:10px;line-height:1.5;background:#f3f4ee;padding:10px;border-radius:7px;overflow-wrap:anywhere}
+.night + .analysis{background:#192b3d;color:#e0eaf0;border-color:#30475a}.night + .analysis .label,.night + .analysis .subtle,.night + .analysis small{color:#9bb0ba}.night + .analysis .analysiscol+ .analysiscol{border-color:#34495b}.night + .analysis .quote{color:#dfebed}.night + .analysis .chip,.night + .analysis .step{background:#294452;color:#c0d6db}.night + .analysis .intent{background:#304f52;color:#c3e8cd}.night + .analysis .number b{color:#c3e5d7}.night + .analysis pre{background:#122332;color:#c3d4dd}.night + .analysis details{color:#a6c3cc}
+@keyframes bob{50%{transform:translateY(-4px)}}@keyframes deal{0%{opacity:0;transform:translateY(80px) rotateY(180deg) scale(.3)}55%{opacity:1}100%{opacity:1;transform:translateY(0) rotateY(0) scale(1)}}@keyframes arrive{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:800px){.layout{height:790px;grid-template-rows:490px 292px}.seat{width:120px}.robot{width:78px;height:88px}.identity{min-width:78px;height:26px;font-size:10px}.name{font-size:10px}.center{min-width:220px;width:37%}.bubble{padding:12px}.bubbletext{font-size:11px;max-height:85px}.analysisgrid{grid-template-columns:1.1fr 1fr;gap:14px}.analysiscol+ .analysiscol{padding-left:14px}.analysiscol:last-child{grid-column:1/3;border:0;padding-left:0;display:flex;gap:20px;align-items:center}.analysiscol:last-child .label{margin-bottom:0}.analysiscol:last-child details{margin-top:0}.table{width:52%;left:24%;height:55%;top:25%}.badge{font-size:9px;padding:5px 8px}.stagebar{left:12px;right:12px}.timeline{left:14px;right:14px}.analysis{padding:14px}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style></head><body>
+<main class="layout" id="app" aria-label="六机器人狼人杀观察场景"></main>
+<script>
+const POS=[[26,18],[74,18],[88,51],[74,77],[26,77],[12,51]];
+const COLORS=['#80bfa2','#e8b27d','#b09bd0','#7faec7','#d4bf74','#d8949e'];
+const NAMES=['青柠','琥珀','星云','冰川','麦穗','珊瑚'];
+let previous='',lastGameId='',lastCursor=-1;
+const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function robot(id,dead){
+const color=COLORS[id-1],eye=dead?'<path d="m35 40 7 7m0-7-7 7m23-7 7 7m0-7-7 7" stroke="#717c76" stroke-width="3" stroke-linecap="round"/>':
+'<rect x="33" y="39" width="11" height="14" rx="5.5" fill="#d3fff0"/><rect x="56" y="39" width="11" height="14" rx="5.5" fill="#d3fff0"/><circle cx="38" cy="44" r="2" fill="#fff"/><circle cx="61" cy="44" r="2" fill="#fff"/>';
+return '<svg class="robot" role="img" aria-label="'+id+'号卡通机器人'+(dead?'已出局':'')+'" viewBox="0 0 100 110"><ellipse cx="50" cy="105" rx="24" ry="4" fill="#203c3020"/><path d="M50 15V6" stroke="'+color+'" stroke-width="4"/><circle cx="50" cy="5" r="4" fill="'+color+'"/><rect x="15" y="31" width="8" height="22" rx="4" fill="'+color+'"/><rect x="77" y="31" width="8" height="22" rx="4" fill="'+color+'"/><rect x="21" y="17" width="58" height="49" rx="18" fill="'+color+'"/><path d="M31 24Q50 16 69 24" fill="none" stroke="#ffffff77" stroke-width="3" stroke-linecap="round"/><rect x="27" y="31" width="46" height="27" rx="11" fill="#243f42"/>'+eye+'<rect x="32" y="69" width="36" height="27" rx="10" fill="'+color+'"/><rect x="40" y="73" width="20" height="15" rx="5" fill="#ffffffbb"/><path d="m47 78 7 3-7 3z" fill="'+color+'"/><path d="M27 75q-9 6-8 15M73 75q9 6 8 15" fill="none" stroke="'+color+'" stroke-width="8" stroke-linecap="round"/><rect x="35" y="94" width="12" height="9" rx="4" fill="'+color+'"/><rect x="53" y="94" width="12" height="9" rx="4" fill="'+color+'"/></svg>';
+}
+function send(type,data){window.parent.postMessage(Object.assign({isStreamlitMessage:true,type:type},data||{}),'*')}
+function render(m){
+const signature=JSON.stringify(m);if(signature===previous)return;previous=signature;
+const c=m.current,a=m.analysis;
+const deal=!!m.game_id&&m.cursor===1&&(lastGameId!==m.game_id||lastCursor<1);lastGameId=m.game_id;lastCursor=m.cursor;
+const seats=m.players.map((p,i)=>'<section class="seat '+(!p.alive?'dead ':'')+(c.actor===p.id?'active ':'')+(deal?'deal':'')+'" style="left:'+POS[i][0]+'%;top:'+POS[i][1]+'%;--delay:'+(i*170)+'ms" aria-label="'+p.id+'号 '+esc(p.role_name)+' '+(p.alive?'存活':'已出局')+'"><div class="identity '+esc(p.role||'unknown')+'">'+(p.role==='wolf'?'◆':p.role==='seer'?'◈':p.role?'✦':'◇')+' '+esc(p.role_name)+'</div>'+robot(p.id,!p.alive)+'<div class="name">'+p.id+'号 · '+NAMES[i]+'<span>'+(p.alive?'': '已出局')+'</span></div>'+(!p.alive?'<div class="seatnote">已出局</div>':'')+'</section>').join('');
+let target='';
+if(c.actor&&c.target){const p=POS[c.actor-1],q=POS[c.target-1];target='<svg class="target-line" viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="'+c.actor+'号指向'+c.target+'号"><defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#cfa16b"/></marker></defs><line x1="'+p[0]+'" y1="'+(p[1]+6)+'" x2="'+q[0]+'" y2="'+(q[1]+6)+'" stroke="#cfa16b" stroke-width=".35" stroke-dasharray="1 1" opacity=".65" marker-end="url(#arrow)"/></svg>'}
+const phaseName=({night:'夜晚 · 秘密行动',day_speak:'白天 · 公开发言',day_vote:'白天 · 正式投票'})[m.phase]||'观察对局';
+const phaseTag=m.winner?'对局结束':m.cursor?phaseName:'准备开局';
+const body=m.busy?'正在等待模型返回，本次行动完成后会自动更新。':c.body;
+const turn=m.winner|| (m.busy?'正在思考…':c.actor?c.actor+'号机器人 · '+c.title:c.title);
+const speaker=a.speaker?a.speaker+'号原文':'等待公开发言';
+let chips=[];const entities=a.entities||{};
+if(entities.player_ids&&entities.player_ids.length)chips.push('提及 '+entities.player_ids.join('、')+'号');
+if(entities.claimed_role)chips.push('声称 '+entities.claimed_role);
+if(entities.check_target!=null)chips.push('查验 '+entities.check_target+'号');
+if(entities.vote_target!=null)chips.push('投票意向 '+entities.vote_target+'号');
+if(!chips.length)chips.push(a.classified?'未提取到明确目标':'发言后同步分析');
+const metrics=m.metrics||{},calls=metrics.call_count===undefined?'—':metrics.call_count,events=m.cursor;
+const sourceText=m.source==='离线联调'?'离线玩家 · A本地模型':m.source;
+document.getElementById('app').innerHTML='<section class="stage '+(m.night?'night':'day')+'" aria-label="'+(m.night?'夜晚场景':'白天场景')+'"><div class="sky"><div class="stars"></div></div><div class="stagebar"><span class="badge">'+(m.night?'☾':'☀')+' '+esc(phaseTag)+'</span><span class="badge">'+(m.replay?'↶ 历史回放':'◉ 现场观察')+' · '+esc(sourceText)+'</span></div><div class="orbit"></div><div class="table"></div>'+target+seats+'<div class="center"><div class="eyebrow">'+(m.winner?'GAME FINISHED':m.busy?'THINKING':c.speech?'PUBLIC SPEECH':'CURRENT ACTION')+'</div><div class="bubble '+(c.speech?'speech':'action')+(c.private?' private-action':'')+'" role="status" aria-live="polite"><div class="bubblehead"><b>'+esc(turn)+'</b><span>'+(c.private?'仅上帝视角':c.speech?'公开发言':'游戏记录')+'</span></div><div class="bubbletext">'+esc(body)+'</div>'+(c.reason?'<div class="reason">角色自述依据：'+esc(c.reason)+'</div>':'')+'</div></div><div class="timeline"><span>'+(m.cursor?'DAY '+m.day+' · '+(m.night?'NIGHT':'DAYLIGHT'):'2 狼人 / 1 预言家 / 3 平民')+'</span><div class="progressdots"><span class="dot '+(m.night?'now':'')+'"></span><span>夜晚</span><span class="dot '+(m.phase==='day_speak'?'now':'')+'"></span><span>发言</span><span class="dot '+(m.phase==='day_vote'?'now':'')+'"></span><span>投票</span></div><span>上帝视角 · 私密信息仅供观察</span></div></section><section class="analysis" aria-label="同步小模型分析"><div class="analysisbar"><strong>✦ 小模型观察站</strong><small>随公开发言同步 · 仅识别表达，不认证身份</small></div><div class="analysisgrid"><div class="analysiscol"><div class="label">'+esc(speaker)+'</div><div class="quote">'+esc(a.speech||'夜间行动无需发言分类。出现公开发言后，这里会展示原句与分析。')+'</div><span class="intent">'+esc(a.intent)+'</span> <span style="font-size:9px;color:#94a18e">'+(a.classified?'已记录':'等待中')+'</span></div><div class="analysiscol"><div class="label">识别信息 / 协作状态</div><div class="chips">'+chips.map(x=>'<span class="chip">'+esc(x)+'</span>').join('')+'</div><div class="pipeline" style="margin-top:12px"><span class="step">公开发言</span> → <span class="step '+(!a.classified?'pending':'')+'">小模型分析</span> → <span class="step pending">后续输入待核验</span></div><div class="subtle">'+esc(a.confidence)+'</div></div><div class="analysiscol"><div><div class="label">这场对局 / 检查</div><div class="numbers"><div class="number"><b>'+events+'</b><span>已显示事件</span></div><div class="number"><b>'+esc(calls)+'</b><span>服务记录调用</span></div></div></div><details><summary>查看本步证据</summary><div class="subtle">对局 '+esc(m.game_id||'尚未创建')+' · 事件 '+m.cursor+'<br>模型 '+esc(a.model||'等待发言')+'<br>'+esc(a.evidence_note)+'</div><pre>'+esc(JSON.stringify({event:c,analysis:a,metrics:metrics},null,2))+'</pre></details></div></div></section>';
+send('streamlit:setFrameHeight',{height:window.innerWidth<=800?790:650});
+}
+window.addEventListener('message',e=>{if(e.source===window.parent&&e.data&&e.data.type==='streamlit:render'&&e.data.args&&e.data.args.model)render(e.data.args.model)});
+window.addEventListener('resize',()=>send('streamlit:setFrameHeight',{height:window.innerWidth<=800?790:650}));
+send('streamlit:componentReady',{apiVersion:1});
+send('streamlit:setFrameHeight',{height:650});
+</script></body></html>

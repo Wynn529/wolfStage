@@ -71,13 +71,16 @@ def test_c_pause_during_call_waits_for_boundary_and_resume_same_game(tmp_path):
 
 
 def test_c_timeout_queries_same_id_without_reposting_and_restore(tmp_path):
-    with serve_reference(delay=.12,response_delay=.25) as (service,url):
+    import threading
+    gate=threading.Event()
+    with serve_reference(delay=.12,response_delay=.25,advance_gate=gate) as (service,url):
         c=controller_for(url,tmp_path,timeout=.04)
         try:
             oid=c.submit('advance')
             assert c.submit('advance',operation_id=oid)==oid
             until(c,lambda:bool(c.unresolved) and c.unresolved[0].state=='uncertain')
             restored=SessionController.restore(c.client,c.journal)
+            gate.set()
             try:
                 until(restored,lambda:not restored.busy and restored.status=='running')
                 assert len(service.submissions)==1
@@ -85,7 +88,9 @@ def test_c_timeout_queries_same_id_without_reposting_and_restore(tmp_path):
                 assert not restored.auto
                 assert restored.operations[oid].state=='succeeded'
             finally:restored.close()
-        finally:c.close()
+        finally:
+            gate.set()
+            c.close()
 
 
 @pytest.mark.parametrize('status',['finished','failed','incomplete','degraded'])
@@ -260,7 +265,7 @@ def test_streamlit_reference_auto_pause_and_finish(tmp_path,monkeypatch):
         def click(label):
             next(b for b in app.button if b.label==label).click().run(timeout=15)
             assert not app.exception
-        click('新建对局')
+        click('开始对局')
         click('自动运行')
         c=app.session_state['controller']
         assert c.busy
@@ -298,7 +303,7 @@ def test_streamlit_legacy_ambiguous_timeout_disables_controls(tmp_path,monkeypat
     monkeypatch.setattr(GameClient,'metrics',lambda self,gid:{'game_id':gid,'call_count':0})
     monkeypatch.setattr(GameClient,'control',control)
     app=AppTest.from_file(str(Path(__file__).resolve().parents[1]/'app/ui.py')).run(timeout=15)
-    next(b for b in app.button if b.label=='新建对局').click().run(timeout=15)
+    next(b for b in app.button if b.label=='开始对局').click().run(timeout=15)
     next(b for b in app.button if b.label=='单步推进').click().run(timeout=15)
     c=app.session_state['controller']
     deadline=time.monotonic()+3
