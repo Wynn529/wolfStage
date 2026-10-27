@@ -1,4 +1,7 @@
 {
+  "version": "c-preview-v2-with-inspection",
+  "inspection_tabs": 4,
+  "calls": 29,
   "game_id": "b4e7eaa6a071",
   "events": 56,
   "source": "stub players and recorded local A classification",
@@ -6,5 +9,5 @@
   "deepseek_calls": 0,
   "initial_cursor": 10,
   "scene_sha256": "aeb713b5ac60ead598e04d7213215c3c42ac50372bec8186268b05d4b79ae6c4",
-  "html_sha256": "a25d0773036d75784410d7dc5cdd9dd465e0035559e4e5c3a4c78d57c6f25121"
+  "html_sha256": "52ef663dfc8cdbf110add0f7797a62692cb55ce35e8d7695b1334717aca0e61a"
 }
