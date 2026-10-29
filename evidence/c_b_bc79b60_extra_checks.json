@@ -1,0 +1,88 @@
+{
+  "b_revision": "bc79b60",
+  "new_paid_requests": 0,
+  "retry_both_invalid_metadata": {
+    "mode": "offline_fake_client_no_api",
+    "expected_input_tokens": [
+      111,
+      222
+    ],
+    "actual_input_tokens": [
+      111,
+      111
+    ],
+    "expected_output_tokens": [
+      11,
+      22
+    ],
+    "actual_output_tokens": [
+      11,
+      11
+    ],
+    "expected_latency_ms": [
+      100,
+      200
+    ],
+    "actual_latency_ms": [
+      100,
+      100
+    ],
+    "calls": [
+      {
+        "agent_id": 1,
+        "attempt": 1,
+        "call_id": "3ada07ac2ade:player:2:1:daa5ad38",
+        "caller_type": "player",
+        "event_id": 2,
+        "fallback": false,
+        "game_id": "3ada07ac2ade",
+        "input_event_ids": [],
+        "input_tokens": 111,
+        "input_visibility": 1,
+        "latency_ms": 100,
+        "model_name": "deepseek",
+        "model_version": "C_OFFLINE_NO_NETWORK",
+        "output_tokens": 11,
+        "phase": "night",
+        "prompt_version": "wolf-v1",
+        "success": false,
+        "validation_error": "target must be alive player 1..6"
+      },
+      {
+        "agent_id": 1,
+        "attempt": 2,
+        "call_id": "3ada07ac2ade:player:2:1:daa5ad38",
+        "caller_type": "player",
+        "event_id": 2,
+        "fallback": false,
+        "game_id": "3ada07ac2ade",
+        "input_event_ids": [],
+        "input_tokens": 111,
+        "input_visibility": 1,
+        "latency_ms": 100,
+        "model_name": "deepseek",
+        "model_version": "C_OFFLINE_NO_NETWORK",
+        "output_tokens": 11,
+        "phase": "night",
+        "prompt_version": "wolf-v1",
+        "success": false,
+        "validation_error": "target must be alive player 1..6"
+      }
+    ],
+    "passed": false
+  },
+  "seer_day_prompt_review": {
+    "context_phase": "day_speak",
+    "seer_prompt": "# Seer agent v1\n你是预言家代理。每夜查验一名其他存活玩家。只使用可见信息，返回一个 JSON 对象，不自行宣布胜负。\n\n协议：`action` 只能是 `inspect`，`target` 必须是 1—6 的其他存活玩家，`text` 和 `reason` 为字符串。示例：`{\"action\":\"inspect\",\"target\":4,\"text\":\"查验4号\",\"reason\":\"需要确认其阵营\"}`。禁止返回 `check`、自然语言包裹 JSON 或自行修改规则。\n",
+    "inspect_during_day_validation": "action 'inspect' is not allowed in phase day_speak",
+    "speak_during_day_validation": null,
+    "scope": "Static protocol conflict, not a prediction of actual model output."
+  },
+  "old_real_run_unchanged": true,
+  "smoke_budget": {
+    "attempts": 4,
+    "reserved_cny": 0.6,
+    "authorized_cny": 1,
+    "model": "deepseek-flash"
+  }
+}
