@@ -10,6 +10,7 @@ from typing import Any
 
 from .agents import DeepSeekAgent, StubAgent, build_context
 from .events import EventStore
+from .deepseek_client import ModelOutputError
 from .metrics import summarize
 from .rules import GameState, RULE_VERSION, assign_roles, check_action, tally_votes, winner
 
@@ -77,60 +78,58 @@ class GameEngine:
         context = build_context(state, events, actor, role)
         visible_ids = [event["event_id"] for event in context["events"]]
         call_id = f"{state.game_id}:player:{state.event_id + 1}:{actor}:{uuid.uuid4().hex[:8]}"
-        state.status = "waiting_model"
-        try:
-            action = self.agent.act(state, actor, context)
-        except Exception as exc:
-            call = {"call_id": call_id, "game_id": state.game_id, "event_id": state.event_id + 1, "phase": state.phase, "caller_type": "player", "agent_id": actor, "model_name": getattr(self.agent, "model_name", "unknown"), "model_version": getattr(self.agent, "model_version", "unknown"), "prompt_version": f"{state.roles[actor]}-v1", "input_visibility": actor, "input_event_ids": visible_ids, "attempt": 1, "latency_ms": 0, "input_tokens": None, "output_tokens": None, "success": False, "fallback": False, "validation_error": str(exc)}
-            self.store.append_call(state.game_id, call)
-            self.store.append_error(state.game_id, {"event_id": state.event_id + 1, "actor": actor, "error": str(exc)})
-            state.status = "failed"
-            self._event(state, "model_failure", [actor], actor=actor, error=str(exc))
-            return {"action": "invalid", "target": None, "text": "", "reason": str(exc)}
-        state.status = "waiting_model" if state.pause_requested else "running"
-        metadata = getattr(self.agent, "last_metadata", {}) or {}
-        call = {"call_id": call_id, "game_id": state.game_id, "event_id": state.event_id + 1, "phase": state.phase, "caller_type": "player", "agent_id": actor, "model_name": getattr(self.agent, "model_name", "stub"), "model_version": getattr(self.agent, "model_version", "stub-v1"), "prompt_version": f"{role}-v1", "input_visibility": actor, "input_event_ids": visible_ids, "attempt": 1, "latency_ms": metadata.get("latency_ms", 0), "input_tokens": metadata.get("input_tokens"), "output_tokens": metadata.get("output_tokens"), "success": True, "fallback": False, "validation_error": None}
-        error = check_action(state, actor, action)
-        if error:
-            call["success"] = False; call["validation_error"] = error; call["attempt"] = 1
-            self.store.append_call(state.game_id, call)
-            self.store.append_error(state.game_id, {"event_id": state.event_id + 1, "actor": actor, "error": error})
+        base_call = {"call_id":call_id, "game_id":state.game_id, "event_id":state.event_id+1,
+                     "phase":state.phase, "caller_type":"player", "agent_id":actor,
+                     "model_name":getattr(self.agent,"model_name","unknown"),
+                     "model_version":getattr(self.agent,"model_version","unknown"),
+                     "prompt_version":f"{role}-v1", "input_visibility":actor,
+                     "input_event_ids":visible_ids, "fallback":False}
+        for attempt in (1, 2):
+            state.status = "waiting_model"
+            metadata = {}
+            action = None
+            retryable = False
+            failure_stage = None
             try:
-                state.status = "waiting_model"
                 action = self.agent.act(state, actor, context)
+                metadata = dict(getattr(self.agent, "last_metadata", {}) or {})
+                error = check_action(state, actor, action)
+                retryable = error is not None
+                failure_stage = "action_validation" if error else None
             except Exception as exc:
-                call["attempt"] = 2; call["success"] = False; call["validation_error"] = str(exc)
-                self.store.append_call(state.game_id, call)
-                self.store.append_error(state.game_id, {"event_id": state.event_id + 1, "actor": actor, "attempt": 2, "error": str(exc)})
-                state.status = "failed"
-                self._event(state, "model_failure", [actor], actor=actor, error=str(exc))
-                return {"action": "invalid", "target": None, "text": "", "reason": str(exc)}
-            state.status = "waiting_model" if state.pause_requested else "running"
-            call["attempt"] = 2
-            error = check_action(state, actor, action)
-            if error:
-                call["validation_error"] = error
-                self.store.append_call(state.game_id, call)
-                state.status = "failed"
-                self._event(state, "model_failure", [actor], actor=actor, error=error)
-                return {"action": "invalid", "target": None, "text": "", "reason": error}
-            retry_metadata = getattr(self.agent, "last_metadata", {}) or {}
-            call["success"] = True
-            call["validation_error"] = None
-            call["latency_ms"] = retry_metadata.get("latency_ms", call["latency_ms"])
-            call["input_tokens"] = retry_metadata.get("input_tokens", call["input_tokens"])
-            call["output_tokens"] = retry_metadata.get("output_tokens", call["output_tokens"])
-        self.store.append_call(state.game_id, call)
-        return action
+                metadata = dict(getattr(self.agent,"last_metadata",{}) or {})
+                metadata.update(getattr(exc,"metadata",{}) or {})
+                error = str(exc)
+                retryable = isinstance(exc, ModelOutputError)
+                failure_stage = "output_parsing" if retryable else "request"
+            call = dict(base_call, attempt=attempt, success=error is None,
+                        validation_error=error, failure_stage=failure_stage,
+                        latency_ms=metadata.get("latency_ms"), input_tokens=metadata.get("input_tokens"),
+                        output_tokens=metadata.get("output_tokens"))
+            for key in ("prompt_hash", "response_id", "returned_model"):
+                if key in metadata:
+                    call[key] = metadata[key]
+            self.store.append_call(state.game_id, call)
+            if error is None:
+                state.status = "waiting_model" if state.pause_requested else "running"
+                return action
+            self.store.append_error(state.game_id, {"event_id":state.event_id+1, "actor":actor,
+                                                   "attempt":attempt, "error":error, "failure_stage":failure_stage})
+            if attempt == 1 and retryable:
+                context = dict(context, validation_error=error)
+                continue
+            state.status = "failed"
+            self._event(state,"model_failure",[actor],actor=actor,error=error)
+            return {"action":"invalid", "target":None, "text":"", "reason":error}
 
-    def _check_end(self, state: GameState) -> bool:
+    def _check_end(self, state: GameState, *, check_limit: bool = True) -> bool:
         """在夜间死亡或白天放逐后检查胜负和八昼夜上限。"""
         win = winner(state)
         if win:
             state.winner, state.status = win, "finished"
             self._event(state, "game_over", "public", winner=win, alive=sorted(state.alive))
             return True
-        if state.day >= 8:
+        if check_limit and state.day >= 8:
             state.status = "incomplete"
             self._event(state, "game_limit", "public", winner=None)
             return True
@@ -162,6 +161,7 @@ class GameEngine:
             seers = [p for p in sorted(state.alive) if state.roles[p] == "seer" and "seer" not in state.night_done]
             if wolves:
                 actor = wolves[0]; action = self._call_agent(state, actor)
+                if state.status == "failed": return self._response(state, operation_id)
                 if action.get("action") == "kill":
                     target = action["target"]; state.pending.setdefault("kill_proposals", {})[actor] = target
                     proposal_event = self._event(state, "wolf_proposal", [p for p in state.alive if state.roles[p] == "wolf"], actor=actor, target=target, source=getattr(self.agent, "model_name", "stub"))
@@ -170,6 +170,7 @@ class GameEngine:
                 return self._response(state, operation_id)
             if seers:
                 actor = seers[0]; action = self._call_agent(state, actor)
+                if state.status == "failed": return self._response(state, operation_id)
                 if action.get("action") == "inspect":
                     target = action["target"]
                     self._event(state, "inspection", [actor, "host", "god"], actor=actor, target=target, result=state.roles[target], source=getattr(self.agent, "model_name", "stub"))
@@ -186,12 +187,14 @@ class GameEngine:
                 state.alive.remove(target)
                 self._event(state, "night_death", "public", target=target)
             state.night_done.clear(); state.pending.clear(); state.day += 1; state.phase = "day_speak"; state.day_speakers.clear(); state.day_voted.clear(); state.votes.clear(); state.revote = False
-            if self._check_end(state): return self._response(state, operation_id)
+            if self._check_end(state, check_limit=False): return self._response(state, operation_id)
             return self._response(state, operation_id)
         if state.phase == "day_speak":
             remaining = [p for p in sorted(state.alive) if p not in state.day_speakers]
             if remaining:
-                actor = remaining[0]; action = self._call_agent(state, actor); state.day_speakers.append(actor)
+                actor = remaining[0]; action = self._call_agent(state, actor)
+                if state.status == "failed": return self._response(state, operation_id)
+                state.day_speakers.append(actor)
                 event = self._event(state, "public_speech", "public", actor=actor, text=action.get("text", ""), source=getattr(self.agent, "model_name", "stub"))
                 self._event(state, "agent_reason", [actor, "host", "god"], actor=actor, source_event_id=event["event_id"], reason=action.get("reason"), source=getattr(self.agent, "model_name", "stub"))
                 if self.classifier:
@@ -213,7 +216,9 @@ class GameEngine:
         if state.phase == "day_vote":
             remaining = [p for p in sorted(state.alive) if p not in state.day_voted]
             if remaining:
-                actor = remaining[0]; action = self._call_agent(state, actor); state.day_voted.add(actor)
+                actor = remaining[0]; action = self._call_agent(state, actor)
+                if state.status == "failed": return self._response(state, operation_id)
+                state.day_voted.add(actor)
                 target = action.get("target")
                 if target in state.alive and target != actor: state.votes[actor] = target; valid = True
                 else: valid = False
@@ -222,7 +227,7 @@ class GameEngine:
                 return self._response(state, operation_id)
             target, counts = tally_votes(state.votes)
             self._event(state, "vote_tally", "public", counts=counts, target=target, revote=state.revote)
-            if target is None and not state.revote:
+            if target is None and counts and not state.revote:
                 leaders = [candidate for candidate, count in counts.items() if count == max(counts.values())] if counts else []
                 state.pending["revote_candidates"] = sorted(leaders)
                 state.revote = True; state.day_voted.clear(); state.votes.clear(); return self._response(state, operation_id)

@@ -58,7 +58,7 @@ def assign_roles(seed: int | None = None, role_config: dict[int, str] | None = N
 
 def check_target(state: GameState, actor: int, target: Any, *, allow_self: bool = False) -> str | None:
     """检查行动目标是否为合法存活玩家，合法时返回 None。"""
-    if not isinstance(target, int):
+    if type(target) is not int:
         return "target must be an integer"
     if target not in PLAYERS or target not in state.alive:
         return "target must be alive player 1..6"
@@ -74,6 +74,8 @@ def check_action(state: GameState, actor: int, action: dict[str, Any]) -> str | 
     if not isinstance(action, dict):
         return "action must be an object"
     kind = action.get("action")
+    if not isinstance(kind, str):
+        return "action must be a string"
     allowed = {"night": {"kill", "inspect"}, "day_speak": {"speak"}, "day_vote": {"vote"}}.get(state.phase, set())
     if kind not in allowed:
         return f"action {kind!r} is not allowed in phase {state.phase}"

@@ -5,7 +5,7 @@ from pathlib import Path
 import threading
 import time
 from urllib.request import Request, urlopen
-from app.deepseek_client import DeepSeekClient
+from app.deepseek_client import DeepSeekClient, ModelOutputError
 
 
 class SmokeClient(DeepSeekClient):
@@ -15,6 +15,7 @@ class SmokeClient(DeepSeekClient):
 
     def __init__(self, ledger: Path, **kwargs):
         super().__init__(**kwargs)
+        self.max_tokens = type(self).max_tokens  # 首轮512上限不受通用客户端默认值影响。
         if self.model != "deepseek-flash":
             raise ValueError("C smoke check requires deepseek-flash; restart with the updated launcher.")
         self.ledger = Path(ledger)
@@ -55,8 +56,11 @@ class SmokeClient(DeepSeekClient):
                         returned_model=payload.get("model"), response_id=payload.get("id"))
             choice = payload["choices"][0]
             if choice.get("finish_reason") == "length":
-                raise RuntimeError("C smoke output token limit reached; keep this failed attempt.")
-            action = json.loads(choice["message"]["content"])
+                raise ModelOutputError("C smoke output token limit reached; keep this failed attempt.", meta)
+            try:
+                action = json.loads(choice["message"]["content"])
+            except (ValueError, KeyError, TypeError) as exc:
+                raise ModelOutputError("Invalid model JSON output", meta) from exc
             meta["success"] = True
             return action, meta
         finally:

@@ -57,7 +57,7 @@ def test_request_limits_and_usage_evidence(tmp_path,monkeypatch):
 def test_truncated_response_stays_failed(tmp_path,monkeypatch):
     response=Response();response.finish='length'
     monkeypatch.setattr(module,'urlopen',lambda *a,**k:response)
-    with pytest.raises(RuntimeError,match='output token limit'):
+    with pytest.raises(ValueError,match='output token limit'):
         make_client(tmp_path).complete([],agent_id='1',prompt_version='v1')
     assert json.loads((tmp_path/'budget.json').read_text())['attempts']==1
     assert not json.loads((tmp_path/'smoke_usage_20261029.jsonl').read_text())['success']

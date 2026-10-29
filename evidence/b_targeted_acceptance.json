@@ -1,0 +1,30 @@
+{
+  "base_revision": "bc79b60",
+  "authorization": "User explicitly allowed only necessary B edits on 2026-10-29",
+  "full_suite_passed": 118,
+  "full_suite_warnings": 2,
+  "full_suite_seconds": 64.42,
+  "targeted_passed": 41,
+  "new_real_requests": 0,
+  "original_real_files_unchanged": true,
+  "smoke_budget_unchanged": {
+    "attempts": 4,
+    "reserved_cny": 0.6,
+    "authorized_cny": 1,
+    "model": "deepseek-flash"
+  },
+  "unmodified_code": [
+    "app/api.py",
+    "app/events.py",
+    "app/classifier.py",
+    "app/ui.py",
+    "app/ui_controller.py",
+    "app/ui_client.py"
+  ],
+  "out_of_scope": [
+    "host model integration",
+    "extra wolf negotiation round",
+    "multiworker/crash recovery redesign",
+    "per-game money cap"
+  ]
+}

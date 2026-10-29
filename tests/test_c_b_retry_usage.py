@@ -1,10 +1,8 @@
 """C新增回归：重试也无效时，第二次usage必须保留第二次原值。"""
-import pytest
 from app.engine import GameEngine
 from app.agents import DeepSeekAgent
 
 
-@pytest.mark.xfail(strict=True, reason='B bc79b60: invalid retry keeps first-attempt usage/latency')
 def test_invalid_retry_preserves_each_attempt_usage(tmp_path):
     class Client:
         model='C_OFFLINE_NO_NETWORK'

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import hashlib
+import threading
 from pathlib import Path
 from typing import Any, Callable
 
@@ -71,15 +73,29 @@ class DeepSeekAgent:
         self.client = client or DeepSeekClient()
         self.model_version = self.client.model
         self.prompt_dir = prompt_dir
-        self.last_metadata: dict[str, Any] = {}
+        self._metadata = threading.local()
+
+    @property
+    def last_metadata(self) -> dict[str, Any]:
+        return getattr(self._metadata, 'value', {})
+
+    @last_metadata.setter
+    def last_metadata(self, value: dict[str, Any]) -> None:
+        self._metadata.value = value
 
     def act(self, state: GameState, agent_id: int, context: dict[str, Any]) -> dict[str, Any]:
         """把角色上下文发送给 DeepSeek，并解析其 JSON 行动。"""
         role = state.roles[agent_id]
         prompt = load_prompt(role, self.prompt_dir)
         messages = [{"role": "system", "content": prompt}, {"role": "user", "content": json.dumps(context, ensure_ascii=False)}]
-        action, metadata = self.client.complete(messages, agent_id=str(agent_id), prompt_version=f"{role}-v1")
-        self.last_metadata = metadata
+        self.last_metadata = {}
+        prompt_hash = hashlib.sha256(prompt.encode('utf-8')).hexdigest()
+        try:
+            action, metadata = self.client.complete(messages, agent_id=str(agent_id), prompt_version=f"{role}-v1")
+        except Exception as exc:
+            self.last_metadata = dict(getattr(exc, 'metadata', {}) or {}, prompt_hash=prompt_hash)
+            raise
+        self.last_metadata = dict(metadata, prompt_hash=prompt_hash)
         return action
 
 
