@@ -57,3 +57,12 @@ def summarize_calls(calls, metrics):
                            str(info['known_sum']) if info['known_count'] else '不适用（本地模型/离线玩家）')
     return {'rows':list(groups.values()), 'usage':usage, 'totals':totals, 'differences':differences,
             'notice':'按原始调用尝试逐条计数；不改B原件，不推断角色决策正确率，费用未计算'}
+
+
+def display_call_rows(rows):
+    """中文展示副本；不改统计值或原始calls。"""
+    names = {'player':'玩家大模型', 'host':'主持大模型', 'small_model':'小模型分类', 'reviewer':'评审模型'}
+    columns = {'caller_type':'调用对象', 'attempts':'调用尝试（含重试）', 'first_attempts':'首次尝试',
+               'retries':'重试尝试', 'success':'B记录通过', 'failed':'B记录失败', 'fallback':'回退尝试'}
+    return [{label:(names.get(row[key],row[key]) if key=='caller_type' else row[key])
+             for key,label in columns.items()} for row in rows]

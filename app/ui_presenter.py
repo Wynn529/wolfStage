@@ -76,3 +76,37 @@ def vote_rounds(events):
             current['tally'] = event
             current = None
     return groups
+
+
+def failure_notice(event):
+    """解释已记录的错误；不把未知失败推断成网络或模型内容错误。"""
+    if not event or event.get('type') not in {'model_failure', 'utterance_classification_failed'}:
+        return None
+    raw = str(event.get('error') or event.get('validation_error') or '')
+    result = {'title':'本步未能完成',
+              'summary':'当前记录不足以确认失败发生在哪一环，请查看原始错误。',
+              'next_step':'保留本局记录，核对后再复测；不要反复点击推进。', 'raw':raw}
+    if event['type'] == 'utterance_classification_failed':
+        result.update(title='小模型分类未完成', summary='这条发言没有取得可用分类结果，不能当作已分类。',
+                      next_step='保留原句和错误记录，请A/B核对分类服务与接口后复测。')
+    elif ((raw.startswith('action ') and 'is not allowed in phase' in raw)
+          or raw in {'action must be an object', 'target must be an integer',
+                     'target must be alive player 1..6', 'self target is not allowed',
+                     'only wolves can kill', 'only seer can inspect', 'speak target must be null',
+                     'text/reason must be strings within length limits'}):
+        result.update(title='行动格式未通过规则检查',
+                      summary='模型已返回内容，但行动名称、目标或字段不符合当前游戏协议。',
+                      next_step='本局已停止。请B核对提示词与行动协议，修复后用新局复测。')
+        if raw.startswith("action 'check' is not allowed"):
+            result['summary']='模型返回了“check”，当前规则不接受这个行动名称；请求已返回，行动未通过检查。'
+    elif any(value in raw.lower() for value in ('timed out', 'timeout')):
+        result.update(title='模型请求超时，结果待核对', summary='等待返回超过时限；不能据此认定服务端没有执行。',
+                      next_step='先核对操作状态与原始记录，不要重复发送这一步。')
+    elif any(value in raw.lower() for value in ('401', 'unauthorized', '402', 'insufficient balance')):
+        result.update(title='模型服务拒绝了请求', summary='请在本机核对API密钥或账户额度，具体原因见原始错误。')
+    return result
+
+
+def latest_failure(events):
+    return next((failure_notice(e) for e in reversed(events)
+                 if e.get('type') in {'model_failure','utterance_classification_failed'}), None)

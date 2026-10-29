@@ -2,7 +2,7 @@
 from __future__ import annotations
 from pathlib import Path
 from app.ui_helpers import project, LABELS, ROLES
-from app.ui_presenter import describe_public, EVENT_NAMES, WINNERS
+from app.ui_presenter import describe_public, EVENT_NAMES, WINNERS, failure_notice
 import streamlit.components.v1 as components
 
 _SCENE_COMPONENT = components.declare_component('c_robot_scene', path=str(Path(__file__).parent/'scene'))
@@ -29,7 +29,9 @@ def scene_model(events, *, status='unknown', phase=None, metrics=None, game_id=N
     elif kind == 'game_created':
         body = '身份已分配。六名机器人准备就绪，点击“单步推进”观察第一步。'
     elif kind in {'model_failure','utterance_classification_failed'}:
-        body = '本次调用未完成，已停止推进。请展开检查记录查看原因。'
+        notice = failure_notice(current)
+        title = notice['title']
+        body = notice['summary'] + ' ' + notice['next_step']
     if not body:
         body = '点击“开始对局”，看六名机器人围桌推理。' if not events else '等待下一条服务记录。'
     if kind == 'wolf_negotiation':
@@ -40,7 +42,7 @@ def scene_model(events, *, status='unknown', phase=None, metrics=None, game_id=N
     actor, target = current.get('actor'), current.get('target')
     if type(actor) is not int or actor not in range(1,7): actor = None
     if type(target) is not int or target not in range(1,7): target = None
-    source = '离线联调' if any(e.get('source')=='stub' for e in events) else '服务记录' if events else '准备开始'
+    source = '离线联调' if any(e.get('source')=='stub' for e in events) else '真实模型记录' if any(e.get('source')=='deepseek' for e in events) else '服务记录' if events else '准备开始'
     return {
         'game_id':game_id or '', 'cursor':latest.get('event_id',0), 'day':latest.get('day',0),
         'night':phase=='night', 'phase':phase, 'status':status,

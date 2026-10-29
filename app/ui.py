@@ -17,9 +17,9 @@ from app.ui_contract import ServiceContract, TERMINAL
 from app.ui_controller import SessionController
 from app.ui_helpers import (LABELS, ROLES, STATUS, PHASES, project,
                             local_games, read_events, evidence_zip)
-from app.ui_metrics import read_calls, summarize_calls
+from app.ui_metrics import read_calls, summarize_calls, display_call_rows
 from app.ui_scene import render_scene
-from app.ui_presenter import EVENT_NAMES, WINNERS, describe_public, player as player_label, tally_rows, vote_rounds, vote_validity
+from app.ui_presenter import EVENT_NAMES, WINNERS, describe_public, player as player_label, tally_rows, vote_rounds, vote_validity, latest_failure
 
 st.set_page_config(page_title='狼境 · AI圆桌', page_icon='🐺', layout='wide', initial_sidebar_state='collapsed')
 st.markdown("""
@@ -62,8 +62,17 @@ except (OSError, TypeError, ValueError) as exc:
 
 mode = st.radio('观看方式', ['现场对局', '历史回放'],index=1 if st.query_params.get('view')=='history' else 0,horizontal=True,label_visibility='collapsed')
 
-if real_mode:
-    st.info('真实 DeepSeek 模式：启动和建局不调用模型；单步推进可能产生API费用。请先确认额度与测试上限，本准备阶段仅开放单步。')
+if mode=='历史回放':
+    st.info('历史回放：查看已保存的过程，播放或移动进度条都不会重新调用模型，也不会产生新的API费用。')
+elif real_mode:
+    st.info('真实 DeepSeek 模式：建局只分配身份；单步推进才可能调用付费模型。本阶段仅开放单步，一次点击可能含多次请求。')
+
+with st.expander('第一次使用：怎么看、怎么操作', expanded=False):
+    st.markdown('1．开始前：选“现场对局”，确认测试额度，再点“开始对局”分配六个身份。')
+    st.markdown('2．看一局：每点一次“单步推进”，等待处理完成。上方看行动、发言与出局，下方看小模型对公开发言的分类；夜间等待发言属于正常情况。')
+    st.markdown('3．查过程：展开“检查记录”查看投票、私密记录和统计；切到“历史回放”可查看已保存过程，不会重新调用模型。')
+    st.caption('你是观察者，不需要替机器人发言或投票。身份卡和私密信息只供上帝视角查看；分类只判断话语表达，不证明身份真假。')
+    st.caption('等待是状态，不需要点击。暂停会等当前一步完成，不能取消已发出的请求；继续只解除暂停，不会自行开始下一步。')
 
 with st.sidebar:
     st.header('运行与回放')
@@ -195,18 +204,21 @@ def render_details(events, status, phase, metrics, game_id, live):
             try:
                 calls = read_calls(runs,game_id) if (runs/game_id).is_dir() else None
                 check = summarize_calls(calls, metrics)
+                st.caption('一次调用尝试记一条，重试也计数；总数可能同时包含玩家、主持和小模型。')
+                st.caption('“B记录通过/失败”沿用B的业务校验标记，不等于HTTP是否返回成功，也不代表策略正确。')
                 st.caption(check['notice'])
                 if check['rows']:
-                    st.dataframe(check['rows'],hide_index=True,use_container_width=True)
+                    st.dataframe(display_call_rows(check['rows']),hide_index=True,use_container_width=True)
                 for key,info in check['usage'].items():
-                    st.write(f'{key}：{info["display"]}；缺失{info["missing"]}次；不适用{info["not_applicable"]}次')
+                    usage_name = {'input_tokens':'输入token用量','output_tokens':'输出token用量'}[key]
+                    st.write(f'{usage_name}：{info["display"]}；缺失{info["missing"]}次；不适用{info["not_applicable"]}次')
                 for difference in check['differences']:
                     st.warning('统计待核对：' + difference)
-                st.caption('费用：未计算。规则/策略正确率不能从调用次数推导。')
+                st.caption('用量未提供不等于0；B汇总显示0时也要核对原始记录。此表不是账单，不能由调用次数推算费用或正确率。')
             except (OSError, ValueError, KeyError) as exc:
                 st.warning('原始统计暂不能重算：' + str(exc))
         else:
-            st.caption('回放不提前展示未来整局统计；完整原始汇总在导出包中。')
+            st.caption('这是历史记录，不是重新运行；这里只展示当前回放位置之前的事件。完整原始汇总在导出包中。')
         st.download_button('下载当前已显示事件（查询副本）',json.dumps(events,ensure_ascii=False,indent=2),
                            file_name='displayed_events.json',mime='application/json',key='display_'+str(live))
         st.json(events,expanded=False)
@@ -223,6 +235,19 @@ def render_events(events, status, phase, metrics, game_id, live):
 [data-testid="stMain"] [role="radiogroup"]{{width:fit-content;padding:5px 12px;border:1px solid #7f9b7833;border-radius:12px}}
 [data-testid="stMain"] [data-testid="stExpander"]{{background:#172a3a;color:#d5e3e8;border-radius:14px}}
 </style>''',unsafe_allow_html=True)
+    if game_id:
+        st.caption('当前对局：' + str(game_id) + (' · 现场记录' if live else ' · 历史回放，不调用模型'))
+    notice = latest_failure(events)
+    if notice:
+        st.error(notice['title'] + '：' + notice['summary'])
+        st.caption(notice['next_step'])
+        if notice['raw']:
+            with st.expander('查看本步原始错误', expanded=False):
+                st.code(notice['raw'], language=None)
+    elif status=='paused':
+        st.info('已暂停。点击“继续”解除暂停后，再选择下一步；不会自动发送模型请求。')
+    elif status=='finished':
+        st.success('本局已结束，可在历史回放中查看过程和导出原始记录。')
     controller = ss.controller if live else None
     render_scene(events,status=status,phase=actual_phase,metrics=metrics,game_id=game_id,
                  replay=not live,busy=bool(controller and controller.busy),
@@ -242,7 +267,7 @@ def live_panel():
     if controller:
         controller.tick(refresh=controller.needs_poll)
     controls = st.columns([1.35,1,1,1,1,1,1])
-    if controls[0].button('开始对局',type='primary',disabled=bool(ss.create_uncertain or (controller and controller.busy))):
+    if controls[0].button('开始对局',type='primary',disabled=bool(ss.create_uncertain or (controller and controller.busy)),help='创建一场新局并分配身份，不调用付费模型；已有对局记录会保留。'):
         try:
             # 在POST前保存意图；页面重运行不能再次提交结果尚未确认的建局。
             ss.create_operation_id=uuid.uuid4().hex
@@ -267,30 +292,31 @@ def live_panel():
             st.caption('建局结果未确认，禁止自动重建。请用本地历史日志核对后重新加载页面。')
     if not controller:
         render_events([], 'unknown', 'night', {}, None, True)
-        st.caption('点击开始，身份卡会发到机器人头顶。当前联调版可单步观察，也可在左侧播放历史对局。')
+        st.caption('下一步：点“开始对局”分配身份。想看已有过程，选择上方“历史回放”。')
         return
     ss.game_id=controller.game_id
     ss.events=controller.events
     # 让等待和暂停状态直接可见，不必打开检查记录。
     if controller.busy or controller.pause_intent:
-        st.info(controller.message)
+        st.info(controller.message + ' 当前一步仍在处理，请勿重复点击；页面会自动更新。')
     else:
         st.caption('真实模式准备就绪：确认额度后再单步测试；自动运行暂未开放'
-                   if real_mode and controller.status=='running' else controller.message)
-    if controller.error:
+                   if real_mode and controller.status=='running' else '本局已停止，请查看下面的具体原因' if latest_failure(controller.events) else controller.message)
+    if controller.error and not latest_failure(controller.events):
         st.error(controller.error)
+        st.caption('先刷新事件或核对控制记录；结果未确认前不要重复提交。')
     if controller.unresolved:
         st.caption('待确认操作：' + ', '.join(op.action+':'+op.operation_id for op in controller.unresolved))
     buttons=controls[1:]
     action=None
     locked=controller.fatal or bool(controller.error)
-    if buttons[0].button('单步推进',disabled=locked or controller.busy or controller.auto or controller.pause_intent or controller.status!='running' or not controller.synced):
+    if buttons[0].button('单步推进',disabled=locked or controller.busy or controller.auto or controller.pause_intent or controller.status!='running' or not controller.synced,help='推进当前一步；可能调用多次模型并产生费用，等待完成后再操作。'):
         action='advance'
     if buttons[1].button('暂停',disabled=locked or controller.pause_intent or controller.status not in {'running','pending'} or (controller.busy and not contract.ready and not getattr(controller.client,'advance_query_supported',False)),help='停止安排下一步，等待当前一步完成后暂停；不会取消已经发出的模型请求。'):
         action='pause'
     if buttons[2].button('继续',disabled=locked or controller.busy or controller.status!='paused',help='解除暂停后，可选择单步或重新点击自动运行。'):
         action='resume'
-    if buttons[3].button('刷新事件'):
+    if buttons[3].button('刷新事件',help='只查询已发生的记录，不开始新行动，不重新请求模型'):
         controller.collect()
         controller.refresh()
         ss.events=controller.events
