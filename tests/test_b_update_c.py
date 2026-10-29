@@ -109,7 +109,6 @@ def test_b_timeout_advance_recovers_without_repost(tmp_path,monkeypatch):
     finally:controller.close()
 
 
-@pytest.mark.xfail(strict=True,reason='B-P01: paused在当前业务事件落盘前已可被查询到')
 def test_b_paused_means_operation_fully_committed(tmp_path,monkeypatch):
     entered=threading.Event();release=threading.Event()
     class Slow(StubAgent):
@@ -131,7 +130,6 @@ def test_b_paused_means_operation_fully_committed(tmp_path,monkeypatch):
     assert observed and observed[0]!='paused'
 
 
-@pytest.mark.xfail(strict=True,reason='B-P02: pending.clear丢失操作起始游标，new_events漏报死亡/结束事件')
 def test_b_new_events_complete_on_night_resolution(tmp_path):
     e,gid=make(tmp_path)
     for i in range(3):e.advance_one_event(gid,str(i))
@@ -140,20 +138,17 @@ def test_b_new_events_complete_on_night_resolution(tmp_path):
     assert result['new_events']==list(range(before+1,e.games[gid].event_id+1))
 
 
-@pytest.mark.xfail(strict=True,reason='B-P03: 狼人杀队友仍被接受')
 def test_b_rejects_wolf_teammate_kill(tmp_path):
     e,gid=make(tmp_path)
     assert check_action(e.games[gid],1,{'action':'kill','target':2,'text':'','reason':''}) is not None
 
 
-@pytest.mark.xfail(strict=True,reason='B-P04: 重投仍允许非平票候选人')
 def test_b_revote_limits_candidates(tmp_path):
     e,gid=make(tmp_path);s=e.games[gid];s.phase='day_vote';s.revote=True
     s.pending['revote_candidates']=[2,3]
     assert check_action(s,1,{'action':'vote','target':4,'text':'','reason':''}) is not None
 
 
-@pytest.mark.xfail(strict=True,reason='B-P05: 重试成功仍继承success=False及旧validation_error')
 def test_b_retry_success_log_is_accurate(tmp_path):
     class Retry(StubAgent):
         attempts=0
@@ -166,7 +161,6 @@ def test_b_retry_success_log_is_accurate(tmp_path):
     assert last['attempt']==2 and last['success'] is True and last['validation_error'] is None
 
 
-@pytest.mark.xfail(strict=True,reason='B-P06: 狼人私密理由source_event_id指向前一事件')
 def test_b_wolf_reason_links_to_its_proposal(tmp_path):
     e,gid=make(tmp_path);e.advance_one_event(gid,'wolf')
     events=e.store.read(gid);proposal=next(v for v in events if v['type']=='wolf_proposal')
@@ -192,7 +186,6 @@ def test_b_waiting_and_unknown_operation_are_not_completed(tmp_path):
     assert e.get_operation(gid,'slow')['status']=='completed'
     assert e.get_operation(gid,'pause-id')['status']=='unknown'
 
-@pytest.mark.xfail(strict=True,reason='B-P07: DeepSeek usage and latency discarded')
 def test_b_real_response_usage_is_preserved(tmp_path):
     from app.agents import DeepSeekAgent
     class FakeClient:
@@ -206,7 +199,6 @@ def test_b_real_response_usage_is_preserved(tmp_path):
     assert (call['input_tokens'],call['output_tokens'],call['latency_ms'])==(123,45,67)
 
 
-@pytest.mark.xfail(strict=True,reason='B-P08: classification failure still reports running')
 def test_b_classifier_failure_has_explicit_service_state(tmp_path):
     def broken(*args):raise RuntimeError('classifier unavailable')
     e,gid=make(tmp_path);e.classifier=broken
