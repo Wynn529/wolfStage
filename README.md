@@ -332,3 +332,5 @@ $env:DEEPSEEK_MODEL="deepseek-chat"
 原始证据位于 `runs/<game_id>/events.jsonl`、`calls.jsonl`、`errors.jsonl` 和 `summary.json`。回放不会重新调用模型。`app.engine.GameEngine` 也可直接在 Python 中调用。
 
 接口字段和 A/C 联调样例见 `interface_protocol.md`。启动 B 前设置 `A_CLASSIFIER_URL=http://127.0.0.1:8765/classify`，`app.api` 会自动创建 `AHttpClassifier`，每条公开发言调用 A 一次并写入 `calls.jsonl` 与 `utterance_classification` 事件；未设置时明确使用 stub。对局状态持久化在 `state.json`，重启 `GameEngine` 会自动恢复未结束对局。
+
+真实运行可用 `B_MAX_PLAYER_CALLS`、`B_MAX_SMALL_MODEL_CALLS` 和 `DEEPSEEK_MAX_TOKENS` 设置保护上限；触发上限会写入 `budget_exceeded` 并将对局置为 `failed`。多进程 worker、主持模型主流程和第二轮狼人模型协商不在默认基线中，不能把单进程 stub/玩家代理测试表述为这些能力已验收。
