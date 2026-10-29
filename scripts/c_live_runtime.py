@@ -225,7 +225,7 @@ def main():
     parser=argparse.ArgumentParser()
     parser.add_argument('--check-only',action='store_true')
     parser.add_argument('--stop',action='store_true')
-    parser.add_argument('--model',default=os.getenv('DEEPSEEK_MODEL','deepseek-chat'))
+    parser.add_argument('--model',default=os.getenv('DEEPSEEK_MODEL','deepseek-flash'))
     parser.add_argument('--a-port',type=int,default=18782)
     parser.add_argument('--b-port',type=int,default=18082)
     parser.add_argument('--ui-port',type=int,default=18514)

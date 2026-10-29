@@ -1,4 +1,4 @@
-param([string]$PythonExe='', [string]$Model='deepseek-chat', [switch]$CheckOnly,
+param([string]$PythonExe='', [string]$Model='deepseek-flash', [switch]$CheckOnly,
       [ValidateRange(1,65535)][int]$APort=18782,
       [ValidateRange(1,65535)][int]$BPort=18082,
       [ValidateRange(1,65535)][int]$UiPort=18514)

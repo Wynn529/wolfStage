@@ -48,6 +48,7 @@ def test_real_ready_route_constructs_deepseek_but_makes_no_model_call(tmp_path,m
     from app.agents import DeepSeekAgent
     monkeypatch.setattr(api,'engine',api.engine)  # 注册恢复点，装配模块覆盖后仍恢复原B引擎。
     monkeypatch.setenv('DEEPSEEK_API_KEY','TEST_ONLY_NOT_A_VALID_API_KEY')
+    monkeypatch.setenv('DEEPSEEK_MODEL','deepseek-flash')
     monkeypatch.setenv('A_CLASSIFIER_URL','http://127.0.0.1:1/classify')
     monkeypatch.setenv('C_REAL_RUNS_DIR',str(tmp_path/'real_runs'))
     calls=[]

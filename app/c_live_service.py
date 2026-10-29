@@ -13,9 +13,11 @@ from app import api
 from app.agents import DeepSeekAgent
 from app.classifier import AHttpClassifier
 from app.engine import GameEngine
+from app.c_smoke_client import SmokeClient
 
 _real_runs = Path(os.environ['C_REAL_RUNS_DIR']).resolve()
-api.engine = GameEngine(str(_real_runs), agent=DeepSeekAgent(), classifier=AHttpClassifier())
+_client = SmokeClient(Path(__file__).resolve().parents[1] / ".local/real_api/smoke_budget_20261029.json")
+api.engine = GameEngine(str(_real_runs), agent=DeepSeekAgent(client=_client), classifier=AHttpClassifier())
 app = api.app
 
 @app.get('/c/ready')
@@ -23,4 +25,4 @@ def c_ready():
     return {'mode':'real_deepseek', 'agent':type(api.engine.agent).__name__,
             'model':api.engine.agent.model_version,
             'classifier_configured':api.engine.classifier is not None,
-            'runs_dir':str(_real_runs)}
+            'runs_dir':str(_real_runs), 'smoke_max_attempts':6, 'smoke_max_output_tokens':512}
