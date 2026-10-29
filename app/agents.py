@@ -71,13 +71,15 @@ class DeepSeekAgent:
         self.client = client or DeepSeekClient()
         self.model_version = self.client.model
         self.prompt_dir = prompt_dir
+        self.last_metadata: dict[str, Any] = {}
 
     def act(self, state: GameState, agent_id: int, context: dict[str, Any]) -> dict[str, Any]:
         """把角色上下文发送给 DeepSeek，并解析其 JSON 行动。"""
         role = state.roles[agent_id]
         prompt = load_prompt(role, self.prompt_dir)
         messages = [{"role": "system", "content": prompt}, {"role": "user", "content": json.dumps(context, ensure_ascii=False)}]
-        action, _ = self.client.complete(messages, agent_id=str(agent_id), prompt_version=f"{role}-v1")
+        action, metadata = self.client.complete(messages, agent_id=str(agent_id), prompt_version=f"{role}-v1")
+        self.last_metadata = metadata
         return action
 
 

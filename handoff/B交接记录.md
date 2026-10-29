@@ -25,3 +25,16 @@ HTTP 适配器：`app.classifier.AHttpClassifier`，地址由 `A_CLASSIFIER_URL`
 - 已修：每次玩家/A 调用带 `call_id` 和 `input_event_ids`，可追溯“发言→分类→后续输入”。
 - 已修：狼队分歧写入 `wolf_negotiation`，按 seed+day 固定裁决。
 - 已测：B 核心、可见性、A 注入联调测试通过；真实 DeepSeek 完整对局和 C 页面复验待外部环境执行。
+
+## 2026-10-29 C 首次真实 API 联调修复回执
+
+- B-P01：通过。慢调用期间保持 `waiting_model`，暂停只设置 `pause_requested`；当前业务操作、私密理由、分类和操作结果完成后才生成 `game_paused` 并返回 paused。
+- B-P02：通过。操作起始游标独立保存在 `operation_start_event_id`，不会随夜间 pending 清理；`new_events` 覆盖 0/1/多事件和终局事件。
+- B-P03：通过。规则层拒绝狼人击杀狼人队友，并保留非法行动日志。
+- B-P04：通过。首次平票保存 `revote_candidates`，重投只能选择平票候选。
+- B-P05：通过。重试记录独立，第二次成功会写 `success=true`、`validation_error=null`，第一次失败原件仍保留。
+- B-P06：通过。狼人 `agent_reason.source_event_id` 绑定刚生成的 `wolf_proposal.event_id`。
+- B-P07：通过。DeepSeekAgent 将 input/output token 和 latency 元数据传给 calls 日志；缺失值保持 null，不当作 0。
+- B-P08：通过。A 分类异常写入失败调用和错误事件，并将对局置为 failed，不能继续自动推进。
+- Prompt：已明确狼人、预言家、平民各阶段 action/target/text/reason 字段、类型、合法值和示例；预言家固定使用 `inspect`，不接受 `check`。
+- 回归：`python -m pytest -q tests/test_b_update_c.py tests/test_service.py tests/test_visibility.py tests/test_a_integration.py`，22 项通过；含 C 缺陷回归时 39 项通过。

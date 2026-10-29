@@ -87,8 +87,9 @@ class GameEngine:
             state.status = "failed"
             self._event(state, "model_failure", [actor], actor=actor, error=str(exc))
             return {"action": "invalid", "target": None, "text": "", "reason": str(exc)}
-        state.status = "paused" if state.pause_requested else "running"
-        call = {"call_id": call_id, "game_id": state.game_id, "event_id": state.event_id + 1, "phase": state.phase, "caller_type": "player", "agent_id": actor, "model_name": getattr(self.agent, "model_name", "stub"), "model_version": getattr(self.agent, "model_version", "stub-v1"), "prompt_version": f"{role}-v1", "input_visibility": actor, "input_event_ids": visible_ids, "attempt": 1, "latency_ms": 0, "input_tokens": None, "output_tokens": None, "success": True, "fallback": False, "validation_error": None}
+        state.status = "waiting_model" if state.pause_requested else "running"
+        metadata = getattr(self.agent, "last_metadata", {}) or {}
+        call = {"call_id": call_id, "game_id": state.game_id, "event_id": state.event_id + 1, "phase": state.phase, "caller_type": "player", "agent_id": actor, "model_name": getattr(self.agent, "model_name", "stub"), "model_version": getattr(self.agent, "model_version", "stub-v1"), "prompt_version": f"{role}-v1", "input_visibility": actor, "input_event_ids": visible_ids, "attempt": 1, "latency_ms": metadata.get("latency_ms", 0), "input_tokens": metadata.get("input_tokens"), "output_tokens": metadata.get("output_tokens"), "success": True, "fallback": False, "validation_error": None}
         error = check_action(state, actor, action)
         if error:
             call["success"] = False; call["validation_error"] = error; call["attempt"] = 1
@@ -104,7 +105,7 @@ class GameEngine:
                 state.status = "failed"
                 self._event(state, "model_failure", [actor], actor=actor, error=str(exc))
                 return {"action": "invalid", "target": None, "text": "", "reason": str(exc)}
-            state.status = "paused" if state.pause_requested else "running"
+            state.status = "waiting_model" if state.pause_requested else "running"
             call["attempt"] = 2
             error = check_action(state, actor, action)
             if error:
@@ -113,6 +114,12 @@ class GameEngine:
                 state.status = "failed"
                 self._event(state, "model_failure", [actor], actor=actor, error=error)
                 return {"action": "invalid", "target": None, "text": "", "reason": error}
+            retry_metadata = getattr(self.agent, "last_metadata", {}) or {}
+            call["success"] = True
+            call["validation_error"] = None
+            call["latency_ms"] = retry_metadata.get("latency_ms", call["latency_ms"])
+            call["input_tokens"] = retry_metadata.get("input_tokens", call["input_tokens"])
+            call["output_tokens"] = retry_metadata.get("output_tokens", call["output_tokens"])
         self.store.append_call(state.game_id, call)
         return action
 
@@ -138,7 +145,7 @@ class GameEngine:
             if expected_cursor is not None and expected_cursor != state.event_id:
                 return {"game_id": game_id, "operation_id": operation_id, "status": "conflict", "error": "cursor_conflict", "cursor": state.event_id}
             before_event_id = state.event_id
-            state.pending["_operation_before_event_id"] = before_event_id
+            state.operation_start_event_id = before_event_id
             response = self._advance_one_event_locked(game_id, operation_id)
             if operation_id:
                 state.operation_results[operation_id] = response
@@ -157,8 +164,8 @@ class GameEngine:
                 actor = wolves[0]; action = self._call_agent(state, actor)
                 if action.get("action") == "kill":
                     target = action["target"]; state.pending.setdefault("kill_proposals", {})[actor] = target
-                    self._event(state, "wolf_proposal", [p for p in state.alive if state.roles[p] == "wolf"], actor=actor, target=target, source=getattr(self.agent, "model_name", "stub"))
-                    self._event(state, "agent_reason", [actor, "host", "god"], actor=actor, source_event_id=state.event_id - 1, reason=action.get("reason"), source=getattr(self.agent, "model_name", "stub"))
+                    proposal_event = self._event(state, "wolf_proposal", [p for p in state.alive if state.roles[p] == "wolf"], actor=actor, target=target, source=getattr(self.agent, "model_name", "stub"))
+                    self._event(state, "agent_reason", [actor, "host", "god"], actor=actor, source_event_id=proposal_event["event_id"], reason=action.get("reason"), source=getattr(self.agent, "model_name", "stub"))
                 state.night_done.add(actor)
                 return self._response(state, operation_id)
             if seers:
@@ -191,13 +198,14 @@ class GameEngine:
                     try:
                         state.status = "waiting_model"
                         result = self.classifier(state.game_id, event["event_id"], actor, event["text"])
-                        state.status = "paused" if state.pause_requested else "running"
+                        state.status = "waiting_model" if state.pause_requested else "running"
                         state.classification_by_event[event["event_id"]] = result
                         self.store.append_call(state.game_id, {"call_id": f"{state.game_id}:small:{event['event_id']}", "game_id": state.game_id, "event_id": event["event_id"], "phase": state.phase, "caller_type": "small_model", "agent_id": actor, "model_name": getattr(self.classifier, "model_name", result.get("model_version", "small-model")), "model_version": result.get("model_version"), "prompt_version": None, "input_visibility": "public", "input_event_ids": [event["event_id"]], "attempt": 1, "latency_ms": result.get("latency_ms"), "input_tokens": None, "output_tokens": None, "success": True, "fallback": False, "validation_error": None})
                         self._event(state, "utterance_classification", "public", source_event_id=event["event_id"], result=result, source=getattr(self.classifier, "model_name", "a-classifier"))
                     except Exception as exc:
-                        state.status = "paused" if state.pause_requested else "running"
+                        state.status = "waiting_model" if state.pause_requested else "running"
                         self.store.append_call(state.game_id, {"call_id": f"{state.game_id}:small:{event['event_id']}", "game_id": state.game_id, "event_id": event["event_id"], "phase": state.phase, "caller_type": "small_model", "agent_id": actor, "model_name": getattr(self.classifier, "model_name", "small-model"), "model_version": None, "prompt_version": None, "input_visibility": "public", "input_event_ids": [event["event_id"]], "attempt": 1, "latency_ms": None, "input_tokens": None, "output_tokens": None, "success": False, "fallback": True, "validation_error": str(exc)})
+                        state.status = "failed"
                         self.store.append_error(state.game_id, {"event_id": event["event_id"], "caller_type": "a_classifier", "error": str(exc)})
                         self._event(state, "utterance_classification_failed", "host", source_event_id=event["event_id"], error=str(exc), fallback=True)
                 return self._response(state, operation_id)
@@ -215,6 +223,8 @@ class GameEngine:
             target, counts = tally_votes(state.votes)
             self._event(state, "vote_tally", "public", counts=counts, target=target, revote=state.revote)
             if target is None and not state.revote:
+                leaders = [candidate for candidate, count in counts.items() if count == max(counts.values())] if counts else []
+                state.pending["revote_candidates"] = sorted(leaders)
                 state.revote = True; state.day_voted.clear(); state.votes.clear(); return self._response(state, operation_id)
             if target in state.alive: state.alive.remove(target); self._event(state, "exile", "public", target=target)
             if self._check_end(state): return self._response(state, operation_id)
@@ -224,10 +234,16 @@ class GameEngine:
 
     def _response(self, state: GameState, operation_id: str | None = None) -> dict[str, Any]:
         """保存最新状态并生成供 API/C 使用的统一推进响应。"""
-        self.store.write_state(state.game_id, state.to_dict())
-        summary = summarize(self.store, state.game_id)
-        before = state.pending.pop("_operation_before_event_id", state.event_id)
+        before = state.operation_start_event_id if state.operation_start_event_id is not None else state.event_id
+        state.operation_start_event_id = None
         new_events = list(range(before + 1, state.event_id + 1))
+        if state.pause_requested and state.status in {"running", "waiting_model"}:
+            state.status = "paused"
+            state.pause_requested = False
+            self._event(state, "game_paused", "host")
+            new_events = list(range(before + 1, state.event_id + 1))
+        summary = summarize(self.store, state.game_id)
+        self.store.write_state(state.game_id, state.to_dict())
         response = {"game_id": state.game_id, "operation_id": operation_id, "new_event": state.event_id if new_events else None, "new_events": new_events, "cursor": state.event_id, "phase": state.phase, "status": state.status, "summary": summary}
         return response
 
