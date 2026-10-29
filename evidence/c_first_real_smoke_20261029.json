@@ -1,0 +1,37 @@
+{
+  "game_id": "8eec5a101f12",
+  "date": "2026-10-29",
+  "commit": "55310cc20376bf42380ed7347695d5591725457a",
+  "seed": 42,
+  "status": {
+    "game_id": "8eec5a101f12",
+    "status": "failed",
+    "pause_requested": false,
+    "phase": "night",
+    "day": 0,
+    "cursor": 6,
+    "winner": null
+  },
+  "events": 6,
+  "b_call_attempts": 4,
+  "http_json_successes": 4,
+  "valid_actions": 2,
+  "input_tokens_supplemental": 617,
+  "output_tokens_supplemental": 113,
+  "estimated_peak_cny_all_input_cache_miss": 0.002138,
+  "estimate_is_not_account_bill": true,
+  "reserved_cny_not_charged_amount": 0.6,
+  "real_complete_games": 0,
+  "real_public_speech_classification_verified": false,
+  "protocol_reproduction_without_model": {
+    "check": "action 'check' is not allowed in phase night",
+    "inspect": null
+  },
+  "source_sha256": {
+    "calls.jsonl": "e03a579a581e5871695f9c6de78784950010b93856cd4b9840103599b58ccae5",
+    "errors.jsonl": "f063e5d395177338043e9f363080c8a542da8327c82e2d61464bf670ea9cfa89",
+    "events.jsonl": "f75e546249783462c1f264e0300360ac02275d2bf0ae8afecb32bb2614f75555",
+    "state.json": "baf832e07c7b8848a373cf5402914f0ca733a1683312c35820bb87fe1afcd6ba",
+    "summary.json": "10dee923880fda7a807843e1a7dfca45986b4186b42798b11ab51299d972b4fd"
+  }
+}
