@@ -1,0 +1,70 @@
+{
+  "revision": "bc79b60",
+  "mode": "offline_only",
+  "paid_requests": 0,
+  "checks": {
+    "failed_speech_continues": {
+      "status": "running",
+      "event_types": [
+        "game_created",
+        "model_failure",
+        "public_speech",
+        "agent_reason",
+        "utterance_classification"
+      ],
+      "classifier_calls_after_failure": 1,
+      "speech_texts": [
+        ""
+      ],
+      "expected": "Stop after final model_failure; no fabricated speech/classification and no reset to running."
+    },
+    "malformed_json": {
+      "fake_transport_calls": 1,
+      "recorded_attempts": 1,
+      "input_tokens": [
+        null
+      ],
+      "latency_ms": [
+        0
+      ],
+      "status": "failed",
+      "expected": "Known response usage must survive parsing failure; define bounded retry vs timeout without blind resubmission."
+    },
+    "eighth_day_boundary": {
+      "status": "incomplete",
+      "phase": "day_speak",
+      "day": 8,
+      "day8_public_speeches": 0,
+      "needs_rule_confirmation": true,
+      "observation": "Limit is applied immediately after eighth night before eighth-day speech/vote."
+    },
+    "empty_votes": {
+      "status": "running",
+      "phase": "day_vote",
+      "revote": true,
+      "revote_candidates": [],
+      "allowed_vote_error": "revote target must be one of tied candidates",
+      "expected": "No valid votes must have a usable documented resolution; do not enter revote with zero eligible targets."
+    },
+    "boolean_target": {
+      "inspect_target_true_error": null,
+      "expected": "JSON boolean is not a player integer."
+    },
+    "source_review": {
+      "seer_prompt": "# Seer agent v1\n你是预言家代理。每夜查验一名其他存活玩家。只使用可见信息，返回一个 JSON 对象，不自行宣布胜负。\n\n协议：`action` 只能是 `inspect`，`target` 必须是 1—6 的其他存活玩家，`text` 和 `reason` 为字符串。示例：`{\"action\":\"inspect\",\"target\":4,\"text\":\"查验4号\",\"reason\":\"需要确认其阵营\"}`。禁止返回 `check`、自然语言包裹 JSON 或自行修改规则。\n",
+      "retry_validation_feedback": "Original context reused without validation_error feedback.",
+      "host_generation": "No host model invocation in engine flow; prompt file alone is not integration.",
+      "negotiation": "wolf_negotiation is seeded resolution, not additional agent negotiation calls.",
+      "pending_operations": "In-flight and missing operations both report unknown; pause/resume have no operation-id registry.",
+      "budget": "B default DeepSeek client has no output-token/per-game-cost bound; C smoke wrapper is separate.",
+      "cross_game_metadata": "One DeepSeekAgent.last_metadata shared across games; concurrent safety requires proof or restriction."
+    }
+  },
+  "old_real_originals_unchanged": true,
+  "live_budget": {
+    "attempts": 4,
+    "reserved_cny": 0.6,
+    "authorized_cny": 1,
+    "model": "deepseek-flash"
+  }
+}
