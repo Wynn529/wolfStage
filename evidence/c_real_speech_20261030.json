@@ -1,0 +1,45 @@
+{
+  "date": "2026-10-30",
+  "game_id": "bbc3a40c546d",
+  "seed": 42,
+  "commit": "460e1e3f118190a77dc82b234b855821cc120871",
+  "status": "paused",
+  "phase": "day_speak",
+  "day": 1,
+  "cursor": 11,
+  "new_player_requests": 4,
+  "new_small_model_calls": 1,
+  "new_retries": 0,
+  "failures": 0,
+  "input_tokens": 1576,
+  "output_tokens": 166,
+  "total_real_requests_in_authorization": 8,
+  "peak_price_upper_estimate_new_cny": 0.00448,
+  "peak_price_upper_estimate_all_cny": 0.006618,
+  "estimate_is_not_bill": true,
+  "reserved_cny_not_expense": 0.76,
+  "authorized_cny": 1,
+  "speech_event_id": 8,
+  "classification_event_id": 10,
+  "ui_matches_original": true,
+  "input_visibility_indices_checked": true,
+  "classification_quality_needs_a_review": {
+    "predicted_intent": "role_claim",
+    "suspected_issue": "Asks others for identity judgments; no own role claim.",
+    "predicted_player_ids": [
+      3,
+      5
+    ],
+    "suspected_false_player_id": 5,
+    "phrase": "场上剩5人"
+  },
+  "downstream_use_of_classification_not_yet_tested": true,
+  "complete_real_games": 0,
+  "source_sha256": {
+    "calls.jsonl": "d90f165f7fb8a4d3b63dd580a0c2647a974953fa015d2126f5fd437c5e08ae9a",
+    "events.jsonl": "dc103b097ef510cea445b0928f4e715cdbdbe636b935056f533ddce6c09724d9",
+    "state.json": "a5060ec4140ad26925b4746ae60999b20a5502f37f7d750d8f233cad32401a03",
+    "summary.json": "453f5cbb877ee4b12f447df39875b8c9eb95f37fbfec4831c6ada5a48aa80723"
+  },
+  "pricing_url": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/"
+}
