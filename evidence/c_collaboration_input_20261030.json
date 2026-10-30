@@ -1,0 +1,28 @@
+{
+  "game_id": "bbc3a40c546d",
+  "speech_event_id": 8,
+  "classification_event_id": 10,
+  "next_player_call_id": "bbc3a40c546d:player:13:2:f88d8647",
+  "next_action_event_id": 13,
+  "input_event_ids": [
+    2,
+    3,
+    4,
+    7,
+    8,
+    10
+  ],
+  "classification_in_next_real_input": true,
+  "input_reconstruction_is_not_wire_capture": true,
+  "other_players_private_reasons_excluded": true,
+  "seer_private_inspection_excluded": true,
+  "causal_improvement_not_proven": true,
+  "total_real_requests": 9,
+  "prior_reservation_preserved_before_migration": 0.8,
+  "preview_legacy_usage_complete": true,
+  "preview_legacy_conservative_cost_cny": "0.015723",
+  "new_guard_is_not_yet_running": true,
+  "status": "paused",
+  "cursor": 16,
+  "complete_real_games": 0
+}

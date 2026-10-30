@@ -106,7 +106,7 @@ class GameEngine:
                         validation_error=error, failure_stage=failure_stage,
                         latency_ms=metadata.get("latency_ms"), input_tokens=metadata.get("input_tokens"),
                         output_tokens=metadata.get("output_tokens"))
-            for key in ("prompt_hash", "response_id", "returned_model"):
+            for key in ("prompt_hash", "response_id", "returned_model", "request_evidence", "request_sha256"):
                 if key in metadata:
                     call[key] = metadata[key]
             self.store.append_call(state.game_id, call)
