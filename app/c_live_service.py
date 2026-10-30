@@ -25,4 +25,5 @@ def c_ready():
     return {'mode':'real_deepseek', 'agent':type(api.engine.agent).__name__,
             'model':api.engine.agent.model_version,
             'classifier_configured':api.engine.classifier is not None,
-            'runs_dir':str(_real_runs), 'smoke_max_attempts':6, 'smoke_max_output_tokens':512}
+            'runs_dir':str(_real_runs), 'smoke_max_attempts':_client.max_attempts, 'smoke_max_output_tokens':_client.max_tokens,
+            'smoke_reserved_limit_cny':float(_client.maximum_reserved_cny)}

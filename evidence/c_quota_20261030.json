@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-30",
+  "authorized_total_cny": 1,
+  "prior_ledger_preserved": {
+    "attempts": 4,
+    "reserved_cny": 0.6,
+    "authorized_cny": 1,
+    "model": "deepseek-flash"
+  },
+  "max_total_attempts": 12,
+  "new_request_reservation_cny": 0.04,
+  "max_total_reserved_cny": 0.98,
+  "remaining_attempts_by_count": 8,
+  "maximum_reserved_after_eight_more": 0.92,
+  "input_limit_utf8_bytes": 8000,
+  "output_limit_tokens": 512,
+  "thinking": "disabled",
+  "per_new_request_conservative_bound_cny": 0.036288,
+  "bound_rates_cny_per_million": {
+    "input": 3,
+    "output": 12
+  },
+  "verified_official_peak_rates": {
+    "input": 2,
+    "output": 8
+  },
+  "pricing_url": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/",
+  "targeted_tests_passed": 15,
+  "new_paid_requests": 0,
+  "old_real_files_unchanged": true,
+  "next_step": "User enters key locally and restarts; stop after first real public speech and A classification."
+}

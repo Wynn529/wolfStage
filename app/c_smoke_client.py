@@ -1,6 +1,7 @@
 """C 首轮受限真实请求；不修改 B 客户端或原始调用日志。"""
 from __future__ import annotations
 import json
+from decimal import Decimal
 from pathlib import Path
 import threading
 import time
@@ -9,7 +10,9 @@ from app.deepseek_client import DeepSeekClient, ModelOutputError
 
 
 class SmokeClient(DeepSeekClient):
-    max_attempts = 6
+    max_attempts = 12
+    reservation_cny = Decimal("0.04")
+    maximum_reserved_cny = Decimal("0.98")
     max_input_bytes = 8000
     max_tokens = 512
 
@@ -28,12 +31,18 @@ class SmokeClient(DeepSeekClient):
         if message_bytes > self.max_input_bytes:
             raise RuntimeError("C smoke input limit reached; no request was sent.")
         with self.lock:
-            value = json.loads(self.ledger.read_text(encoding="utf-8")) if self.ledger.exists() else {"attempts": 0}
+            value = json.loads(self.ledger.read_text(encoding="utf-8")) if self.ledger.exists() else {"attempts": 0, "reserved_cny": 0}
             count = value["attempts"]
-            if not isinstance(count, int) or count < 0 or count >= self.max_attempts:
+            reserved = Decimal(str(value.get('reserved_cny', count * .15)))
+            if not reserved.is_finite() or reserved < 0:
+                raise RuntimeError("C smoke ledger is invalid; no request was sent.")
+            next_reserved = reserved + self.reservation_cny
+            if type(count) is not int or count < 0 or count >= self.max_attempts or next_reserved > self.maximum_reserved_cny:
                 raise RuntimeError("C smoke request budget exhausted; no request was sent.")
             self.ledger.parent.mkdir(parents=True, exist_ok=True)
-            value.update(attempts=count + 1, reserved_cny=round((count + 1) * .15, 2),
+            value.update(attempts=count + 1, reserved_cny=float(next_reserved),
+                         reservation_per_new_request_cny=float(self.reservation_cny),
+                         pricing_checked="2026-10-30",
                          authorized_cny=1, model=self.model)
             temporary = self.ledger.with_suffix(".tmp")
             temporary.write_text(json.dumps(value), encoding="utf-8")

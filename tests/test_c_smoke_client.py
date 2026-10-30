@@ -14,15 +14,15 @@ def test_failed_requests_remain_reserved_after_restart(tmp_path, monkeypatch):
         sent.append(request)
         raise TimeoutError('test timeout')
     monkeypatch.setattr(module, 'urlopen', fail)
-    for _ in range(6):
+    for _ in range(12):
         with pytest.raises(TimeoutError):
             make_client(tmp_path).complete([], agent_id='1', prompt_version='v1')
     with pytest.raises(RuntimeError, match='budget exhausted'):
         make_client(tmp_path).complete([], agent_id='1', prompt_version='v1')
-    assert len(sent)==6
+    assert len(sent)==12
     ledger=json.loads((tmp_path/'budget.json').read_text())
-    assert ledger['reserved_cny']==.9 and ledger['authorized_cny']==1
-    assert len((tmp_path/'smoke_usage_20261029.jsonl').read_text().splitlines())==6
+    assert ledger['reserved_cny']==.48 and ledger['authorized_cny']==1
+    assert len((tmp_path/'smoke_usage_20261029.jsonl').read_text().splitlines())==12
 
 
 def test_oversized_input_refused_before_network(tmp_path, monkeypatch):
@@ -66,3 +66,25 @@ def test_truncated_response_stays_failed(tmp_path,monkeypatch):
 def test_legacy_model_refused(tmp_path):
     with pytest.raises(ValueError,match='requires deepseek-flash'):
         SmokeClient(tmp_path/'budget.json',api_key='TEST_ONLY',model='deepseek-chat')
+
+
+def test_continuation_keeps_existing_reservation_and_count(tmp_path,monkeypatch):
+    path=tmp_path/'budget.json'
+    path.write_text(json.dumps({'attempts':4,'reserved_cny':.6,'authorized_cny':1,'model':'deepseek-flash'}))
+    monkeypatch.setattr(module,'urlopen',lambda *a,**k:Response())
+    for _ in range(8):
+        make_client(tmp_path).complete([],agent_id='1',prompt_version='v1')
+    ledger=json.loads(path.read_text())
+    assert ledger['attempts']==12 and ledger['reserved_cny']==.92
+    with pytest.raises(RuntimeError,match='budget exhausted'):
+        make_client(tmp_path).complete([],agent_id='1',prompt_version='v1')
+    assert json.loads(path.read_text())==ledger
+
+
+def test_money_guard_refuses_before_request_even_if_call_count_remains(tmp_path,monkeypatch):
+    path=tmp_path/'budget.json'
+    path.write_text(json.dumps({'attempts':5,'reserved_cny':.96,'authorized_cny':1}))
+    monkeypatch.setattr(module,'urlopen',lambda *a,**k:pytest.fail('network'))
+    with pytest.raises(RuntimeError,match='budget exhausted'):
+        make_client(tmp_path).complete([],agent_id='1',prompt_version='v1')
+    assert json.loads(path.read_text())['reserved_cny']==.96
