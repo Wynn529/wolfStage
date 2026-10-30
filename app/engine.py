@@ -24,6 +24,9 @@ class GameEngine:
         self.agent = agent or (DeepSeekAgent() if os.getenv("DEEPSEEK_API_KEY") else StubAgent(classifier))
         self.classifier = classifier
         self._locks: dict[str, threading.RLock] = defaultdict(threading.RLock)
+        self._agent_lock = threading.RLock()
+        self.max_player_calls = int(os.getenv("B_MAX_PLAYER_CALLS", "100"))
+        self.max_small_model_calls = int(os.getenv("B_MAX_SMALL_MODEL_CALLS", "100"))
         for game_id in self.store.list_games():
             saved = self.store.read_state(game_id)
             if saved:
@@ -84,6 +87,11 @@ class GameEngine:
                      "model_version":getattr(self.agent,"model_version","unknown"),
                      "prompt_version":f"{role}-v1", "input_visibility":actor,
                      "input_event_ids":visible_ids, "fallback":False}
+        used_player_calls = sum(1 for item in self.store.read_calls(state.game_id) if item.get("caller_type") == "player")
+        if used_player_calls >= self.max_player_calls:
+            state.status = "failed"
+            self._event(state, "budget_exceeded", [actor, "host", "god"], actor=actor, limit=self.max_player_calls, caller_type="player")
+            return {"action": "invalid", "target": None, "text": "", "reason": "player call limit exceeded"}
         for attempt in (1, 2):
             state.status = "waiting_model"
             metadata = {}
@@ -91,8 +99,9 @@ class GameEngine:
             retryable = False
             failure_stage = None
             try:
-                action = self.agent.act(state, actor, context)
-                metadata = dict(getattr(self.agent, "last_metadata", {}) or {})
+                with self._agent_lock:
+                    action = self.agent.act(state, actor, context)
+                    metadata = dict(getattr(self.agent, "last_metadata", {}) or {})
                 error = check_action(state, actor, action)
                 retryable = error is not None
                 failure_stage = "action_validation" if error else None
@@ -187,6 +196,7 @@ class GameEngine:
                 state.alive.remove(target)
                 self._event(state, "night_death", "public", target=target)
             state.night_done.clear(); state.pending.clear(); state.day += 1; state.phase = "day_speak"; state.day_speakers.clear(); state.day_voted.clear(); state.votes.clear(); state.revote = False
+            # 第八夜后进入 day=8；完成第八日投票后才按上限记未完成。
             if self._check_end(state, check_limit=False): return self._response(state, operation_id)
             return self._response(state, operation_id)
         if state.phase == "day_speak":
@@ -200,6 +210,9 @@ class GameEngine:
                 if self.classifier:
                     try:
                         state.status = "waiting_model"
+                        used_small_calls = sum(1 for item in self.store.read_calls(state.game_id) if item.get("caller_type") == "small_model")
+                        if used_small_calls >= self.max_small_model_calls:
+                            raise RuntimeError("small-model call limit exceeded")
                         result = self.classifier(state.game_id, event["event_id"], actor, event["text"])
                         state.status = "waiting_model" if state.pause_requested else "running"
                         state.classification_by_event[event["event_id"]] = result
@@ -227,8 +240,13 @@ class GameEngine:
                 return self._response(state, operation_id)
             target, counts = tally_votes(state.votes)
             self._event(state, "vote_tally", "public", counts=counts, target=target, revote=state.revote)
-            if target is None and counts and not state.revote:
-                leaders = [candidate for candidate, count in counts.items() if count == max(counts.values())] if counts else []
+            if target is None and not state.revote:
+                if not counts:
+                    self._event(state, "no_valid_votes", "public", resolution="no_exile")
+                    if self._check_end(state): return self._response(state, operation_id)
+                    state.phase = "night"; state.night_done.clear(); state.pending.clear(); state.revote = False
+                    return self._response(state, operation_id)
+                leaders = [candidate for candidate, count in counts.items() if count == max(counts.values())]
                 state.pending["revote_candidates"] = sorted(leaders)
                 state.revote = True; state.day_voted.clear(); state.votes.clear(); return self._response(state, operation_id)
             if target in state.alive: state.alive.remove(target); self._event(state, "exile", "public", target=target)

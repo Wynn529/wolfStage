@@ -38,3 +38,13 @@ HTTP 适配器：`app.classifier.AHttpClassifier`，地址由 `A_CLASSIFIER_URL`
 - B-P08：通过。A 分类异常写入失败调用和错误事件，并将对局置为 failed，不能继续自动推进。
 - Prompt：已明确狼人、预言家、平民各阶段 action/target/text/reason 字段、类型、合法值和示例；预言家固定使用 `inspect`，不接受 `check`。
 - 回归：`python -m pytest -q tests/test_b_update_c.py tests/test_service.py tests/test_visibility.py tests/test_a_integration.py`，22 项通过；含 C 缺陷回归时 39 项通过。
+
+## 2026-10-29 第三版集中清单复核
+
+- 角色协议、布尔 target、validation_error 反馈和 JSON 解析失败记录已修复；提示词内容 hash 写入调用记录。
+- 失败后不会再生成伪 `public_speech`、`agent_reason` 或 A 分类事件；最终状态保持 `failed`。
+- 无有效票直接记录 `no_valid_votes` 并无人放逐进入夜晚；非空平票仍只允许候选重投。
+- 昼夜口径统一为：首夜 day=0，天亮后 day=1；第八日完成发言/投票后仍无胜负才记 `game_limit`。
+- 离线回归：`python -m pytest -q tests/test_b_update_c.py tests/test_c_b_retry_usage.py tests/test_service.py tests/test_visibility.py tests/test_a_integration.py`；本轮结果以实际命令输出为准。
+- 未静默宣称：主持模型主流程、跨进程崩溃恢复、正式真实完整局、预算账本和第二轮狼人模型协商仍需团队确认或真实环境证据。
+- 已补：空有效票的 `no_valid_votes` 结算、第八日完整边界说明、跨游戏 DeepSeek 调用锁、玩家/A 调用保护上限配置；多进程、主持模型和第二轮协商仍保持未实现声明。
