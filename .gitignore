@@ -4,3 +4,5 @@ __pycache__/
 .pytest-tmp/
 .test-runs/
 runs/*/
+.venv/
+.local/
