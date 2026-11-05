@@ -19,9 +19,12 @@ app = FastAPI(title="Werewolf Game Service", version="1.0.0") if FastAPI else No
 if app:
     @app.post("/games")
     def create_game(payload: dict[str, Any] | None = None):
-        """创建一局固定六人游戏并返回 game_id。"""
+        """创建十人游戏；可按席位指定真人控制器和模型配置。"""
         payload = payload or {}
-        return engine.create_game(payload.get("seed"), payload.get("role_config"))
+        return engine.create_game(payload.get("seed"), payload.get("role_config"),
+                                  seat_controllers=payload.get("seat_controllers"),
+                                  seat_model_configs=payload.get("seat_model_configs"),
+                                  player_count=payload.get("player_count", 10))
 
     @app.post("/games/{game_id}/advance")
     def advance(game_id: str, payload: dict[str, Any] | None = None):
@@ -43,10 +46,26 @@ if app:
         return engine.resume_game(game_id)
 
     @app.get("/games/{game_id}/events")
-    def events(game_id: str, after_event_id: int = 0, view: str = "god"):
+    def events(game_id: str, after_event_id: int = 0, view: str = "god", player_id: int | None = None):
         """按游标读取指定视角可见的事件。"""
         if game_id not in engine.games: raise HTTPException(404, "unknown game")
-        return engine.get_events(game_id, after_event_id, view)
+        return engine.get_events(game_id, after_event_id, view, player_id)
+
+    @app.get("/games/{game_id}/pending-action")
+    def pending_action(game_id: str):
+        if game_id not in engine.games: raise HTTPException(404, "unknown game")
+        return engine.get_status(game_id).get("pending_action")
+
+    @app.post("/games/{game_id}/players/{player_id}/action")
+    def human_action(game_id: str, player_id: int, payload: dict[str, Any] | None = None):
+        if game_id not in engine.games: raise HTTPException(404, "unknown game")
+        payload = payload or {}
+        action = payload.get("action")
+        if not isinstance(action, dict): raise HTTPException(422, "action must be an object")
+        return engine.submit_human_action(game_id, player_id, action,
+                                          action_id=payload.get("action_id"),
+                                          expected_cursor=payload.get("expected_cursor"),
+                                          operation_id=payload.get("operation_id"))
 
     @app.get("/games/{game_id}/status")
     def status(game_id: str):

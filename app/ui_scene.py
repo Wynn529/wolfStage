@@ -27,21 +27,21 @@ def scene_model(events, *, status='unknown', phase=None, metrics=None, game_id=N
         role = ROLES.get(current.get('result'), current.get('result', '未提供'))
         body = f'我查验了 {current.get("target", "未提供")} 号，结果是：{role}。'
     elif kind == 'game_created':
-        body = '身份已分配。六名机器人准备就绪，点击“单步推进”观察第一步。'
+        body = '身份已分配。十个席位准备就绪，点击“单步推进”观察第一步。'
     elif kind in {'model_failure','utterance_classification_failed'}:
         notice = failure_notice(current)
         title = notice['title']
         body = notice['summary'] + ' ' + notice['next_step']
     if not body:
-        body = '点击“开始对局”，看六名机器人围桌推理。' if not events else '等待下一条服务记录。'
+        body = '点击“开始对局”，看十个席位围桌推理。' if not events else '等待下一条服务记录。'
     if kind == 'wolf_negotiation':
         body = f'狼人意见不同，B按固定规则选择 {current.get("resolved_target", "未提供")} 号。'
     reason_event = next((e for e in reversed(events) if e.get('type')=='agent_reason'
                          and e.get('source_event_id')==current.get('event_id')
                          and e.get('actor')==current.get('actor')), {})
     actor, target = current.get('actor'), current.get('target')
-    if type(actor) is not int or actor not in range(1,7): actor = None
-    if type(target) is not int or target not in range(1,7): target = None
+    if type(actor) is not int or actor not in range(1,11): actor = None
+    if type(target) is not int or target not in range(1,11): target = None
     source = '离线联调' if any(e.get('source')=='stub' for e in events) else '真实模型记录' if any(e.get('source')=='deepseek' for e in events) else '服务记录' if events else '准备开始'
     return {
         'game_id':game_id or '', 'cursor':latest.get('event_id',0), 'day':latest.get('day',0),
@@ -49,7 +49,7 @@ def scene_model(events, *, status='unknown', phase=None, metrics=None, game_id=N
         'replay':replay, 'busy':busy, 'message':message, 'source':source,
         'players':[{'id':i,'role':state['roles'].get(i),
                     'role_name':ROLES.get(state['roles'].get(i),'等待发牌'),
-                    'alive':i in state['alive'] if events else True} for i in range(1,7)],
+                    'alive':i in state['alive'] if events else True} for i in range(1,11)],
         'current':{'id':current.get('event_id',0),'kind':kind,'title':title,'body':body,
                    'actor':actor,'target':target,'speech':kind=='public_speech',
                    'private':bool(current and current.get('visibility')!='public'),

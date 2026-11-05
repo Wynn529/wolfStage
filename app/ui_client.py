@@ -39,8 +39,11 @@ class GameClient:
         except (URLError, TimeoutError, OSError, ValueError) as exc:
             raise ServiceError('请求未确认完成；不会自动重发控制请求，请只读查询恢复。') from exc
 
-    def create(self, seed: int):
-        result = self._request('POST', '/games', {'seed': seed})
+    def create(self, seed: int, *, seat_controllers=None, seat_model_configs=None):
+        payload = {'seed': seed}
+        if seat_controllers is not None: payload['seat_controllers'] = seat_controllers
+        if seat_model_configs is not None: payload['seat_model_configs'] = seat_model_configs
+        result = self._request('POST', '/games', payload)
         if not isinstance(result, dict) or not isinstance(result.get('game_id'), str) or result.get('status') not in {'running', 'paused'}:
             raise ServiceError('建局响应结构不正确；结果需人工核对，不自动重建。')
         return result
@@ -74,6 +77,11 @@ class GameClient:
         if not isinstance(result, dict) or result.get('game_id') != game_id:
             raise ServiceError('统计响应局号不匹配或格式无效')
         return result
+
+    def human_action(self, game_id: str, player_id: int, action: dict, *, action_id: str, expected_cursor: int, operation_id: str):
+        return self._request('POST', f'/games/{quote(game_id, safe="")}/players/{player_id}/action', {
+            'action': action, 'action_id': action_id, 'expected_cursor': expected_cursor, 'operation_id': operation_id
+        })
 
     def state(self, game_id):
         if not self.contract.ready:

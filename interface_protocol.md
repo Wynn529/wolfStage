@@ -1,25 +1,34 @@
-# B/C/A 接口协议 v1
+# 十人狼人杀服务协议 v2
 
-## 创建与推进
+## 建局
 
-`POST /games` 请求 `{ "seed": 42, "role_config": null }`，响应包含 `game_id`, `status`, `phase`, `rules_version`。`POST /games/{game_id}/advance` 每次执行一个业务操作；请求可带 `{ "operation_id": "op-001", "expected_cursor": 3 }`。同一对局通过互斥锁串行执行，同一 `operation_id` 重复提交直接返回原结果；旧 `expected_cursor` 返回 `status=conflict`，不推进状态。响应包含 `new_event`、`new_events`、`cursor`、`phase`、`status` 和 `operation_id`。模型调用期间状态为 `waiting_model`，暂停请求会返回 `pause_requested=true`，调用结束后在事件边界停稳。`GET /games/{game_id}/status` 和 `GET /games/{game_id}/operations/{operation_id}` 提供只读状态/操作查询。
-
-## 事件
-
-事件统一包含 `game_id`, `event_id`, `timestamp`, `phase`, `day`, `type`, `visibility`, `rules_version`, `source`。公开发言示例：
+`POST /games` 请求可包含：
 
 ```json
-{"game_id":"g1","event_id":7,"phase":"day_speak","type":"public_speech","visibility":"public","source":"stub","actor":2,"text":"我认为3号可疑"}
+{
+  "seed": 42,
+  "role_config": null,
+  "seat_controllers": {"1": "human", "2": "ai"},
+  "seat_model_configs": {"2": {"provider": "deepseek", "model": "deepseek-chat", "prompt_version": "wolf-v1"}}
+}
 ```
 
-对应的 `agent_reason` 事件只对本人、主持和上帝视角可见，其他玩家输入中不会出现。
+未指定时创建十人局、全部 AI。旧六人角色配置仍可读取并以 `rules-v1.0` 标记。
 
-私密行动、规则裁决、小模型标签和失败示例都保留在 `runs/<game_id>/events.jsonl`，由 `visibility` 限制角色读取。`view=god` 只用于 C 本地展示。
+## 推进与真人行动
 
-## A 分类调用
+`POST /games/{game_id}/advance` 仍以 `operation_id` 和 `expected_cursor` 幂等推进。轮到真人时返回 `status=waiting_human` 及 `pending_action`：
 
-B 每条公开发言调用一次 `POST $A_CLASSIFIER_URL`，请求字段为 `game_id,event_id,speaker_id,public_text`。返回结果原样写入 `utterance_classification` 事件；分数 `confidence=null` 时不得显示成概率。A 调用失败写入 `errors.jsonl` 并将对局标记为降级或失败。
+```json
+{"action_id":"g:4:3","actor":3,"phase":"night"}
+```
 
-## 错误和回放
+真人通过 `POST /games/{game_id}/players/{player_id}/action` 提交：`action_id`、`expected_cursor`、`operation_id` 和结构化 `action`。重复提交、游标冲突或待操作不匹配不会改变状态。
 
-未知 `game_id` 返回 404；非法行动写入失败原因并最多重试一次；暂停时不推进事件。回放只读取 `events.jsonl`，不会发起新的模型调用。
+`GET /games/{game_id}/pending-action` 查询当前待真人行动；`GET /games/{game_id}/status` 返回状态、阶段、游标、控制器和待操作。
+
+## 事件、权限和日志
+
+事件包含 `game_id,event_id,timestamp,phase,day,type,visibility,rules_version,source`。`view=god` 在终局前只返回公开事件；按 `player_id` 查询只返回公开事件和该席位可见的私密事件。终局后才开放完整上帝回放。
+
+AI 每次尝试单独记录模型、供应商、席位、Prompt、token、延迟、失败和重试；真人操作不计入模型调用。`GET /games/{game_id}/metrics` 同时返回总计和 `by_seat` 分组，未知 token 与已知合计分开。

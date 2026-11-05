@@ -68,7 +68,7 @@ elif real_mode:
     st.info('真实 DeepSeek 模式：建局只分配身份；单步推进才可能调用付费模型。本阶段仅开放单步，一次点击可能含多次请求。')
 
 with st.expander('第一次使用：怎么看、怎么操作', expanded=False):
-    st.markdown('1．开始前：选“现场对局”，确认测试额度，再点“开始对局”分配六个身份。')
+    st.markdown('1．开始前：选“现场对局”，确认测试额度，再点“开始对局”分配十个身份。')
     st.markdown('2．看一局：每点一次“单步推进”，等待处理完成。上方看行动、发言与出局，下方看小模型对公开发言的分类；夜间等待发言属于正常情况。')
     st.markdown('3．查过程：展开“检查记录”查看投票、私密记录和统计；切到“历史回放”可查看已保存过程，不会重新调用模型。')
     st.caption('你是观察者，不需要替机器人发言或投票。身份卡和私密信息只供上帝视角查看；分类只判断话语表达，不证明身份真假。')
@@ -77,6 +77,8 @@ with st.expander('第一次使用：怎么看、怎么操作', expanded=False):
 with st.sidebar:
     st.header('运行与回放')
     seed = st.number_input('随机种子 seed',min_value=0,max_value=2147483647,value=42,step=1)
+    human_seats = st.multiselect('真人席位（可多选）', list(range(1, 11)), default=[], help='这些席位轮到行动时会进入等待真人状态。')
+    model_name = st.text_input('AI 默认模型名', os.getenv('DEEPSEEK_MODEL', 'deepseek-flash'))
 
     url = st.text_input('B 服务地址', os.getenv('B_API_URL', 'http://127.0.0.1:8000'))
     st.caption('默认端口：A分类8765、B游戏8000、网页8501；自定义时以启动输出及B地址为准。')
@@ -272,7 +274,9 @@ def live_panel():
             # 在POST前保存意图；页面重运行不能再次提交结果尚未确认的建局。
             ss.create_operation_id=uuid.uuid4().hex
             ss.create_uncertain=True
-            response = client.create(int(seed))
+            controllers = {str(i): ('human' if i in human_seats else 'ai') for i in range(1, 11)}
+            model_configs = {str(i): {'provider': 'deepseek', 'model': model_name, 'model_name': model_name, 'model_version': model_name} for i in range(1, 11) if i not in human_seats}
+            response = client.create(int(seed), seat_controllers=controllers, seat_model_configs=model_configs)
             if controller:
                 controller.close()
             controller = SessionController(client,response['game_id'],seed=int(seed),

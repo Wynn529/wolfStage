@@ -56,11 +56,11 @@ details{margin-top:8px;font-size:10px;color:#7c8a74}summary{cursor:pointer;list-
 @media(max-width:800px){.layout{height:790px;grid-template-rows:490px 292px}.seat{width:120px}.robot{width:78px;height:88px}.identity{min-width:78px;height:26px;font-size:10px}.name{font-size:10px}.center{min-width:220px;width:37%}.bubble{padding:12px}.bubbletext{font-size:11px;max-height:85px}.analysisgrid{grid-template-columns:1.1fr 1fr;gap:14px}.analysiscol+ .analysiscol{padding-left:14px}.analysiscol:last-child{grid-column:1/3;border:0;padding-left:0;display:flex;gap:20px;align-items:center}.analysiscol:last-child .label{margin-bottom:0}.analysiscol:last-child details{margin-top:0}.table{width:52%;left:24%;height:55%;top:25%}.badge{font-size:9px;padding:5px 8px}.stagebar{left:12px;right:12px}.timeline{left:14px;right:14px}.analysis{padding:14px}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style></head><body>
-<main class="layout" id="app" aria-label="六机器人狼人杀观察场景"></main>
+<main class="layout" id="app" aria-label="十席狼人杀观察场景"></main>
 <script>
-const POS=[[26,18],[74,18],[88,51],[74,77],[26,77],[12,51]];
-const COLORS=['#80bfa2','#e8b27d','#b09bd0','#7faec7','#d4bf74','#d8949e'];
-const NAMES=['青柠','琥珀','星云','冰川','麦穗','珊瑚'];
+const POS=[[18,12],[50,8],[82,12],[94,38],[82,72],[50,86],[18,72],[6,38],[31,28],[69,28]];
+const COLORS=['#80bfa2','#e8b27d','#b09bd0','#7faec7','#d4bf74','#d8949e','#9bc8b1','#c6a5df','#e5c584','#8db6d1'];
+const NAMES=['青柠','琥珀','星云','冰川','麦穗','珊瑚','松针','晚风','月桂','流萤'];
 let previous='',lastGameId='',lastCursor=-1;
 const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function robot(id,dead){

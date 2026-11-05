@@ -35,7 +35,49 @@ def build_context(state: GameState, events: list[dict[str, Any]], agent_id: int,
     }
     if viewer_role == "wolf":
         context["wolf_teammates"] = [p for p, role in state.roles.items() if role == "wolf" and p != agent_id]
+    if viewer_role == "witch":
+        context["night_kill_target"] = state.pending.get("night_kill_target")
+    context["seat_controller"] = state.seat_controllers.get(agent_id, "ai")
+    context["model_config"] = state.seat_model_configs.get(agent_id, {})
+    context["legal_actions"] = legal_actions_for(state, agent_id)
     return context
+
+
+def legal_actions_for(state: GameState, agent_id: int) -> list[dict[str, Any]]:
+    """Return engine-provided action hints; clients must not infer skill eligibility."""
+    role = state.roles.get(agent_id)
+    if state.phase == "night":
+        if role == "wolf":
+            return [{"action": "kill", "targets": [p for p in sorted(state.alive) if p != agent_id and state.roles[p] != "wolf"]}]
+        if role == "seer":
+            return [{"action": "inspect", "targets": [p for p in sorted(state.alive) if p != agent_id and p not in state.inspection_history]}]
+        if role == "witch":
+            return [{"action": "save", "targets": []}] if state.witch_save_available else []
+        return [{"action": "pass", "targets": []}]
+    if state.phase == "day_speak": return [{"action": "speak", "targets": []}]
+    if state.phase == "day_vote": return [{"action": "vote", "targets": sorted(state.alive - {agent_id})}, {"action": "pass", "targets": []}]
+    return []
+
+
+class SeatAgentRouter:
+    """Routes each AI seat to an independently configured agent implementation."""
+    model_name = "seat-router"
+    model_version = "seat-router-v1"
+
+    def __init__(self, default_agent: Any, agents: dict[str, Any] | None = None):
+        self.default_agent = default_agent
+        self.agents = agents or {}
+        self.last_metadata: dict[str, Any] = {}
+
+    def act(self, state: GameState, agent_id: int, context: dict[str, Any]) -> dict[str, Any]:
+        config = state.seat_model_configs.get(agent_id, {})
+        key = config.get("agent_key") or config.get("model") or config.get("model_name")
+        agent = self.agents.get(key, self.default_agent)
+        action = agent.act(state, agent_id, context)
+        self.last_metadata = dict(getattr(agent, "last_metadata", {}) or {})
+        self.model_name = config.get("model_name") or getattr(agent, "model_name", "unknown")
+        self.model_version = config.get("model_version") or getattr(agent, "model_version", "unknown")
+        return action
 
 
 class StubAgent:
@@ -61,6 +103,10 @@ class StubAgent:
             return {"action": "kill", "target": nonwolves[0], "text": "夜间行动", "reason": "stub kill"}
         if role == "seer":
             return {"action": "inspect", "target": alive_others[0], "text": "查验", "reason": "stub inspect"}
+        if role == "witch":
+            return {"action": "pass", "target": None, "text": "", "reason": "stub pass"}
+        if role == "hunter":
+            return {"action": "pass", "target": None, "text": "", "reason": "stub pass"}
         return {"action": "inspect", "target": alive_others[0], "text": "", "reason": "unused"}
 
 
@@ -101,6 +147,6 @@ class DeepSeekAgent:
 
 def load_prompt(role: str, prompt_dir: str | Path = "prompts") -> str:
     """读取指定角色的版本化 Prompt；文件缺失时返回安全的 JSON 约束兜底文本。"""
-    filename = {"wolf": "wolf-v1.md", "seer": "seer-v1.md", "villager": "villager-v1.md", "host": "host-v1.md"}[role]
+    filename = {"wolf": "wolf-v1.md", "seer": "seer-v1.md", "villager": "villager-v1.md", "witch": "witch-v1.md", "hunter": "hunter-v1.md", "host": "host-v1.md"}[role]
     path = Path(prompt_dir) / filename
     return path.read_text(encoding="utf-8") if path.exists() else "Return valid JSON only."

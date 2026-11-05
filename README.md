@@ -1,6 +1,6 @@
 # AI 狼人杀系统（AI Werewolf）
 
-> 一个由六个 AI 玩家自动进行狼人杀对局、可观察与回放过程的系统，用于展示大模型与小模型在复杂多智能体场景下的分工协作。
+> 一个支持十个 AI/真人混合席位、可观察与回放的文本狼人杀系统，用于展示大模型与小模型在复杂多智能体场景下的分工协作。
 
 ---
 
@@ -22,11 +22,11 @@
 
 ## 🎯 项目简介
 
-本项目构建一个**六人 AI 狼人杀对局系统**：用户打开网页点击"开始游戏"后，系统自动分配身份（2 狼人 / 1 预言家 / 3 平民），由 AI 自主完成夜间击杀、查验、白天发言与投票，程序依据规则结算。
+本项目构建一个**十人狼人杀对局系统**：用户打开网页后可为任意席位选择真人或 AI，并为 AI 席位指定模型；系统按固定角色板子（3 狼人 / 1 预言家 / 1 女巫 / 1 猎人 / 4 平民）推进夜间行动、白天发言与投票，程序依据规则结算。
 
 用户以**上帝视角**观察真实身份、行动、公开发言、小模型标签、角色自述理由与调用统计。
 
-**团队成员是系统开发者和观察者，正式演示中的玩家行动全部由模型生成。**
+真人席位由本地页面输入行动，AI 席位由对应模型生成行动；所有行动都经过同一规则校验。
 
 ### 研究问题
 
@@ -52,9 +52,9 @@
 
 ## 🧩 核心设计
 
-### 1. 六玩家代理的构造方式
+### 1. 玩家席位的构造方式
 
-使用**同一个 DeepSeek 基础模型**，通过不同角色提示词与上下文构造六个玩家代理。每个代理拥有独立的：
+使用同一或多个基础模型，通过不同角色提示词、席位配置与上下文构造玩家代理。每个代理拥有独立的：
 
 - 玩家编号
 - 身份
@@ -159,7 +159,7 @@ python -m app.main
 ├─ README.md                          # 安装、启动、训练、运行、回放、复核
 ├─ AGENTS.md
 ├─ MEMORY.md
-├─ rules.md                           # 冻结的六人局规则及版本
+├─ rules.md                           # 冻结的十人局规则及版本
 ├─ requirements.txt
 ├─ .env.example                       # 只写变量名，绝不写真实密钥
 ├─ .gitignore
@@ -327,7 +327,7 @@ $env:DEEPSEEK_MODEL="deepseek-chat"
 
 ## API
 
-`POST /games`（可传 `{"seed": 42}`）创建对局；`POST /games/{id}/advance` 单步推进（可传 `{"operation_id":"op-001","expected_cursor":3}`）；`POST /games/{id}/pause`、`/resume` 控制暂停；`GET /games/{id}/status` 查询状态；`GET /games/{id}/operations/{operation_id}` 查询操作结果；`GET /games/{id}/events?view=god` 获取事件；`GET /games/{id}/metrics` 获取统计；`GET /games/{id}/replay` 只读回放。
+`POST /games`（可传 `seed`、`seat_controllers`、`seat_model_configs`）创建十人对局；`POST /games/{id}/advance` 单步推进；轮到真人时用 `POST /games/{id}/players/{player_id}/action` 提交结构化行动；`GET /games/{id}/pending-action` 查询待行动；其余暂停、状态、事件、统计和只读回放接口保持不变。
 
 原始证据位于 `runs/<game_id>/events.jsonl`、`calls.jsonl`、`errors.jsonl` 和 `summary.json`。回放不会重新调用模型。`app.engine.GameEngine` 也可直接在 Python 中调用。
 

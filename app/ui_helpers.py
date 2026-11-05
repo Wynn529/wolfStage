@@ -8,10 +8,10 @@ import zipfile
 
 LABELS = {'role_claim': '身份声明', 'check_claim': '查验宣称', 'vote_intent': '投票意向',
           'low_info': '信息不足', 'discussion': '有效讨论', 'suspected_violation': '疑似违规/跑题'}
-ROLES = {'wolf': '狼人', 'seer': '预言家', 'villager': '平民'}
+ROLES = {'wolf': '狼人', 'seer': '预言家', 'witch': '女巫', 'hunter': '猎人', 'villager': '平民'}
 STATUS = {'running': '可单步推进', 'paused': '已暂停', 'failed': '失败',
           'finished': '已结束', 'incomplete': '达到上限/未完成', 'unknown': '待刷新确认',
-          'pending':'正在等待模型', 'degraded':'降级，需人工核查'}
+          'pending':'正在等待模型', 'waiting_human':'等待真人行动', 'waiting_model':'正在等待模型', 'degraded':'降级，需人工核查'}
 PHASES = {'night': '夜间', 'day_speak': '白天发言', 'day_vote': '白天投票'}
 
 
@@ -41,7 +41,7 @@ def project(events):
         kind = event['type']
         if kind == 'game_created':
             state.update(roles={int(k): v for k, v in event.get('roles', {}).items()},
-                         alive=set(event.get('alive', range(1, 7))), status='running')
+                         alive=set(event.get('alive', range(1, 11))), status='running')
         elif kind in {'night_death', 'exile'}:
             state['alive'].discard(event.get('target'))
         elif kind == 'utterance_classification':
