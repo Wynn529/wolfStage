@@ -16,10 +16,12 @@ class ModelOutputError(ValueError):
 
 class DeepSeekClient:
     """DeepSeek Chat Completions 的最小标准库适配器。"""
-    def __init__(self, api_key: str | None = None, model: str | None = None, timeout: float = 30):
+    def __init__(self, api_key: str | None = None, model: str | None = None, timeout: float = 30,
+                 base_url: str = "https://api.deepseek.com"):
         self.api_key = api_key or os.getenv("DEEPSEEK_API_KEY")
         self.model = model or os.getenv("DEEPSEEK_MODEL", "deepseek-flash")
         self.timeout = timeout
+        self.base_url = base_url.rstrip("/")
         self.max_tokens = int(os.getenv("DEEPSEEK_MAX_TOKENS", "1024"))
         if not 1 <= self.max_tokens <= 4096:
             raise ValueError("DEEPSEEK_MAX_TOKENS must be between 1 and 4096")
@@ -30,7 +32,7 @@ class DeepSeekClient:
         body = json.dumps({"model": self.model, "messages": messages, "temperature": 0.2,
                            "response_format": {"type": "json_object"}, "max_tokens": self.max_tokens,
                            "thinking": {"type": "disabled"}}).encode()
-        req = urllib.request.Request("https://api.deepseek.com/chat/completions", data=body,
+        req = urllib.request.Request(self.base_url + "/chat/completions", data=body,
                                      headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"})
         started = time.perf_counter()
         meta = {"agent_id":agent_id, "model_name":self.model, "model_version":self.model,
@@ -48,6 +50,8 @@ class DeepSeekClient:
             usage = payload.get("usage") or {}
             meta.update(input_tokens=usage.get("prompt_tokens"), output_tokens=usage.get("completion_tokens"),
                         response_id=payload.get("id"), returned_model=payload.get("model"))
+            if payload.get("model"):
+                meta.update(model_name=payload["model"], model_version=payload["model"])
             choice = payload["choices"][0]
             if choice.get("finish_reason") == "length":
                 raise ValueError("model output was truncated")

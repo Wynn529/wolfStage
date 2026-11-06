@@ -167,7 +167,7 @@ def serve(args):
     RUNS.mkdir(parents=True,exist_ok=True)
     environments = child_environments(args.model,args.a_port,args.b_port)
     commands = [
-        ('a',['-m','model.server_v031','--port',str(args.a_port)],f'http://127.0.0.1:{args.a_port}/health'),
+        ('a',['-m','model.server_v04','--port',str(args.a_port)],f'http://127.0.0.1:{args.a_port}/health'),
         ('b',['-m','uvicorn','app.c_live_service:app','--host','127.0.0.1','--port',str(args.b_port)],f'http://127.0.0.1:{args.b_port}/c/ready'),
         ('ui',['-m','streamlit','run','app/ui.py','--server.address','127.0.0.1','--server.port',str(args.ui_port),
                '--server.headless','true','--browser.gatherUsageStats','false'],f'http://127.0.0.1:{args.ui_port}/_stcore/health')]

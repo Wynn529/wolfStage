@@ -24,7 +24,11 @@ def until(controller,predicate,timeout=5):
 
 def controller_for(url,tmp_path,**kwargs):
     client=GameClient(url,contract=reference_contract(),**kwargs)
+    # 故障注入只针对后续控制请求，不让40ms阈值随机打断测试准备建局。
+    control_timeout=client.timeout
+    client.timeout=max(3,control_timeout)
     gid=client.create(42)['game_id']
+    client.timeout=control_timeout
     controller=SessionController(client,gid,journal=tmp_path/'operations.jsonl',interval=0)
     controller.refresh()
     assert controller.auto_ready

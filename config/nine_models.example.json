@@ -1,0 +1,157 @@
+{
+  "mode": "human",
+  "human_role": null,
+  "profiles": [
+    {
+      "profile_id": "mimo",
+      "display_name": "MiMo V2.6 Pro",
+      "provider": "mimo",
+      "model": "mimo-v2.6-pro",
+      "api_key_env": "MIMO_API_KEY",
+      "base_url": "https://api.xiaomimimo.com/v1",
+      "api_protocol": "chat_completions",
+      "request_options_json": "{\"max_completion_tokens\": 4096}",
+      "timeout": 120
+    },
+    {
+      "profile_id": "tokenhub",
+      "display_name": "Hy4 preview",
+      "provider": "tokenhub",
+      "model": "hy4-preview",
+      "api_key_env": "TOKENHUB_API_KEY",
+      "base_url": "https://tokenhub.tencentmaas.com/v1",
+      "api_protocol": "chat_completions",
+      "request_options_json": "{}",
+      "timeout": 120
+    },
+    {
+      "profile_id": "minimax",
+      "display_name": "MiniMax M3.1 Flash",
+      "provider": "minimax",
+      "model": "MiniMax-M3.1-Flash",
+      "api_key_env": "MINIMAX_API_KEY",
+      "base_url": "https://api.minimax.cn/v1",
+      "api_protocol": "chat_completions",
+      "request_options_json": "{\"reasoning_effort\": \"low\", \"max_completion_tokens\": 8192}",
+      "timeout": 120
+    },
+    {
+      "profile_id": "kimi",
+      "display_name": "Kimi K3.1 Pro",
+      "provider": "kimi",
+      "model": "kimi-k3.1-pro",
+      "api_key_env": "KIMI_API_KEY",
+      "base_url": "https://api.moonshot.cn/v1",
+      "api_protocol": "chat_completions",
+      "request_options_json": "{}",
+      "timeout": 120
+    },
+    {
+      "profile_id": "ark",
+      "display_name": "Doubao Seed 2.1 Lite",
+      "provider": "ark",
+      "model": "doubao-seed-2-1-lite-260915",
+      "api_key_env": "ARK_API_KEY",
+      "base_url": "https://ark.cn-beijing.volces.com/api/v3",
+      "api_protocol": "responses",
+      "request_options_json": "{}",
+      "timeout": 120
+    },
+    {
+      "profile_id": "qianfan",
+      "display_name": "ERNIE 5.1",
+      "provider": "qianfan",
+      "model": "ernie-5.1",
+      "api_key_env": "QIANFAN_API_KEY",
+      "base_url": "https://qianfan.baidubce.com/v2",
+      "api_protocol": "chat_completions",
+      "request_options_json": "{}",
+      "timeout": 120
+    },
+    {
+      "profile_id": "zhipu",
+      "display_name": "GLM 5.3",
+      "provider": "zhipu",
+      "model": "glm-5.3",
+      "api_key_env": "ZHIPU_API_KEY",
+      "base_url": "https://open.bigmodel.cn/api/paas/v4",
+      "api_protocol": "chat_completions",
+      "request_options_json": "{}",
+      "timeout": 120
+    },
+    {
+      "profile_id": "deepseek",
+      "display_name": "DeepSeek Flash",
+      "provider": "deepseek",
+      "model": "deepseek-flash",
+      "api_key_env": "DEEPSEEK_API_KEY",
+      "base_url": "https://api.deepseek.com",
+      "api_protocol": "chat_completions",
+      "request_options_json": "{\"thinking\": {\"type\": \"enabled\"}, \"reasoning_effort\": \"high\"}",
+      "timeout": 120
+    },
+    {
+      "profile_id": "bailian",
+      "display_name": "Qwen 3.8 Max",
+      "provider": "bailian",
+      "model": "qwen3.8-max-0902",
+      "api_key_env": "DASHSCOPE_API_KEY",
+      "base_url": "https://ws-30abiia2jow0rwx2.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",
+      "api_protocol": "chat_completions",
+      "request_options_json": "{}",
+      "timeout": 120
+    }
+  ],
+  "seats": [
+    {
+      "seat_id": 1,
+      "control_type": "ai",
+      "model_profile_id": "mimo"
+    },
+    {
+      "seat_id": 2,
+      "control_type": "ai",
+      "model_profile_id": "tokenhub"
+    },
+    {
+      "seat_id": 3,
+      "control_type": "ai",
+      "model_profile_id": "minimax"
+    },
+    {
+      "seat_id": 4,
+      "control_type": "ai",
+      "model_profile_id": "kimi"
+    },
+    {
+      "seat_id": 5,
+      "control_type": "ai",
+      "model_profile_id": "ark"
+    },
+    {
+      "seat_id": 6,
+      "control_type": "ai",
+      "model_profile_id": "qianfan"
+    },
+    {
+      "seat_id": 7,
+      "control_type": "ai",
+      "model_profile_id": "zhipu"
+    },
+    {
+      "seat_id": 8,
+      "control_type": "ai",
+      "model_profile_id": "deepseek"
+    },
+    {
+      "seat_id": 9,
+      "control_type": "ai",
+      "model_profile_id": "bailian"
+    },
+    {
+      "seat_id": 10,
+      "control_type": "human",
+      "model_profile_id": null
+    }
+  ]
+}

@@ -10,6 +10,35 @@ from .rules import GameState
 from .deepseek_client import DeepSeekClient
 
 
+ACTION_PROTOCOL_VERSION = "action-v1"
+
+
+def action_contract(state: GameState, agent_id: int) -> dict[str, Any]:
+    """只按当前阶段和本人已知信息给出行动约束，不向玩家泄露秘密。"""
+    if len(state.roles) == 10:
+        choices = legal_actions_for(state, agent_id)
+        return {"version": ACTION_PROTOCOL_VERSION, "allowed_actions": [c["action"] for c in choices],
+                "allowed_targets": list(dict.fromkeys(t for c in choices for t in c["targets"])),
+                "actions": choices, "required_fields": ["action", "target", "text", "reason"],
+                "text_max_length": 500, "reason_max_length": 300}
+    role = state.roles[agent_id]
+    if state.phase == "night":
+        kind = {"wolf": "kill", "seer": "inspect"}.get(role)
+    else:
+        kind = {"day_speak": "speak", "day_vote": "vote"}.get(state.phase)
+    targets = [p for p in sorted(state.alive) if p != agent_id]
+    if kind == "kill":
+        targets = [p for p in targets if state.roles[p] != "wolf"]
+    return {
+        "version": ACTION_PROTOCOL_VERSION,
+        "allowed_actions": [kind] if kind else [],
+        "allowed_targets": [None] if kind == "speak" else targets,
+        "required_fields": ["action", "target", "text", "reason"],
+        "text_max_length": 500,
+        "reason_max_length": 300,
+    }
+
+
 def visible_events(events: list[dict[str, Any]], viewer: int | str) -> list[dict[str, Any]]:
     """按事件 visibility 过滤出指定玩家、主持或上帝视角可见的事件。"""
     out = []
@@ -35,7 +64,7 @@ def build_context(state: GameState, events: list[dict[str, Any]], agent_id: int,
     }
     if viewer_role == "wolf":
         context["wolf_teammates"] = [p for p, role in state.roles.items() if role == "wolf" and p != agent_id]
-    if viewer_role == "witch":
+    if viewer_role == "witch" and state.witch_save_available:
         context["night_kill_target"] = state.pending.get("night_kill_target")
     context["seat_controller"] = state.seat_controllers.get(agent_id, "ai")
     context["model_config"] = state.seat_model_configs.get(agent_id, {})
@@ -50,12 +79,20 @@ def legal_actions_for(state: GameState, agent_id: int) -> list[dict[str, Any]]:
         if role == "wolf":
             return [{"action": "kill", "targets": [p for p in sorted(state.alive) if p != agent_id and state.roles[p] != "wolf"]}]
         if role == "seer":
-            return [{"action": "inspect", "targets": [p for p in sorted(state.alive) if p != agent_id and p not in state.inspection_history]}]
+            targets = [p for p in sorted(state.alive) if p != agent_id and p not in state.inspection_history]
+            return [{"action": "inspect", "targets": targets}] if targets else [{"action": "pass", "targets": [None]}]
         if role == "witch":
-            return [{"action": "save", "targets": []}] if state.witch_save_available else []
+            actions = [{"action": "pass", "targets": [None]}]
+            if state.witch_save_available and state.pending.get("night_kill_target") is not None and (state.pending["night_kill_target"] != agent_id or state.day == 0):
+                actions.append({"action": "save", "targets": [None]})
+            if state.witch_poison_available:
+                actions.append({"action": "poison", "targets": sorted(state.alive - {agent_id})})
+            return actions
         return [{"action": "pass", "targets": []}]
-    if state.phase == "day_speak": return [{"action": "speak", "targets": []}]
-    if state.phase == "day_vote": return [{"action": "vote", "targets": sorted(state.alive - {agent_id})}, {"action": "pass", "targets": []}]
+    if state.phase == "day_speak": return [{"action": "speak", "targets": [None]}]
+    if state.phase == "day_vote": return [{"action": "vote", "targets": sorted(state.alive - {agent_id}) + [None]}, {"action": "pass", "targets": [None]}]
+    if state.phase == "hunter_action": return [{"action": "shoot", "targets": sorted(state.alive - {agent_id})}, {"action": "pass", "targets": [None]}]
+    if state.phase == "last_words": return [{"action": "last_words", "targets": [None]}, {"action": "pass", "targets": [None]}]
     return []
 
 
@@ -93,6 +130,8 @@ class StubAgent:
         """根据当前阶段返回 kill、inspect、speak 或 vote 行动 JSON。"""
         role = state.roles[agent_id]
         alive_others = [p for p in sorted(state.alive) if p != agent_id]
+        if state.phase in {"hunter_action", "last_words"}:
+            return {"action": "pass", "target": None, "text": "", "reason": "stub pass"}
         if state.phase == "day_speak":
             return {"action": "speak", "target": None, "text": f"我是{agent_id}号，基于公开信息发言。", "reason": "stub decision"}
         if state.phase == "day_vote":
@@ -102,7 +141,8 @@ class StubAgent:
             nonwolves = [p for p in alive_others if state.roles[p] != "wolf"]
             return {"action": "kill", "target": nonwolves[0], "text": "夜间行动", "reason": "stub kill"}
         if role == "seer":
-            return {"action": "inspect", "target": alive_others[0], "text": "查验", "reason": "stub inspect"}
+            targets = [p for p in alive_others if p not in state.inspection_history]
+            return {"action": "inspect" if targets else "pass", "target": targets[0] if targets else None, "text": "查验", "reason": "stub inspect"}
         if role == "witch":
             return {"action": "pass", "target": None, "text": "", "reason": "stub pass"}
         if role == "hunter":
@@ -113,6 +153,7 @@ class StubAgent:
 class DeepSeekAgent:
     """使用版本化角色 Prompt 调用 DeepSeek 的角色代理。"""
     model_name = "deepseek"
+    action_protocol_version = ACTION_PROTOCOL_VERSION
 
     def __init__(self, client: DeepSeekClient | None = None, prompt_dir: str | Path = "prompts"):
         """配置 DeepSeek 客户端和 Prompt 文件目录。"""
@@ -133,11 +174,14 @@ class DeepSeekAgent:
         """把角色上下文发送给 DeepSeek，并解析其 JSON 行动。"""
         role = state.roles[agent_id]
         prompt = load_prompt(role, self.prompt_dir)
-        messages = [{"role": "system", "content": prompt}, {"role": "user", "content": json.dumps(context, ensure_ascii=False)}]
+        protocol = Path(__file__).resolve().parents[1] / "prompts" / "action-v1.md"
+        prompt += "\n\n" + protocol.read_text(encoding="utf-8")
+        request_context = dict(context, action_contract=action_contract(state, agent_id))
+        messages = [{"role": "system", "content": prompt}, {"role": "user", "content": json.dumps(request_context, ensure_ascii=False)}]
         self.last_metadata = {}
         prompt_hash = hashlib.sha256(prompt.encode('utf-8')).hexdigest()
         try:
-            action, metadata = self.client.complete(messages, agent_id=str(agent_id), prompt_version=f"{role}-v1")
+            action, metadata = self.client.complete(messages, agent_id=str(agent_id), prompt_version=f"{role}-v1+{ACTION_PROTOCOL_VERSION}")
         except Exception as exc:
             self.last_metadata = dict(getattr(exc, 'metadata', {}) or {}, prompt_hash=prompt_hash)
             raise

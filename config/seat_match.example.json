@@ -1,0 +1,27 @@
+{
+  "mode": "human",
+  "human_role": null,
+  "profiles": [
+    {
+      "profile_id": "deepseek_default",
+      "display_name": "DeepSeek（十人版待实测）",
+      "provider": "deepseek",
+      "model": "deepseek-chat",
+      "api_key_env": "DEEPSEEK_API_KEY",
+      "base_url": "https://api.deepseek.com",
+      "timeout": 30
+    }
+  ],
+  "seats": [
+    {"seat_id": 1, "control_type": "ai", "model_profile_id": "deepseek_default"},
+    {"seat_id": 2, "control_type": "ai", "model_profile_id": "deepseek_default"},
+    {"seat_id": 3, "control_type": "ai", "model_profile_id": "deepseek_default"},
+    {"seat_id": 4, "control_type": "ai", "model_profile_id": "deepseek_default"},
+    {"seat_id": 5, "control_type": "ai", "model_profile_id": "deepseek_default"},
+    {"seat_id": 6, "control_type": "ai", "model_profile_id": "deepseek_default"},
+    {"seat_id": 7, "control_type": "ai", "model_profile_id": "deepseek_default"},
+    {"seat_id": 8, "control_type": "ai", "model_profile_id": "deepseek_default"},
+    {"seat_id": 9, "control_type": "ai", "model_profile_id": "deepseek_default"},
+    {"seat_id": 10, "control_type": "human", "model_profile_id": null}
+  ]
+}
