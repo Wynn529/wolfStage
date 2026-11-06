@@ -1,0 +1,15 @@
+{
+  "data_version": "approved-ten-player-v03",
+  "rows": 102,
+  "source_counts": {
+    "assistant_authored": 98,
+    "user_suggested_example": 4
+  },
+  "purpose": "approved_training_and_development_material",
+  "independent_test": false,
+  "real_ten_player_samples": 0,
+  "candidates_sha256": "423e1367a65bad09f8601ddf8b5d396d004f7e85cd2ebbb31449dab5886757ce",
+  "legacy_training_rows": 354,
+  "total_training_rows": 456,
+  "grouping": "source_group; no original frozen test/probe included in training"
+}

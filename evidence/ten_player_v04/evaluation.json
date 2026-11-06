@@ -1,0 +1,947 @@
+{
+  "test_frozen.csv": {
+    "scope": "previously_known_frozen_material_regression_not_new_blind_test",
+    "count": 120,
+    "old_model": {
+      "classification_report": {
+        "check_claim": {
+          "precision": 0.8333333333333334,
+          "recall": 1.0,
+          "f1-score": 0.9090909090909091,
+          "support": 20.0
+        },
+        "discussion": {
+          "precision": 0.8125,
+          "recall": 0.65,
+          "f1-score": 0.7222222222222222,
+          "support": 20.0
+        },
+        "low_info": {
+          "precision": 1.0,
+          "recall": 0.95,
+          "f1-score": 0.9743589743589743,
+          "support": 20.0
+        },
+        "role_claim": {
+          "precision": 0.8,
+          "recall": 1.0,
+          "f1-score": 0.8888888888888888,
+          "support": 20.0
+        },
+        "suspected_violation": {
+          "precision": 1.0,
+          "recall": 0.7,
+          "f1-score": 0.8235294117647058,
+          "support": 20.0
+        },
+        "vote_intent": {
+          "precision": 0.8636363636363636,
+          "recall": 0.95,
+          "f1-score": 0.9047619047619048,
+          "support": 20.0
+        },
+        "accuracy": 0.875,
+        "macro avg": {
+          "precision": 0.8849116161616162,
+          "recall": 0.875,
+          "f1-score": 0.8704753851812675,
+          "support": 120.0
+        },
+        "weighted avg": {
+          "precision": 0.8849116161616162,
+          "recall": 0.875,
+          "f1-score": 0.8704753851812675,
+          "support": 120.0
+        }
+      },
+      "confusion_matrix": [
+        [
+          20,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          2,
+          13,
+          0,
+          3,
+          0,
+          2
+        ],
+        [
+          0,
+          1,
+          19,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          20,
+          0,
+          0
+        ],
+        [
+          2,
+          2,
+          0,
+          1,
+          14,
+          1
+        ],
+        [
+          0,
+          0,
+          0,
+          1,
+          0,
+          19
+        ]
+      ],
+      "labels": [
+        "check_claim",
+        "discussion",
+        "low_info",
+        "role_claim",
+        "suspected_violation",
+        "vote_intent"
+      ]
+    },
+    "new_model": {
+      "classification_report": {
+        "check_claim": {
+          "precision": 0.8333333333333334,
+          "recall": 1.0,
+          "f1-score": 0.9090909090909091,
+          "support": 20.0
+        },
+        "discussion": {
+          "precision": 0.8571428571428571,
+          "recall": 0.6,
+          "f1-score": 0.7058823529411765,
+          "support": 20.0
+        },
+        "low_info": {
+          "precision": 1.0,
+          "recall": 0.95,
+          "f1-score": 0.9743589743589743,
+          "support": 20.0
+        },
+        "role_claim": {
+          "precision": 0.7916666666666666,
+          "recall": 0.95,
+          "f1-score": 0.8636363636363636,
+          "support": 20.0
+        },
+        "suspected_violation": {
+          "precision": 0.9411764705882353,
+          "recall": 0.8,
+          "f1-score": 0.8648648648648649,
+          "support": 20.0
+        },
+        "vote_intent": {
+          "precision": 0.8636363636363636,
+          "recall": 0.95,
+          "f1-score": 0.9047619047619048,
+          "support": 20.0
+        },
+        "accuracy": 0.875,
+        "macro avg": {
+          "precision": 0.8811592818945759,
+          "recall": 0.875,
+          "f1-score": 0.8704325616090323,
+          "support": 120.0
+        },
+        "weighted avg": {
+          "precision": 0.8811592818945759,
+          "recall": 0.875,
+          "f1-score": 0.8704325616090323,
+          "support": 120.0
+        }
+      },
+      "confusion_matrix": [
+        [
+          20,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          2,
+          12,
+          0,
+          3,
+          1,
+          2
+        ],
+        [
+          0,
+          1,
+          19,
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          0,
+          0,
+          19,
+          0,
+          0
+        ],
+        [
+          1,
+          1,
+          0,
+          1,
+          16,
+          1
+        ],
+        [
+          0,
+          0,
+          0,
+          1,
+          0,
+          19
+        ]
+      ],
+      "labels": [
+        "check_claim",
+        "discussion",
+        "low_info",
+        "role_claim",
+        "suspected_violation",
+        "vote_intent"
+      ]
+    },
+    "fixed_keyword_baseline": {
+      "classification_report": {
+        "check_claim": {
+          "precision": 0.6666666666666666,
+          "recall": 1.0,
+          "f1-score": 0.8,
+          "support": 20.0
+        },
+        "discussion": {
+          "precision": 0.5333333333333333,
+          "recall": 0.4,
+          "f1-score": 0.45714285714285713,
+          "support": 20.0
+        },
+        "low_info": {
+          "precision": 0.6923076923076923,
+          "recall": 0.9,
+          "f1-score": 0.782608695652174,
+          "support": 20.0
+        },
+        "role_claim": {
+          "precision": 0.9411764705882353,
+          "recall": 0.8,
+          "f1-score": 0.8648648648648649,
+          "support": 20.0
+        },
+        "suspected_violation": {
+          "precision": 1.0,
+          "recall": 0.3,
+          "f1-score": 0.46153846153846156,
+          "support": 20.0
+        },
+        "vote_intent": {
+          "precision": 0.5769230769230769,
+          "recall": 0.75,
+          "f1-score": 0.6521739130434783,
+          "support": 20.0
+        },
+        "accuracy": 0.6916666666666667,
+        "macro avg": {
+          "precision": 0.7350678733031674,
+          "recall": 0.6916666666666665,
+          "f1-score": 0.6697214653736393,
+          "support": 120.0
+        },
+        "weighted avg": {
+          "precision": 0.7350678733031674,
+          "recall": 0.6916666666666667,
+          "f1-score": 0.6697214653736393,
+          "support": 120.0
+        }
+      },
+      "confusion_matrix": [
+        [
+          20,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          6,
+          8,
+          2,
+          1,
+          0,
+          3
+        ],
+        [
+          0,
+          2,
+          18,
+          0,
+          0,
+          0
+        ],
+        [
+          3,
+          0,
+          1,
+          16,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          5,
+          0,
+          6,
+          8
+        ],
+        [
+          1,
+          4,
+          0,
+          0,
+          0,
+          15
+        ]
+      ],
+      "labels": [
+        "check_claim",
+        "discussion",
+        "low_info",
+        "role_claim",
+        "suspected_violation",
+        "vote_intent"
+      ]
+    }
+  },
+  "synthetic_agent_probe.csv": {
+    "scope": "previously_known_frozen_material_regression_not_new_blind_test",
+    "count": 50,
+    "old_model": {
+      "classification_report": {
+        "check_claim": {
+          "precision": 0.8888888888888888,
+          "recall": 1.0,
+          "f1-score": 0.9411764705882353,
+          "support": 8.0
+        },
+        "discussion": {
+          "precision": 0.6363636363636364,
+          "recall": 0.7,
+          "f1-score": 0.6666666666666666,
+          "support": 10.0
+        },
+        "low_info": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 7.0
+        },
+        "role_claim": {
+          "precision": 0.875,
+          "recall": 0.875,
+          "f1-score": 0.875,
+          "support": 8.0
+        },
+        "suspected_violation": {
+          "precision": 0.7142857142857143,
+          "recall": 0.7142857142857143,
+          "f1-score": 0.7142857142857143,
+          "support": 7.0
+        },
+        "vote_intent": {
+          "precision": 0.875,
+          "recall": 0.7,
+          "f1-score": 0.7777777777777778,
+          "support": 10.0
+        },
+        "accuracy": 0.82,
+        "macro avg": {
+          "precision": 0.8315897065897065,
+          "recall": 0.8315476190476191,
+          "f1-score": 0.829151104886399,
+          "support": 50.0
+        },
+        "weighted avg": {
+          "precision": 0.8244949494949495,
+          "recall": 0.82,
+          "f1-score": 0.8194771241830066,
+          "support": 50.0
+        }
+      },
+      "confusion_matrix": [
+        [
+          8,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          7,
+          0,
+          0,
+          2,
+          0
+        ],
+        [
+          0,
+          0,
+          7,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          0,
+          7,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          1,
+          5,
+          1
+        ],
+        [
+          0,
+          3,
+          0,
+          0,
+          0,
+          7
+        ]
+      ],
+      "labels": [
+        "check_claim",
+        "discussion",
+        "low_info",
+        "role_claim",
+        "suspected_violation",
+        "vote_intent"
+      ]
+    },
+    "new_model": {
+      "classification_report": {
+        "check_claim": {
+          "precision": 0.8888888888888888,
+          "recall": 1.0,
+          "f1-score": 0.9411764705882353,
+          "support": 8.0
+        },
+        "discussion": {
+          "precision": 0.7,
+          "recall": 0.7,
+          "f1-score": 0.7,
+          "support": 10.0
+        },
+        "low_info": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 7.0
+        },
+        "role_claim": {
+          "precision": 0.875,
+          "recall": 0.875,
+          "f1-score": 0.875,
+          "support": 8.0
+        },
+        "suspected_violation": {
+          "precision": 0.7142857142857143,
+          "recall": 0.7142857142857143,
+          "f1-score": 0.7142857142857143,
+          "support": 7.0
+        },
+        "vote_intent": {
+          "precision": 0.8888888888888888,
+          "recall": 0.8,
+          "f1-score": 0.8421052631578947,
+          "support": 10.0
+        },
+        "accuracy": 0.84,
+        "macro avg": {
+          "precision": 0.8445105820105819,
+          "recall": 0.8482142857142857,
+          "f1-score": 0.8454279080053073,
+          "support": 50.0
+        },
+        "weighted avg": {
+          "precision": 0.84,
+          "recall": 0.84,
+          "f1-score": 0.8390092879256966,
+          "support": 50.0
+        }
+      },
+      "confusion_matrix": [
+        [
+          8,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          7,
+          0,
+          0,
+          2,
+          0
+        ],
+        [
+          0,
+          0,
+          7,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          0,
+          7,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          1,
+          5,
+          1
+        ],
+        [
+          0,
+          2,
+          0,
+          0,
+          0,
+          8
+        ]
+      ],
+      "labels": [
+        "check_claim",
+        "discussion",
+        "low_info",
+        "role_claim",
+        "suspected_violation",
+        "vote_intent"
+      ]
+    },
+    "fixed_keyword_baseline": {
+      "classification_report": {
+        "check_claim": {
+          "precision": 0.6666666666666666,
+          "recall": 0.75,
+          "f1-score": 0.7058823529411765,
+          "support": 8.0
+        },
+        "discussion": {
+          "precision": 0.375,
+          "recall": 0.3,
+          "f1-score": 0.3333333333333333,
+          "support": 10.0
+        },
+        "low_info": {
+          "precision": 0.6666666666666666,
+          "recall": 0.8571428571428571,
+          "f1-score": 0.75,
+          "support": 7.0
+        },
+        "role_claim": {
+          "precision": 0.8571428571428571,
+          "recall": 0.75,
+          "f1-score": 0.8,
+          "support": 8.0
+        },
+        "suspected_violation": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 7.0
+        },
+        "vote_intent": {
+          "precision": 0.6,
+          "recall": 0.9,
+          "f1-score": 0.72,
+          "support": 10.0
+        },
+        "accuracy": 0.6,
+        "macro avg": {
+          "precision": 0.5275793650793651,
+          "recall": 0.5928571428571429,
+          "f1-score": 0.5515359477124183,
+          "support": 50.0
+        },
+        "weighted avg": {
+          "precision": 0.532142857142857,
+          "recall": 0.6,
+          "f1-score": 0.556607843137255,
+          "support": 50.0
+        }
+      },
+      "confusion_matrix": [
+        [
+          6,
+          2,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          3,
+          2,
+          0,
+          1,
+          3
+        ],
+        [
+          0,
+          1,
+          6,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          6,
+          1,
+          1
+        ],
+        [
+          1,
+          2,
+          1,
+          1,
+          0,
+          2
+        ],
+        [
+          1,
+          0,
+          0,
+          0,
+          0,
+          9
+        ]
+      ],
+      "labels": [
+        "check_claim",
+        "discussion",
+        "low_info",
+        "role_claim",
+        "suspected_violation",
+        "vote_intent"
+      ]
+    }
+  },
+  "legacy_train_internal_oof": {
+    "scope": "model_selection_development_CV_not_independent",
+    "count": 354,
+    "classification_report": {
+      "check_claim": {
+        "precision": 0.8125,
+        "recall": 0.896551724137931,
+        "f1-score": 0.8524590163934426,
+        "support": 58.0
+      },
+      "discussion": {
+        "precision": 0.8448275862068966,
+        "recall": 0.7101449275362319,
+        "f1-score": 0.7716535433070866,
+        "support": 69.0
+      },
+      "low_info": {
+        "precision": 0.9245283018867925,
+        "recall": 0.98,
+        "f1-score": 0.9514563106796117,
+        "support": 50.0
+      },
+      "role_claim": {
+        "precision": 0.8227848101265823,
+        "recall": 0.9285714285714286,
+        "f1-score": 0.87248322147651,
+        "support": 70.0
+      },
+      "suspected_violation": {
+        "precision": 0.8888888888888888,
+        "recall": 0.64,
+        "f1-score": 0.7441860465116279,
+        "support": 50.0
+      },
+      "vote_intent": {
+        "precision": 0.796875,
+        "recall": 0.8947368421052632,
+        "f1-score": 0.8429752066115702,
+        "support": 57.0
+      },
+      "accuracy": 0.8418079096045198,
+      "macro avg": {
+        "precision": 0.8484007645181935,
+        "recall": 0.8416674870584756,
+        "f1-score": 0.8392022241633081,
+        "support": 354.0
+      },
+      "weighted avg": {
+        "precision": 0.844931566937629,
+        "recall": 0.8418079096045198,
+        "f1-score": 0.8378312078496775,
+        "support": 354.0
+      }
+    },
+    "confusion_matrix": [
+      [
+        52,
+        0,
+        1,
+        3,
+        0,
+        2
+      ],
+      [
+        6,
+        49,
+        1,
+        4,
+        3,
+        6
+      ],
+      [
+        0,
+        1,
+        49,
+        0,
+        0,
+        0
+      ],
+      [
+        3,
+        1,
+        0,
+        65,
+        0,
+        1
+      ],
+      [
+        1,
+        5,
+        2,
+        6,
+        32,
+        4
+      ],
+      [
+        2,
+        2,
+        0,
+        1,
+        1,
+        51
+      ]
+    ],
+    "labels": [
+      "check_claim",
+      "discussion",
+      "low_info",
+      "role_claim",
+      "suspected_violation",
+      "vote_intent"
+    ]
+  },
+  "approved_ten_player_development_internal_oof": {
+    "scope": "model_selection_development_CV_not_independent",
+    "count": 102,
+    "classification_report": {
+      "check_claim": {
+        "precision": 0.9375,
+        "recall": 1.0,
+        "f1-score": 0.967741935483871,
+        "support": 15.0
+      },
+      "discussion": {
+        "precision": 0.6363636363636364,
+        "recall": 0.6666666666666666,
+        "f1-score": 0.6511627906976745,
+        "support": 21.0
+      },
+      "low_info": {
+        "precision": 0.8235294117647058,
+        "recall": 0.875,
+        "f1-score": 0.8484848484848485,
+        "support": 16.0
+      },
+      "role_claim": {
+        "precision": 0.75,
+        "recall": 0.6,
+        "f1-score": 0.6666666666666666,
+        "support": 15.0
+      },
+      "suspected_violation": {
+        "precision": 0.8,
+        "recall": 0.6153846153846154,
+        "f1-score": 0.6956521739130435,
+        "support": 13.0
+      },
+      "vote_intent": {
+        "precision": 0.64,
+        "recall": 0.7272727272727273,
+        "f1-score": 0.6808510638297872,
+        "support": 22.0
+      },
+      "accuracy": 0.7450980392156863,
+      "macro avg": {
+        "precision": 0.7645655080213903,
+        "recall": 0.7473873348873349,
+        "f1-score": 0.7517599131793151,
+        "support": 102.0
+      },
+      "weighted avg": {
+        "precision": 0.7483588916850162,
+        "recall": 0.7450980392156863,
+        "f1-score": 0.7430245772332519,
+        "support": 102.0
+      }
+    },
+    "confusion_matrix": [
+      [
+        15,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        14,
+        1,
+        2,
+        1,
+        3
+      ],
+      [
+        0,
+        0,
+        14,
+        0,
+        1,
+        1
+      ],
+      [
+        0,
+        3,
+        0,
+        9,
+        0,
+        3
+      ],
+      [
+        1,
+        1,
+        1,
+        0,
+        8,
+        2
+      ],
+      [
+        0,
+        4,
+        1,
+        1,
+        0,
+        16
+      ]
+    ],
+    "labels": [
+      "check_claim",
+      "discussion",
+      "low_info",
+      "role_claim",
+      "suspected_violation",
+      "vote_intent"
+    ]
+  },
+  "entity_development_regression": {
+    "count": 102,
+    "records_matching_all_annotated_checks": 102,
+    "scope": "partial_annotated_fields_and_skill_semantics_on_known_material",
+    "field_total": {
+      "player_ids": 102,
+      "claimed_role": 40,
+      "vote_target": 46,
+      "check_claims": 22,
+      "check_target": 5,
+      "check_result": 5,
+      "excluded_vote_targets": 10,
+      "withdrawn_vote_targets": 3,
+      "vote_mode": 9,
+      "vote_condition": 1,
+      "follow_target": 1,
+      "agreement_targets": 5,
+      "agreement_target": 1,
+      "conditional_vote_alternatives": 1,
+      "suspect_targets": 6,
+      "suspect_target": 5,
+      "support_targets": 5,
+      "support_target": 4
+    },
+    "field_pass": {
+      "player_ids": 102,
+      "claimed_role": 40,
+      "vote_target": 46,
+      "check_claims": 22,
+      "check_target": 5,
+      "check_result": 5,
+      "excluded_vote_targets": 10,
+      "withdrawn_vote_targets": 3,
+      "vote_mode": 9,
+      "vote_condition": 1,
+      "follow_target": 1,
+      "agreement_targets": 5,
+      "agreement_target": 1,
+      "conditional_vote_alternatives": 1,
+      "suspect_targets": 6,
+      "suspect_target": 5,
+      "support_targets": 5,
+      "support_target": 4
+    }
+  }
+}

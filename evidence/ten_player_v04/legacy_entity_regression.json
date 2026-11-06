@@ -1,0 +1,70 @@
+{
+  "scope": "known_material_field_regression",
+  "fields": {
+    "test_frozen.csv": {
+      "player_ids": {
+        "old": 120,
+        "new": 120,
+        "labeled": 120
+      },
+      "claimed_role": {
+        "old": 118,
+        "new": 118,
+        "labeled": 120
+      },
+      "check_claims": {
+        "old": 117,
+        "new": 117,
+        "labeled": 120
+      },
+      "vote_target": {
+        "old": 113,
+        "new": 113,
+        "labeled": 120
+      },
+      "suspect_targets": {
+        "old": 112,
+        "new": 112,
+        "labeled": 120
+      },
+      "support_targets": {
+        "old": 114,
+        "new": 114,
+        "labeled": 120
+      }
+    },
+    "synthetic_agent_probe.csv": {
+      "player_ids": {
+        "old": 50,
+        "new": 50,
+        "labeled": 50
+      },
+      "claimed_role": {
+        "old": 49,
+        "new": 49,
+        "labeled": 50
+      },
+      "check_claims": {
+        "old": 48,
+        "new": 48,
+        "labeled": 50
+      },
+      "vote_target": {
+        "old": 47,
+        "new": 47,
+        "labeled": 50
+      },
+      "suspect_targets": {
+        "old": 47,
+        "new": 47,
+        "labeled": 50
+      },
+      "support_targets": {
+        "old": 49,
+        "new": 49,
+        "labeled": 50
+      }
+    }
+  },
+  "changes": []
+}
