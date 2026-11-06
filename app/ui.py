@@ -77,7 +77,7 @@ with st.expander('第一次使用：怎么看、怎么操作', expanded=False):
 with st.sidebar:
     st.header('运行与回放')
     seed = st.number_input('随机种子 seed',min_value=0,max_value=2147483647,value=42,step=1)
-    human_seats = st.multiselect('真人席位（可多选）', list(range(1, 11)), default=[], help='这些席位轮到行动时会进入等待真人状态。')
+    human_seats = st.multiselect('真人席位（最多一席）', list(range(1, 11)), default=[], max_selections=1, help='真人界面尚待接入integration_service，当前页面先用于全AI观战。')
     model_name = st.text_input('AI 默认模型名', os.getenv('DEEPSEEK_MODEL', 'deepseek-flash'))
 
     url = st.text_input('B 服务地址', os.getenv('B_API_URL', 'http://127.0.0.1:8000'))
@@ -276,7 +276,7 @@ def live_panel():
             ss.create_uncertain=True
             controllers = {str(i): ('human' if i in human_seats else 'ai') for i in range(1, 11)}
             model_configs = {str(i): {'provider': 'deepseek', 'model': model_name, 'model_name': model_name, 'model_version': model_name} for i in range(1, 11) if i not in human_seats}
-            response = client.create(int(seed), seat_controllers=controllers, seat_model_configs=model_configs)
+            response = client.create(int(seed), seat_controllers=controllers, seat_model_configs=model_configs) if human_seats else client.create(int(seed))
             if controller:
                 controller.close()
             controller = SessionController(client,response['game_id'],seed=int(seed),

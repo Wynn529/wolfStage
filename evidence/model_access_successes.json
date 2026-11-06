@@ -1,0 +1,187 @@
+{
+  "validation_date": "2026-11-06",
+  "scope": "synthetic_json_vote_only",
+  "successful_profiles": 9,
+  "records": [
+    {
+      "profile": "mimo",
+      "model": "mimo-v2.6-pro",
+      "timestamp": "2026-11-06T16:56:35.137456+00:00",
+      "scope": "synthetic_json_vote_only",
+      "action_fields_valid": true,
+      "meta": {
+        "provider": "mimo",
+        "requested_model": "mimo-v2.6-pro",
+        "model_name": "mimo-v2.6-pro",
+        "model_version": "mimo-v2.6-pro",
+        "input_tokens": 102,
+        "output_tokens": 40,
+        "latency_ms": 2043.95,
+        "success": true,
+        "response_id": "6c7f5e94-2ca3-409e-9d42-fad710f03021_1d8ff299c25240879f069ceb24e3cdc9"
+      },
+      "source_path": ".local/model_checks/20261106T165637182625Z_mimo.json",
+      "source_sha256": "e30b0e898ff189d95f5b63bd405a85e6d766f2992e1e93b7d694eb0679507c27"
+    },
+    {
+      "profile": "tokenhub",
+      "model": "hy4-preview",
+      "timestamp": "2026-11-06T16:58:18.711132+00:00",
+      "scope": "synthetic_json_vote_only",
+      "action_fields_valid": true,
+      "meta": {
+        "provider": "tokenhub",
+        "requested_model": "hy4-preview",
+        "model_name": "hy4-preview",
+        "model_version": "hy4-preview",
+        "input_tokens": 115,
+        "output_tokens": 922,
+        "latency_ms": 42711.03,
+        "success": true,
+        "response_id": "9c867a29-02cd-4d05-a68c-7468d0488dd2"
+      },
+      "source_path": ".local/model_checks/20261106T165901423586Z_tokenhub.json",
+      "source_sha256": "e25892b79f504281f85ddcb76a17dff6c7ed3a7c7209b1cb167ba132426725b8"
+    },
+    {
+      "profile": "minimax",
+      "model": "MiniMax-M3.1-Flash",
+      "timestamp": "2026-11-06T17:03:20.298508+00:00",
+      "scope": "synthetic_json_vote_only",
+      "action_fields_valid": true,
+      "meta": {
+        "provider": "minimax",
+        "requested_model": "MiniMax-M3.1-Flash",
+        "model_name": "MiniMax-M3.1-Flash",
+        "model_version": "MiniMax-M3.1-Flash",
+        "input_tokens": 282,
+        "output_tokens": 19,
+        "latency_ms": 2330.94,
+        "success": true,
+        "response_id": "073d3b581acf16190e3bd6256c4d42bf"
+      },
+      "source_path": ".local/model_checks/20261106T170322629839Z_minimax.json",
+      "source_sha256": "119c7593c35c416e73036a90daf1d4851d015549aad6e3b54c40b1e60986cbc1"
+    },
+    {
+      "profile": "kimi",
+      "model": "kimi-k3.1-pro",
+      "timestamp": "2026-11-06T17:08:12.405917+00:00",
+      "scope": "synthetic_json_vote_only",
+      "action_fields_valid": true,
+      "meta": {
+        "provider": "kimi",
+        "requested_model": "kimi-k3.1-pro",
+        "model_name": "kimi-k3.1-pro",
+        "model_version": "kimi-k3.1-pro",
+        "input_tokens": 189,
+        "output_tokens": 76,
+        "latency_ms": 3995.06,
+        "success": true,
+        "response_id": "chatcmpl-6aee097d9042a9389ec7adee"
+      },
+      "source_path": ".local/model_checks/20261106T170816400958Z_kimi.json",
+      "source_sha256": "72920e413fcc9f52505e30f995b78074a348a9b6f69fad6735c22e72e6069564"
+    },
+    {
+      "profile": "ark",
+      "model": "doubao-seed-2-1-lite-260915",
+      "timestamp": "2026-11-06T17:34:11.102227+00:00",
+      "scope": "synthetic_json_vote_only",
+      "action_fields_valid": true,
+      "meta": {
+        "provider": "ark",
+        "requested_model": "doubao-seed-2-1-lite-260915",
+        "model_name": "doubao-seed-2-1-lite-260915",
+        "model_version": "doubao-seed-2-1-lite-260915",
+        "input_tokens": 131,
+        "output_tokens": 116,
+        "latency_ms": 2454.34,
+        "success": true,
+        "response_id": "resp_02179398645135291b94d62e219899eaebadcce7b395a23af8883"
+      },
+      "source_path": ".local/model_checks/20261106T173413556523Z_ark.json",
+      "source_sha256": "f7c6cc87182b0cbaae179e2d6cc77bb402325701235230a112e35be1c84b4cf1"
+    },
+    {
+      "profile": "qianfan",
+      "model": "ernie-5.1",
+      "timestamp": "2026-11-06T17:39:03.974411+00:00",
+      "scope": "synthetic_json_vote_only",
+      "action_fields_valid": true,
+      "meta": {
+        "provider": "qianfan",
+        "requested_model": "ernie-5.1",
+        "model_name": "ernie-5.1",
+        "model_version": "ernie-5.1",
+        "input_tokens": 103,
+        "output_tokens": 203,
+        "latency_ms": 8643.86,
+        "success": true,
+        "response_id": "as-efiarcsx5w"
+      },
+      "source_path": ".local/model_checks/20261106T173912618971Z_qianfan.json",
+      "source_sha256": "4a998054880c40b019dd58cda48be627a7c6fdc456a6f6e094b116c8acf0db93"
+    },
+    {
+      "profile": "zhipu",
+      "model": "glm-5.3",
+      "timestamp": "2026-11-06T17:50:49.294593+00:00",
+      "scope": "synthetic_json_vote_only",
+      "action_fields_valid": true,
+      "meta": {
+        "provider": "zhipu",
+        "requested_model": "glm-5.3",
+        "model_name": "glm-5.3",
+        "model_version": "glm-5.3",
+        "input_tokens": 105,
+        "output_tokens": 314,
+        "latency_ms": 5357.49,
+        "success": true,
+        "response_id": "202611070150499f35f26f351c41fe"
+      },
+      "source_path": ".local/model_checks/20261106T175054653792Z_zhipu.json",
+      "source_sha256": "bfe58e2ebb9f17470c26cf2479d28f685342c61715527ae1954b6daf1d81859e"
+    },
+    {
+      "profile": "deepseek",
+      "model": "deepseek-flash",
+      "timestamp": "2026-11-06T17:53:03.829924+00:00",
+      "scope": "synthetic_json_vote_only",
+      "action_fields_valid": true,
+      "meta": {
+        "provider": "deepseek",
+        "requested_model": "deepseek-flash",
+        "model_name": "deepseek-flash",
+        "model_version": "deepseek-flash",
+        "input_tokens": 128,
+        "output_tokens": 52,
+        "latency_ms": 1459.37,
+        "success": true,
+        "response_id": "66915bb5-d2b7-434d-9881-c96a3a695650"
+      },
+      "source_path": ".local/model_checks/20261106T175305290024Z_deepseek.json",
+      "source_sha256": "69d33c7ed8fbb693429ae4f7e6ae3c10c5e558c91cd28a86a51e498ec6ac7d76"
+    },
+    {
+      "profile": "bailian",
+      "model": "qwen3.8-max-0902",
+      "timestamp": "2026-11-06T17:56:52.590990+00:00",
+      "scope": "synthetic_json_vote_only",
+      "action_fields_valid": true,
+      "meta": {
+        "provider": "bailian",
+        "requested_model": "qwen3.8-max-0902",
+        "model_name": "qwen3.8-max-0902",
+        "model_version": "qwen3.8-max-0902",
+        "input_tokens": 147,
+        "output_tokens": 111,
+        "latency_ms": 7718.14,
+        "success": true,
+        "response_id": "chatcmpl-fe0586c1-6161-9841-ace7-d0625318d065"
+      },
+      "source_path": ".local/model_checks/20261106T175700309803Z_bailian.json",
+      "source_sha256": "9956c2c0a490d8001a3f8b3ab2ab477902d358acc2cd554d01232ff92fb9a59e"
+    }
+  ]
+}

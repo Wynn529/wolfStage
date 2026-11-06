@@ -5,7 +5,7 @@ from pathlib import Path
 
 CAPABILITIES = ('per_game_serialization', 'idempotency', 'boundary_pause', 'state_query', 'operation_query')
 TERMINAL = {'finished', 'failed', 'incomplete', 'degraded'}
-STATUSES = TERMINAL | {'running', 'pending', 'paused'}
+STATUSES = TERMINAL | {'running', 'pending', 'paused', 'waiting_model', 'waiting_human'}
 
 
 @dataclass(frozen=True)

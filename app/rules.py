@@ -111,7 +111,7 @@ def check_target(state: GameState, actor: int, target: Any, *, allow_self: bool 
 
 
 def check_action(state: GameState, actor: int, action: dict[str, Any]) -> str | None:
-    if actor not in state.alive and not (state.phase == "hunter_action" and state.roles.get(actor) == "hunter"):
+    if actor not in state.alive and not (state.phase == "hunter_action" and state.roles.get(actor) == "hunter") and not (state.phase == "last_words" and state.pending_last_words == actor):
         return "dead player cannot act"
     if not isinstance(action, dict): return "action must be an object"
     kind = action.get("action")
@@ -134,7 +134,7 @@ def check_action(state: GameState, actor: int, action: dict[str, Any]) -> str | 
     if kind == "save":
         if state.roles.get(actor) != "witch" or not state.witch_save_available or state.pending.get("witch_used"): return "save potion unavailable"
         if target is not None: return "save target must be null"
-        if state.pending.get("night_kill_target") == actor and state.day > 0 and state.witch_self_save_used: return "witch cannot self-save after first night"
+        if state.pending.get("night_kill_target") == actor and state.day > 0: return "witch cannot self-save after first night"
         return None
     if kind == "poison":
         if state.roles.get(actor) != "witch" or not state.witch_poison_available or state.pending.get("witch_used"): return "poison potion unavailable"
@@ -167,7 +167,7 @@ def winner(state: GameState) -> str | None:
         return None
     gods = sum(state.roles[p] in {"seer", "witch", "hunter"} for p in state.alive)
     villagers = sum(state.roles[p] == "villager" for p in state.alive)
-    if wolves == 0: return "villagers"
+    if wolves == 0: return "draw" if gods == 0 or villagers == 0 else "villagers"
     if gods == 0 and villagers == 0: return "draw"
     if gods == 0 or villagers == 0: return "wolves"
     return None

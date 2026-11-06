@@ -17,10 +17,21 @@ app = FastAPI(title="Werewolf Game Service", version="1.0.0") if FastAPI else No
 
 
 if app:
+    @app.middleware("http")
+    async def restrict_legacy_human_games(request, call_next):
+        from fastapi.responses import JSONResponse
+        parts = request.url.path.split("/")
+        if len(parts) > 2 and parts[1] == "games" and parts[2] in engine.games:
+            if "human" in engine.games[parts[2]].seat_controllers.values():
+                return JSONResponse({"detail": "Human games require app.integration_service session authentication"}, status_code=409)
+        return await call_next(request)
+
     @app.post("/games")
     def create_game(payload: dict[str, Any] | None = None):
         """创建十人游戏；可按席位指定真人控制器和模型配置。"""
         payload = payload or {}
+        if "human" in (payload.get("seat_controllers") or {}).values():
+            raise HTTPException(409, "Use app.integration_service for authenticated human games")
         return engine.create_game(payload.get("seed"), payload.get("role_config"),
                                   seat_controllers=payload.get("seat_controllers"),
                                   seat_model_configs=payload.get("seat_model_configs"),
