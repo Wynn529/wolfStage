@@ -1,0 +1,842 @@
+[
+  {
+    "sample_id": "N011",
+    "expected": "vote_intent",
+    "old_model": "vote_intent",
+    "new_model": "vote_intent",
+    "fixed_keyword_baseline": "vote_intent"
+  },
+  {
+    "sample_id": "N012",
+    "expected": "vote_intent",
+    "old_model": "vote_intent",
+    "new_model": "vote_intent",
+    "fixed_keyword_baseline": "vote_intent"
+  },
+  {
+    "sample_id": "N017",
+    "expected": "vote_intent",
+    "old_model": "vote_intent",
+    "new_model": "vote_intent",
+    "fixed_keyword_baseline": "vote_intent"
+  },
+  {
+    "sample_id": "N019",
+    "expected": "vote_intent",
+    "old_model": "vote_intent",
+    "new_model": "vote_intent",
+    "fixed_keyword_baseline": "vote_intent"
+  },
+  {
+    "sample_id": "N021",
+    "expected": "vote_intent",
+    "old_model": "vote_intent",
+    "new_model": "vote_intent",
+    "fixed_keyword_baseline": "vote_intent"
+  },
+  {
+    "sample_id": "N027",
+    "expected": "discussion",
+    "old_model": "discussion",
+    "new_model": "discussion",
+    "fixed_keyword_baseline": "vote_intent"
+  },
+  {
+    "sample_id": "N028",
+    "expected": "discussion",
+    "old_model": "discussion",
+    "new_model": "discussion",
+    "fixed_keyword_baseline": "discussion"
+  },
+  {
+    "sample_id": "N040",
+    "expected": "discussion",
+    "old_model": "discussion",
+    "new_model": "discussion",
+    "fixed_keyword_baseline": "check_claim"
+  },
+  {
+    "sample_id": "N059",
+    "expected": "role_claim",
+    "old_model": "role_claim",
+    "new_model": "role_claim",
+    "fixed_keyword_baseline": "role_claim"
+  },
+  {
+    "sample_id": "N060",
+    "expected": "role_claim",
+    "old_model": "role_claim",
+    "new_model": "role_claim",
+    "fixed_keyword_baseline": "role_claim"
+  },
+  {
+    "sample_id": "N067",
+    "expected": "check_claim",
+    "old_model": "check_claim",
+    "new_model": "check_claim",
+    "fixed_keyword_baseline": "check_claim"
+  },
+  {
+    "sample_id": "N068",
+    "expected": "check_claim",
+    "old_model": "check_claim",
+    "new_model": "check_claim",
+    "fixed_keyword_baseline": "check_claim"
+  },
+  {
+    "sample_id": "N093",
+    "expected": "discussion",
+    "old_model": "discussion",
+    "new_model": "discussion",
+    "fixed_keyword_baseline": "discussion"
+  },
+  {
+    "sample_id": "N094",
+    "expected": "discussion",
+    "old_model": "discussion",
+    "new_model": "discussion",
+    "fixed_keyword_baseline": "discussion"
+  },
+  {
+    "sample_id": "N097",
+    "expected": "discussion",
+    "old_model": "discussion",
+    "new_model": "discussion",
+    "fixed_keyword_baseline": "low_info"
+  },
+  {
+    "sample_id": "N098",
+    "expected": "discussion",
+    "old_model": "discussion",
+    "new_model": "discussion",
+    "fixed_keyword_baseline": "vote_intent"
+  },
+  {
+    "sample_id": "N101",
+    "expected": "low_info",
+    "old_model": "low_info",
+    "new_model": "low_info",
+    "fixed_keyword_baseline": "low_info"
+  },
+  {
+    "sample_id": "N102",
+    "expected": "low_info",
+    "old_model": "low_info",
+    "new_model": "low_info",
+    "fixed_keyword_baseline": "low_info"
+  },
+  {
+    "sample_id": "N107",
+    "expected": "low_info",
+    "old_model": "low_info",
+    "new_model": "low_info",
+    "fixed_keyword_baseline": "low_info"
+  },
+  {
+    "sample_id": "N108",
+    "expected": "low_info",
+    "old_model": "low_info",
+    "new_model": "low_info",
+    "fixed_keyword_baseline": "discussion"
+  },
+  {
+    "sample_id": "N109",
+    "expected": "low_info",
+    "old_model": "low_info",
+    "new_model": "low_info",
+    "fixed_keyword_baseline": "low_info"
+  },
+  {
+    "sample_id": "N110",
+    "expected": "low_info",
+    "old_model": "low_info",
+    "new_model": "low_info",
+    "fixed_keyword_baseline": "low_info"
+  },
+  {
+    "sample_id": "N111",
+    "expected": "suspected_violation",
+    "old_model": "suspected_violation",
+    "new_model": "suspected_violation",
+    "fixed_keyword_baseline": "vote_intent"
+  },
+  {
+    "sample_id": "N112",
+    "expected": "suspected_violation",
+    "old_model": "discussion",
+    "new_model": "discussion",
+    "fixed_keyword_baseline": "vote_intent"
+  },
+  {
+    "sample_id": "N119",
+    "expected": "suspected_violation",
+    "old_model": "suspected_violation",
+    "new_model": "suspected_violation",
+    "fixed_keyword_baseline": "low_info"
+  },
+  {
+    "sample_id": "N120",
+    "expected": "suspected_violation",
+    "old_model": "suspected_violation",
+    "new_model": "suspected_violation",
+    "fixed_keyword_baseline": "low_info"
+  },
+  {
+    "sample_id": "R004",
+    "expected": "role_claim",
+    "old_model": "role_claim",
+    "new_model": "role_claim",
+    "fixed_keyword_baseline": "role_claim"
+  },
+  {
+    "sample_id": "R006",
+    "expected": "role_claim",
+    "old_model": "role_claim",
+    "new_model": "role_claim",
+    "fixed_keyword_baseline": "role_claim"
+  },
+  {
+    "sample_id": "R008",
+    "expected": "role_claim",
+    "old_model": "role_claim",
+    "new_model": "role_claim",
+    "fixed_keyword_baseline": "role_claim"
+  },
+  {
+    "sample_id": "R009",
+    "expected": "role_claim",
+    "old_model": "role_claim",
+    "new_model": "role_claim",
+    "fixed_keyword_baseline": "check_claim"
+  },
+  {
+    "sample_id": "R015",
+    "expected": "role_claim",
+    "old_model": "role_claim",
+    "new_model": "role_claim",
+    "fixed_keyword_baseline": "check_claim"
+  },
+  {
+    "sample_id": "R019",
+    "expected": "check_claim",
+    "old_model": "check_claim",
+    "new_model": "check_claim",
+    "fixed_keyword_baseline": "check_claim"
+  },
+  {
+    "sample_id": "R021",
+    "expected": "check_claim",
+    "old_model": "check_claim",
+    "new_model": "check_claim",
+    "fixed_keyword_baseline": "check_claim"
+  },
+  {
+    "sample_id": "R022",
+    "expected": "check_claim",
+    "old_model": "check_claim",
+    "new_model": "check_claim",
+    "fixed_keyword_baseline": "check_claim"
+  },
+  {
+    "sample_id": "R023",
+    "expected": "check_claim",
+    "old_model": "check_claim",
+    "new_model": "check_claim",
+    "fixed_keyword_baseline": "check_claim"
+  },
+  {
+    "sample_id": "R025",
+    "expected": "check_claim",
+    "old_model": "check_claim",
+    "new_model": "check_claim",
+    "fixed_keyword_baseline": "check_claim"
+  },
+  {
+    "sample_id": "R034",
+    "expected": "vote_intent",
+    "old_model": "vote_intent",
+    "new_model": "vote_intent",
+    "fixed_keyword_baseline": "vote_intent"
+  },
+  {
+    "sample_id": "R035",
+    "expected": "vote_intent",
+    "old_model": "vote_intent",
+    "new_model": "vote_intent",
+    "fixed_keyword_baseline": "check_claim"
+  },
+  {
+    "sample_id": "R037",
+    "expected": "vote_intent",
+    "old_model": "role_claim",
+    "new_model": "role_claim",
+    "fixed_keyword_baseline": "discussion"
+  },
+  {
+    "sample_id": "R039",
+    "expected": "role_claim",
+    "old_model": "role_claim",
+    "new_model": "role_claim",
+    "fixed_keyword_baseline": "role_claim"
+  },
+  {
+    "sample_id": "R044",
+    "expected": "check_claim",
+    "old_model": "check_claim",
+    "new_model": "check_claim",
+    "fixed_keyword_baseline": "check_claim"
+  },
+  {
+    "sample_id": "R045",
+    "expected": "role_claim",
+    "old_model": "role_claim",
+    "new_model": "role_claim",
+    "fixed_keyword_baseline": "role_claim"
+  },
+  {
+    "sample_id": "R049",
+    "expected": "discussion",
+    "old_model": "role_claim",
+    "new_model": "role_claim",
+    "fixed_keyword_baseline": "check_claim"
+  },
+  {
+    "sample_id": "R050",
+    "expected": "discussion",
+    "old_model": "role_claim",
+    "new_model": "role_claim",
+    "fixed_keyword_baseline": "check_claim"
+  },
+  {
+    "sample_id": "R051",
+    "expected": "discussion",
+    "old_model": "vote_intent",
+    "new_model": "vote_intent",
+    "fixed_keyword_baseline": "role_claim"
+  },
+  {
+    "sample_id": "R053",
+    "expected": "role_claim",
+    "old_model": "role_claim",
+    "new_model": "role_claim",
+    "fixed_keyword_baseline": "role_claim"
+  },
+  {
+    "sample_id": "R055",
+    "expected": "role_claim",
+    "old_model": "role_claim",
+    "new_model": "role_claim",
+    "fixed_keyword_baseline": "check_claim"
+  },
+  {
+    "sample_id": "R057",
+    "expected": "discussion",
+    "old_model": "check_claim",
+    "new_model": "check_claim",
+    "fixed_keyword_baseline": "check_claim"
+  },
+  {
+    "sample_id": "S004",
+    "expected": "role_claim",
+    "old_model": "role_claim",
+    "new_model": "check_claim",
+    "fixed_keyword_baseline": "role_claim"
+  },
+  {
+    "sample_id": "S005",
+    "expected": "role_claim",
+    "old_model": "role_claim",
+    "new_model": "role_claim",
+    "fixed_keyword_baseline": "low_info"
+  },
+  {
+    "sample_id": "S006",
+    "expected": "role_claim",
+    "old_model": "role_claim",
+    "new_model": "role_claim",
+    "fixed_keyword_baseline": "role_claim"
+  },
+  {
+    "sample_id": "S013",
+    "expected": "role_claim",
+    "old_model": "role_claim",
+    "new_model": "role_claim",
+    "fixed_keyword_baseline": "role_claim"
+  },
+  {
+    "sample_id": "S014",
+    "expected": "role_claim",
+    "old_model": "role_claim",
+    "new_model": "role_claim",
+    "fixed_keyword_baseline": "role_claim"
+  },
+  {
+    "sample_id": "S015",
+    "expected": "role_claim",
+    "old_model": "role_claim",
+    "new_model": "role_claim",
+    "fixed_keyword_baseline": "role_claim"
+  },
+  {
+    "sample_id": "S016",
+    "expected": "role_claim",
+    "old_model": "role_claim",
+    "new_model": "role_claim",
+    "fixed_keyword_baseline": "role_claim"
+  },
+  {
+    "sample_id": "S017",
+    "expected": "role_claim",
+    "old_model": "role_claim",
+    "new_model": "role_claim",
+    "fixed_keyword_baseline": "role_claim"
+  },
+  {
+    "sample_id": "S018",
+    "expected": "role_claim",
+    "old_model": "role_claim",
+    "new_model": "role_claim",
+    "fixed_keyword_baseline": "role_claim"
+  },
+  {
+    "sample_id": "S073",
+    "expected": "check_claim",
+    "old_model": "check_claim",
+    "new_model": "check_claim",
+    "fixed_keyword_baseline": "check_claim"
+  },
+  {
+    "sample_id": "S074",
+    "expected": "check_claim",
+    "old_model": "check_claim",
+    "new_model": "check_claim",
+    "fixed_keyword_baseline": "check_claim"
+  },
+  {
+    "sample_id": "S075",
+    "expected": "check_claim",
+    "old_model": "check_claim",
+    "new_model": "check_claim",
+    "fixed_keyword_baseline": "check_claim"
+  },
+  {
+    "sample_id": "S076",
+    "expected": "check_claim",
+    "old_model": "check_claim",
+    "new_model": "check_claim",
+    "fixed_keyword_baseline": "check_claim"
+  },
+  {
+    "sample_id": "S077",
+    "expected": "check_claim",
+    "old_model": "check_claim",
+    "new_model": "check_claim",
+    "fixed_keyword_baseline": "check_claim"
+  },
+  {
+    "sample_id": "S078",
+    "expected": "check_claim",
+    "old_model": "check_claim",
+    "new_model": "check_claim",
+    "fixed_keyword_baseline": "check_claim"
+  },
+  {
+    "sample_id": "S082",
+    "expected": "check_claim",
+    "old_model": "check_claim",
+    "new_model": "check_claim",
+    "fixed_keyword_baseline": "check_claim"
+  },
+  {
+    "sample_id": "S083",
+    "expected": "check_claim",
+    "old_model": "check_claim",
+    "new_model": "check_claim",
+    "fixed_keyword_baseline": "check_claim"
+  },
+  {
+    "sample_id": "S084",
+    "expected": "check_claim",
+    "old_model": "check_claim",
+    "new_model": "check_claim",
+    "fixed_keyword_baseline": "check_claim"
+  },
+  {
+    "sample_id": "S085",
+    "expected": "check_claim",
+    "old_model": "check_claim",
+    "new_model": "check_claim",
+    "fixed_keyword_baseline": "check_claim"
+  },
+  {
+    "sample_id": "S086",
+    "expected": "check_claim",
+    "old_model": "check_claim",
+    "new_model": "check_claim",
+    "fixed_keyword_baseline": "check_claim"
+  },
+  {
+    "sample_id": "S087",
+    "expected": "check_claim",
+    "old_model": "check_claim",
+    "new_model": "check_claim",
+    "fixed_keyword_baseline": "check_claim"
+  },
+  {
+    "sample_id": "S097",
+    "expected": "vote_intent",
+    "old_model": "vote_intent",
+    "new_model": "vote_intent",
+    "fixed_keyword_baseline": "discussion"
+  },
+  {
+    "sample_id": "S098",
+    "expected": "vote_intent",
+    "old_model": "vote_intent",
+    "new_model": "vote_intent",
+    "fixed_keyword_baseline": "vote_intent"
+  },
+  {
+    "sample_id": "S099",
+    "expected": "vote_intent",
+    "old_model": "vote_intent",
+    "new_model": "vote_intent",
+    "fixed_keyword_baseline": "vote_intent"
+  },
+  {
+    "sample_id": "S109",
+    "expected": "vote_intent",
+    "old_model": "vote_intent",
+    "new_model": "vote_intent",
+    "fixed_keyword_baseline": "discussion"
+  },
+  {
+    "sample_id": "S110",
+    "expected": "vote_intent",
+    "old_model": "vote_intent",
+    "new_model": "vote_intent",
+    "fixed_keyword_baseline": "vote_intent"
+  },
+  {
+    "sample_id": "S111",
+    "expected": "vote_intent",
+    "old_model": "vote_intent",
+    "new_model": "vote_intent",
+    "fixed_keyword_baseline": "vote_intent"
+  },
+  {
+    "sample_id": "S115",
+    "expected": "vote_intent",
+    "old_model": "vote_intent",
+    "new_model": "vote_intent",
+    "fixed_keyword_baseline": "vote_intent"
+  },
+  {
+    "sample_id": "S116",
+    "expected": "vote_intent",
+    "old_model": "vote_intent",
+    "new_model": "vote_intent",
+    "fixed_keyword_baseline": "vote_intent"
+  },
+  {
+    "sample_id": "S117",
+    "expected": "vote_intent",
+    "old_model": "vote_intent",
+    "new_model": "vote_intent",
+    "fixed_keyword_baseline": "discussion"
+  },
+  {
+    "sample_id": "S130",
+    "expected": "vote_intent",
+    "old_model": "vote_intent",
+    "new_model": "vote_intent",
+    "fixed_keyword_baseline": "vote_intent"
+  },
+  {
+    "sample_id": "S131",
+    "expected": "vote_intent",
+    "old_model": "vote_intent",
+    "new_model": "vote_intent",
+    "fixed_keyword_baseline": "vote_intent"
+  },
+  {
+    "sample_id": "S132",
+    "expected": "vote_intent",
+    "old_model": "vote_intent",
+    "new_model": "vote_intent",
+    "fixed_keyword_baseline": "vote_intent"
+  },
+  {
+    "sample_id": "S145",
+    "expected": "discussion",
+    "old_model": "role_claim",
+    "new_model": "role_claim",
+    "fixed_keyword_baseline": "discussion"
+  },
+  {
+    "sample_id": "S146",
+    "expected": "discussion",
+    "old_model": "discussion",
+    "new_model": "discussion",
+    "fixed_keyword_baseline": "check_claim"
+  },
+  {
+    "sample_id": "S147",
+    "expected": "discussion",
+    "old_model": "vote_intent",
+    "new_model": "vote_intent",
+    "fixed_keyword_baseline": "vote_intent"
+  },
+  {
+    "sample_id": "S163",
+    "expected": "discussion",
+    "old_model": "check_claim",
+    "new_model": "check_claim",
+    "fixed_keyword_baseline": "discussion"
+  },
+  {
+    "sample_id": "S164",
+    "expected": "discussion",
+    "old_model": "discussion",
+    "new_model": "suspected_violation",
+    "fixed_keyword_baseline": "check_claim"
+  },
+  {
+    "sample_id": "S165",
+    "expected": "discussion",
+    "old_model": "discussion",
+    "new_model": "discussion",
+    "fixed_keyword_baseline": "discussion"
+  },
+  {
+    "sample_id": "S172",
+    "expected": "discussion",
+    "old_model": "discussion",
+    "new_model": "discussion",
+    "fixed_keyword_baseline": "low_info"
+  },
+  {
+    "sample_id": "S173",
+    "expected": "discussion",
+    "old_model": "discussion",
+    "new_model": "discussion",
+    "fixed_keyword_baseline": "discussion"
+  },
+  {
+    "sample_id": "S174",
+    "expected": "discussion",
+    "old_model": "discussion",
+    "new_model": "discussion",
+    "fixed_keyword_baseline": "discussion"
+  },
+  {
+    "sample_id": "S187",
+    "expected": "low_info",
+    "old_model": "low_info",
+    "new_model": "low_info",
+    "fixed_keyword_baseline": "low_info"
+  },
+  {
+    "sample_id": "S188",
+    "expected": "low_info",
+    "old_model": "discussion",
+    "new_model": "discussion",
+    "fixed_keyword_baseline": "low_info"
+  },
+  {
+    "sample_id": "S189",
+    "expected": "low_info",
+    "old_model": "low_info",
+    "new_model": "low_info",
+    "fixed_keyword_baseline": "low_info"
+  },
+  {
+    "sample_id": "S196",
+    "expected": "low_info",
+    "old_model": "low_info",
+    "new_model": "low_info",
+    "fixed_keyword_baseline": "low_info"
+  },
+  {
+    "sample_id": "S197",
+    "expected": "low_info",
+    "old_model": "low_info",
+    "new_model": "low_info",
+    "fixed_keyword_baseline": "low_info"
+  },
+  {
+    "sample_id": "S198",
+    "expected": "low_info",
+    "old_model": "low_info",
+    "new_model": "low_info",
+    "fixed_keyword_baseline": "low_info"
+  },
+  {
+    "sample_id": "S208",
+    "expected": "low_info",
+    "old_model": "low_info",
+    "new_model": "low_info",
+    "fixed_keyword_baseline": "low_info"
+  },
+  {
+    "sample_id": "S209",
+    "expected": "low_info",
+    "old_model": "low_info",
+    "new_model": "low_info",
+    "fixed_keyword_baseline": "low_info"
+  },
+  {
+    "sample_id": "S210",
+    "expected": "low_info",
+    "old_model": "low_info",
+    "new_model": "low_info",
+    "fixed_keyword_baseline": "low_info"
+  },
+  {
+    "sample_id": "S226",
+    "expected": "low_info",
+    "old_model": "low_info",
+    "new_model": "low_info",
+    "fixed_keyword_baseline": "low_info"
+  },
+  {
+    "sample_id": "S227",
+    "expected": "low_info",
+    "old_model": "low_info",
+    "new_model": "low_info",
+    "fixed_keyword_baseline": "low_info"
+  },
+  {
+    "sample_id": "S228",
+    "expected": "low_info",
+    "old_model": "low_info",
+    "new_model": "low_info",
+    "fixed_keyword_baseline": "low_info"
+  },
+  {
+    "sample_id": "S229",
+    "expected": "low_info",
+    "old_model": "low_info",
+    "new_model": "low_info",
+    "fixed_keyword_baseline": "discussion"
+  },
+  {
+    "sample_id": "S230",
+    "expected": "low_info",
+    "old_model": "low_info",
+    "new_model": "low_info",
+    "fixed_keyword_baseline": "low_info"
+  },
+  {
+    "sample_id": "S251",
+    "expected": "suspected_violation",
+    "old_model": "suspected_violation",
+    "new_model": "suspected_violation",
+    "fixed_keyword_baseline": "low_info"
+  },
+  {
+    "sample_id": "S252",
+    "expected": "suspected_violation",
+    "old_model": "suspected_violation",
+    "new_model": "suspected_violation",
+    "fixed_keyword_baseline": "vote_intent"
+  },
+  {
+    "sample_id": "S253",
+    "expected": "suspected_violation",
+    "old_model": "suspected_violation",
+    "new_model": "suspected_violation",
+    "fixed_keyword_baseline": "vote_intent"
+  },
+  {
+    "sample_id": "S254",
+    "expected": "suspected_violation",
+    "old_model": "suspected_violation",
+    "new_model": "suspected_violation",
+    "fixed_keyword_baseline": "vote_intent"
+  },
+  {
+    "sample_id": "S255",
+    "expected": "suspected_violation",
+    "old_model": "discussion",
+    "new_model": "suspected_violation",
+    "fixed_keyword_baseline": "discussion"
+  },
+  {
+    "sample_id": "S256",
+    "expected": "suspected_violation",
+    "old_model": "suspected_violation",
+    "new_model": "suspected_violation",
+    "fixed_keyword_baseline": "low_info"
+  },
+  {
+    "sample_id": "S271",
+    "expected": "suspected_violation",
+    "old_model": "check_claim",
+    "new_model": "check_claim",
+    "fixed_keyword_baseline": "suspected_violation"
+  },
+  {
+    "sample_id": "S272",
+    "expected": "suspected_violation",
+    "old_model": "role_claim",
+    "new_model": "role_claim",
+    "fixed_keyword_baseline": "suspected_violation"
+  },
+  {
+    "sample_id": "S273",
+    "expected": "suspected_violation",
+    "old_model": "check_claim",
+    "new_model": "suspected_violation",
+    "fixed_keyword_baseline": "suspected_violation"
+  },
+  {
+    "sample_id": "S274",
+    "expected": "suspected_violation",
+    "old_model": "suspected_violation",
+    "new_model": "suspected_violation",
+    "fixed_keyword_baseline": "vote_intent"
+  },
+  {
+    "sample_id": "S277",
+    "expected": "suspected_violation",
+    "old_model": "suspected_violation",
+    "new_model": "suspected_violation",
+    "fixed_keyword_baseline": "suspected_violation"
+  },
+  {
+    "sample_id": "S278",
+    "expected": "suspected_violation",
+    "old_model": "suspected_violation",
+    "new_model": "suspected_violation",
+    "fixed_keyword_baseline": "suspected_violation"
+  },
+  {
+    "sample_id": "S279",
+    "expected": "suspected_violation",
+    "old_model": "suspected_violation",
+    "new_model": "suspected_violation",
+    "fixed_keyword_baseline": "suspected_violation"
+  },
+  {
+    "sample_id": "S295",
+    "expected": "suspected_violation",
+    "old_model": "vote_intent",
+    "new_model": "vote_intent",
+    "fixed_keyword_baseline": "vote_intent"
+  },
+  {
+    "sample_id": "S296",
+    "expected": "suspected_violation",
+    "old_model": "suspected_violation",
+    "new_model": "suspected_violation",
+    "fixed_keyword_baseline": "low_info"
+  },
+  {
+    "sample_id": "S297",
+    "expected": "suspected_violation",
+    "old_model": "suspected_violation",
+    "new_model": "suspected_violation",
+    "fixed_keyword_baseline": "vote_intent"
+  }
+]

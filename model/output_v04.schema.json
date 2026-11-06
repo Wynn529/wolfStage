@@ -1,0 +1,504 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Ten-player public speech response v0.4",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "game_id": {
+      "type": "string"
+    },
+    "event_id": {
+      "type": "string"
+    },
+    "speaker_id": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10
+    },
+    "public_text": {
+      "type": "string"
+    },
+    "intent": {
+      "enum": [
+        "role_claim",
+        "check_claim",
+        "vote_intent",
+        "discussion",
+        "low_info",
+        "suspected_violation"
+      ]
+    },
+    "confidence": {
+      "type": "null"
+    },
+    "confidence_type": {
+      "const": "not_calibrated"
+    },
+    "score": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "score_type": {
+      "enum": [
+        "not_applicable",
+        "linear_svc_ovr_decision_function"
+      ]
+    },
+    "score_gap": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "class_scores": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "role_claim": {
+              "type": "number"
+            },
+            "check_claim": {
+              "type": "number"
+            },
+            "vote_intent": {
+              "type": "number"
+            },
+            "discussion": {
+              "type": "number"
+            },
+            "low_info": {
+              "type": "number"
+            },
+            "suspected_violation": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "role_claim",
+            "check_claim",
+            "vote_intent",
+            "discussion",
+            "low_info",
+            "suspected_violation"
+          ]
+        },
+        {
+          "type": "object",
+          "maxProperties": 0
+        }
+      ]
+    },
+    "extracted_entities": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "player_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "uniqueItems": true
+        },
+        "claimed_role": {
+          "enum": [
+            null,
+            "villager",
+            "seer",
+            "werewolf",
+            "witch",
+            "hunter"
+          ]
+        },
+        "check_claims": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "target",
+              "result",
+              "night"
+            ],
+            "properties": {
+              "target": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10
+              },
+              "result": {
+                "enum": [
+                  "wolf",
+                  "non_wolf"
+                ]
+              },
+              "night": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 1
+              }
+            }
+          }
+        },
+        "check_target": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "check_result": {
+          "enum": [
+            null,
+            "wolf",
+            "non_wolf"
+          ]
+        },
+        "vote_target": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "follow_target": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "excluded_vote_targets": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "uniqueItems": true
+        },
+        "withdrawn_vote_targets": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "uniqueItems": true
+        },
+        "vote_mode": {
+          "enum": [
+            "affirmative",
+            "negative",
+            "conditional",
+            "follow_unresolved",
+            "multiple_unresolved",
+            "abstain",
+            "withdrawn_unresolved",
+            "not_expressed_or_unresolved"
+          ]
+        },
+        "vote_condition": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "conditional_vote_alternatives": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "target",
+              "condition"
+            ],
+            "properties": {
+              "target": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10
+              },
+              "condition": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "agreement_target": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "agreement_targets": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "uniqueItems": true
+        },
+        "suspect_target": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "suspect_targets": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "uniqueItems": true
+        },
+        "support_target": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "support_targets": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "uniqueItems": true
+        },
+        "skill_claims": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "role",
+              "action",
+              "target",
+              "status",
+              "night",
+              "condition_text",
+              "evidence_text"
+            ],
+            "properties": {
+              "role": {
+                "enum": [
+                  null,
+                  "villager",
+                  "seer",
+                  "werewolf",
+                  "witch",
+                  "hunter"
+                ]
+              },
+              "action": {
+                "enum": [
+                  "save",
+                  "poison",
+                  "shoot"
+                ]
+              },
+              "target": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 1,
+                "maximum": 10
+              },
+              "status": {
+                "enum": [
+                  "claimed_done",
+                  "planned",
+                  "conditional",
+                  "denied",
+                  "declined"
+                ]
+              },
+              "night": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 1
+              },
+              "condition_text": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "evidence_text": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "required": [
+        "player_ids",
+        "claimed_role",
+        "check_claims",
+        "check_target",
+        "check_result",
+        "vote_target",
+        "follow_target",
+        "excluded_vote_targets",
+        "withdrawn_vote_targets",
+        "vote_mode",
+        "vote_condition",
+        "conditional_vote_alternatives",
+        "agreement_target",
+        "agreement_targets",
+        "suspect_target",
+        "suspect_targets",
+        "support_target",
+        "support_targets"
+      ]
+    },
+    "advisory_flags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "model_version": {
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "small-intent-schema-v0.4"
+    },
+    "entity_rule_version": {
+      "const": "entity-rules-v0.4"
+    },
+    "entity_source": {
+      "const": "deterministic_public_text_rules"
+    },
+    "latency_ms": {
+      "type": "number",
+      "minimum": 0
+    },
+    "preprocessing_version": {
+      "type": "string"
+    },
+    "normalized_public_text": {
+      "type": "string"
+    },
+    "entity_evidence_policy": {
+      "type": "string"
+    },
+    "prediction_source": {
+      "enum": [
+        "trained_classifier",
+        "empty_text_rule"
+      ]
+    }
+  },
+  "required": [
+    "game_id",
+    "event_id",
+    "speaker_id",
+    "public_text",
+    "intent",
+    "confidence",
+    "confidence_type",
+    "score",
+    "score_type",
+    "score_gap",
+    "class_scores",
+    "extracted_entities",
+    "advisory_flags",
+    "model_version",
+    "schema_version",
+    "entity_rule_version",
+    "entity_source",
+    "latency_ms"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "prediction_source": {
+            "const": "empty_text_rule"
+          }
+        },
+        "required": [
+          "prediction_source"
+        ]
+      },
+      "then": {
+        "properties": {
+          "intent": {
+            "const": "low_info"
+          },
+          "score": {
+            "type": "null"
+          },
+          "score_gap": {
+            "type": "null"
+          },
+          "class_scores": {
+            "maxProperties": 0
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "score": {
+            "type": "number"
+          },
+          "score_gap": {
+            "type": "number"
+          },
+          "class_scores": {
+            "minProperties": 6
+          }
+        }
+      }
+    }
+  ]
+}

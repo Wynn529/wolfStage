@@ -1,0 +1,12 @@
+{
+  "unit_and_local_http_tests_passed": 22,
+  "entity_known_development_matching": 102,
+  "entity_known_development_count": 102,
+  "training_reproduction_matched": true,
+  "frozen_artifacts_unchanged": true,
+  "real_ten_player_validation_count": 0,
+  "independent_new_test_count": 0,
+  "github_pushed": false,
+  "pr_created": false,
+  "third_party_json_schema_engine_validated": false
+}

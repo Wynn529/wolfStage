@@ -1,0 +1,8 @@
+{
+  "training_reproduced": true,
+  "same_vocabulary": true,
+  "same_svm_coefficients": true,
+  "same_svm_intercepts": true,
+  "input_rows": 456,
+  "method": "从已批准数据和旧训练集在独立输出目录重新训练；原权重不覆盖"
+}

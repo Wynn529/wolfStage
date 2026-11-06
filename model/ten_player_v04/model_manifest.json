@@ -1,0 +1,34 @@
+{
+  "model_version": "small-intent-v0.2-ten-player",
+  "schema_version": "small-intent-schema-v0.4",
+  "preprocessing_version": "public-text-v0.4",
+  "training_count": 456,
+  "class_counts": {
+    "vote_intent": 79,
+    "discussion": 90,
+    "role_claim": 85,
+    "check_claim": 73,
+    "low_info": 66,
+    "suspected_violation": 63
+  },
+  "data_version": "approved-ten-player-v03-plus-legacy-train",
+  "approval_basis": "用户明确确认“这个数据可以了”，随后授权继续实施和训练",
+  "data_sha256": {
+    "legacy_train": "345f986cb8c6cf580aaac0e3d9a3c9c1548dbdad35a9efde0a02383be54607ad",
+    "approved_102": "731a74af7b240a5d4415e0896f25aac7bd35eff4fcde334c8ef3391c5e6b1cfd"
+  },
+  "fit_feature_columns": [
+    "normalized_public_text"
+  ],
+  "entity_annotations_used_as_training_features": false,
+  "selection": "3-fold grouped internal development CV; C selected on these folds, not an unbiased independent estimate",
+  "selected_C": 2.0,
+  "random_seed": 20261105,
+  "confidence_type": "not_calibrated",
+  "python": "3.12.14",
+  "sklearn": "1.7.2",
+  "real_ten_player_validation_count": 0,
+  "independent_new_test_count": 0,
+  "merged_exact_duplicates": [],
+  "model_sha256": "484eb259c5acc0cd9b782195aeec1f33d48b67e348a28ceb95316989f4f8526d"
+}
