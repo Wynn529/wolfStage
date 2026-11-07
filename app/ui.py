@@ -46,6 +46,7 @@ st.markdown("""
 </style><div class="brand"><h1>狼人杀</h1><p>十人协同 · AI 与真人共同推理</p></div>
 """,unsafe_allow_html=True)
 ss = st.session_state
+st.markdown('<style>' + (ROOT/'app/ui_sidebar.css').read_text(encoding='utf-8') + '</style>', unsafe_allow_html=True)
 if 'controller' not in ss:
     ss.controller = None
     ss.create_error = ''
@@ -63,8 +64,19 @@ Client = IntegrationClient if integration_mode else BRevisionClient if os.getenv
 def make_client(address):
     if integration_mode:
         existing = ss.get('integration_client')
-        if isinstance(existing, IntegrationClient) and existing.base_url == address.rstrip('/'):
-            return existing
+        active = ss.get('controller')
+        active_client = active.client if active else None
+        if (getattr(active_client, 'integration', False) and active_client.base_url == address.rstrip('/')
+                and getattr(active_client, '_sessions', {}) and not getattr(existing, '_sessions', {})):
+            existing = active_client
+        if getattr(existing, 'integration', False) and existing.base_url == address.rstrip('/'):
+            if isinstance(existing, IntegrationClient):
+                return existing
+            refreshed = IntegrationClient(address, contract=contract)
+            for field in ('_sessions', '_human_seats', 'seat_models', 'seat_labels', '_profiles', 'own_roles'):
+                setattr(refreshed, field, dict(getattr(existing, field, {})))
+            ss.integration_client = refreshed
+            return refreshed
         existing = IntegrationClient(address, contract=contract)
         ss.integration_client = existing
         return existing
@@ -153,6 +165,8 @@ with st.sidebar:
 
 try:
     client = make_client(url)
+    if integration_mode and ss.controller and ss.controller.client.base_url == client.base_url:
+        ss.controller.client = client
 except ValueError as exc:
     st.error(str(exc))
     st.stop()
@@ -509,7 +523,7 @@ def render_human_action(controller):
 @st.fragment(run_every=.5)
 def live_panel():
     controller = ss.controller
-    if controller and (controller.client.base_url != url.rstrip('/') or controller.client.contract != contract):
+    if controller and (controller.client.base_url != url.rstrip('/') or vars(controller.client.contract) != vars(contract)):
         controller.stop_auto()
         st.warning('服务地址/契约已变化。恢复原配置后再控制当前局，或重新加载页面。')
         return

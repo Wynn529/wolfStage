@@ -1,0 +1,62 @@
+/* Keep Streamlit's native sidebar toggle visible and give it a clear label. */
+[data-testid="stSidebarCollapsedControl"] {
+    position: fixed !important;
+    top: 12px !important;
+    left: 16px !important;
+    width: auto !important;
+    height: 40px !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    z-index: 999990 !important;
+}
+[data-testid="stSidebarCollapsedControl"] button,
+[data-testid="stSidebarCollapseButton"] button {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: auto !important;
+    min-height: 38px !important;
+    padding: 7px 12px !important;
+    border: 1px solid #77a68d !important;
+    border-radius: 10px !important;
+    background: #326a50 !important;
+    color: #fff !important;
+    box-shadow: 0 3px 12px #0003;
+    opacity: 1 !important;
+}
+[data-testid="stSidebarCollapsedControl"] button::after {
+    content: "展开游戏设置";
+    font: 600 14px "Microsoft YaHei", sans-serif;
+    white-space: nowrap;
+}
+[data-testid="stSidebarCollapseButton"] button::after {
+    content: "收起设置";
+    font: 600 14px "Microsoft YaHei", sans-serif;
+    white-space: nowrap;
+}
+[data-testid="stSidebarCollapseButton"] {
+    display: flex !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    width: auto !important;
+}
+[data-testid="stSidebarHeader"] {
+    position: sticky !important;
+    top: 0;
+    z-index: 999990;
+    background: #172a3a;
+    min-height: 54px;
+}
+[data-testid="stSidebarCollapsedControl"] button:hover,
+[data-testid="stSidebarCollapseButton"] button:hover {
+    background: #438363 !important;
+}
+.stApp:has([data-testid="stSidebar"][aria-expanded="false"]) .brand {
+    padding-left: 170px;
+    min-height: 40px;
+}
+@media (max-width: 650px) {
+    .brand p { display: none; }
+    .stApp:has([data-testid="stSidebar"][aria-expanded="false"]) .brand { padding-left: 160px; }
+}
