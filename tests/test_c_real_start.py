@@ -131,12 +131,13 @@ def test_real_mode_ui_disables_auto_and_initializes_without_model_call(tmp_path,
         gid=path.split('/')[2]
         if '/events?' in path:return e.get_events(gid,view='god')
         if path.endswith('/status'):return e.get_status(gid)
+        if path.endswith('/pending-action'):return e.get_status(gid).get('pending_action')
         if path.endswith('/metrics'):return summarize(e.store,gid)
         raise AssertionError(path)
     monkeypatch.setattr(GameClient,'_request',request)
     app=AppTest.from_file(str(ROOT/'app/ui.py')).run(timeout=20)
     assert not app.exception and not mutations
-    assert any('真实 DeepSeek 模式' in item.value for item in app.info)
+    assert any('真实模型模式' in item.value for item in app.info)
     next(b for b in app.button if b.label=='开始对局').click().run(timeout=20)
     app.run(timeout=20)
     assert not app.exception and mutations==['/games']

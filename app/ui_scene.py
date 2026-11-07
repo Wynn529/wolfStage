@@ -8,8 +8,10 @@ import streamlit.components.v1 as components
 _SCENE_COMPONENT = components.declare_component('c_robot_scene', path=str(Path(__file__).parent/'scene'))
 
 def scene_model(events, *, status='unknown', phase=None, metrics=None, game_id=None,
-                replay=False, busy=False, message='', cursor=None, human_player_id=None):
+                replay=False, busy=False, message='', cursor=None, human_player_id=None, seat_labels=None, own_role=None):
     state = project(events)
+    def visible_role(seat):
+        return own_role if seat == human_player_id and own_role in ROLES else state['roles'].get(seat)
     latest = events[-1] if events else {}
     phase = phase or latest.get('phase') or 'night'
     ignored = {'utterance_classification','agent_reason','game_paused','game_resumed'}
@@ -71,9 +73,9 @@ def scene_model(events, *, status='unknown', phase=None, metrics=None, game_id=N
         'game_id':game_id or '', 'cursor':visible_cursor, 'day':latest.get('day',0),
         'night':phase=='night', 'phase':phase, 'status':status,
         'replay':replay, 'busy':busy, 'message':message, 'source':source,
-        'players':[{'id':i,'role':state['roles'].get(i),
-                    'role_name':ROLES.get(state['roles'].get(i),'玩家'),
-                    'is_human':i == human_player_id,
+        'players':[{'id':i,'role':visible_role(i),
+                    'role_name':ROLES.get(visible_role(i),'玩家'),
+                    'is_human':i == human_player_id, 'model_label': (seat_labels or {}).get(i, ''),
                     'alive':i in state['alive'] if events else True} for i in (sorted(state['roles']) if state['roles'] else range(1,11))],
         'current':{'id':current.get('event_id',0),'kind':kind,'title':title,'body':body,
                    'actor':actor,'target':target,'speech':kind=='public_speech',

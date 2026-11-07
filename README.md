@@ -1,5 +1,9 @@
 # AI 狼人杀系统（AI Werewolf）
 
+> 2026-11-06 整合入口：先阅读 [十人九模型联调说明](docs/integration_runbook.md) 和 [成员交接单](handoff/20261106/README.md)。新服务为 `app.integration_service:create_app --factory`；下方旧 `app.api` 启动方式用于历史兼容，不用于真人联调。九家模型仅完成单次真实接口测试，完整多模型对局及新版真人页面仍待联合验收。
+
+> 2026-11-08 C页面已接入新版模型登记、真人会话和操作契约，使用说明及验证边界见[九模型前端接入说明](docs/c_integration_ui_20261107.md)。免费离线预览：`python scripts/start_c_integration_ui.py --offline-preview`，网页18517、服务18085；名牌为配置型号，行动使用离线替身。真实九模型完整局仍待验收。
+
 > 一个支持十个 AI/真人混合席位、可观察与回放的文本狼人杀系统，用于展示大模型与小模型在复杂多智能体场景下的分工协作。
 
 ---

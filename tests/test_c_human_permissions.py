@@ -31,10 +31,14 @@ def setup_game(tmp_path):
 
 @pytest.fixture
 def http_game(setup_game,monkeypatch):
-    import app.api as api
-    engine,state,path=setup_game;monkeypatch.setattr(api,'engine',engine)
+    import app.integration_service as api
+    engine,state,path=setup_game
+    monkeypatch.setattr(api,'GameEngine',lambda *args,**kwargs: engine)
+    application=api.create_app(path/'http-service')
+    token=application.state.sessions.bind(state.game_id,5)
+    monkeypatch.setenv('C_SERVICE_MODE','integration')
     sock=socket.socket();sock.bind(('127.0.0.1',0));port=sock.getsockname()[1]
-    server=uvicorn.Server(uvicorn.Config(api.app,log_level='error',lifespan='off'))
+    server=uvicorn.Server(uvicorn.Config(application,log_level='error',lifespan='off'))
     thread=threading.Thread(target=server.run,kwargs={'sockets':[sock]},daemon=True);thread.start()
     deadline=time.monotonic()+10
     while not server.started and time.monotonic()<deadline:time.sleep(.02)
@@ -42,10 +46,11 @@ def http_game(setup_game,monkeypatch):
     opener=build_opener(ProxyHandler({}))
     def call(endpoint,body=None):
         data=None if body is None else json.dumps(body).encode()
-        request=Request(f'http://127.0.0.1:{port}'+endpoint,data=data,headers={'Content-Type':'application/json'})
+        request=Request(f'http://127.0.0.1:{port}'+endpoint,data=data,headers={'Content-Type':'application/json','Authorization':'Bearer '+token})
         try:
             with opener.open(request,timeout=5) as response:return response.status,json.load(response)
         except HTTPError as exc:return exc.code,json.load(exc)
+    call.human_token=token
     try:yield engine,state,path,call,f'http://127.0.0.1:{port}'
     finally:server.should_exit=True;thread.join(10);sock.close()
 
@@ -55,20 +60,21 @@ def test_view_parameter_cannot_grant_private_access(http_game,query):
     assert status in {200,403}
     rendered=json.dumps(body,ensure_ascii=False)
     assert 'SECRET_' not in rendered and 'roles' not in rendered
-    if status==200:assert all(e['visibility']=='public' for e in body)
+    if status==200:assert all(e['visibility']=='public' or isinstance(e['visibility'],list) and 5 in e['visibility'] for e in body)
 
 
 def test_own_private_information_is_available_and_no_other_secret(http_game):
     _,state,_,call,_=http_game;status,body=call(f'/games/{state.game_id}/events?view=5&player_id=5')
     assert status==200 and any(e['type']=='witch_save' for e in body)
     assert 'SECRET_' not in json.dumps(body)
-    status,identity=call(f'/games/{state.game_id}/players/5/identity')
-    assert status==200 and identity['role']=='witch' and 'roles' not in identity
+    status,identity=call(f'/games/{state.game_id}/status')
+    assert status==200 and identity['player_context']['role']=='witch' and 'roles' not in identity
 
 @pytest.mark.parametrize('seat',[1,2,4,6,10,999])
 def test_other_identity_is_rejected(http_game,seat):
     _,state,_,call,_=http_game;status,body=call(f'/games/{state.game_id}/players/{seat}/identity')
-    assert status==403 and 'roles' not in json.dumps(body)
+    assert status==404 and 'roles' not in json.dumps(body)
+    assert call(f'/games/{state.game_id}/events?player_id={seat}')[0]==403
 
 @pytest.mark.parametrize('status',['running','waiting_human','paused','failed'])
 def test_unfinished_human_game_cannot_replay_or_download(setup_game,status):
@@ -85,7 +91,7 @@ def test_api_does_not_leak_through_support_endpoints(http_game,endpoint):
     e,s,_,call,_=http_game
     s.operation_results['old']={'game_id':s.game_id,'status':'running','summary':{'private':'SECRET_CACHED_SUMMARY'},'cursor':s.event_id,'roles':s.roles}
     status,body=call(f'/games/{s.game_id}/{endpoint}')
-    assert status==(403 if endpoint=='replay' else 200)
+    assert status==(403 if endpoint=='replay' else 404 if endpoint=='pending-action' else 200)
     assert 'SECRET_' not in json.dumps(body) and 'roles' not in json.dumps(body)
 
 @pytest.mark.parametrize('status',['finished','incomplete'])
@@ -105,7 +111,10 @@ def test_all_ai_observer_is_unchanged(tmp_path):
 
 
 def test_restore_uses_server_human_seat_and_discards_secret_cache(http_game):
-    e,s,_,_,url=http_game;c=SessionController(BRevisionClient(url),s.game_id)
+    from app.ui_integration_client import IntegrationClient
+    e,s,_,call,url=http_game;client=IntegrationClient(url)
+    client._sessions[s.game_id]=call.human_token
+    c=SessionController(client,s.game_id)
     c.events=e.store.read(s.game_id);c.metrics={'private':'SECRET_CACHED_METRICS'}
     try:
         c.refresh()
@@ -173,3 +182,33 @@ def test_human_identity_ack_keeps_same_game_without_advancing(http_game, monkeyp
         assert len(engine.games) == before+1
         assert engine.games[gid].event_id == cursor
     app.session_state['controller'].close()
+
+
+@pytest.mark.parametrize('role', ['wolf', 'seer', 'witch', 'hunter', 'villager'])
+def test_ui_specified_human_role_reaches_server_and_dialog(http_game, monkeypatch, role):
+    from collections import Counter
+    from pathlib import Path
+    from streamlit.testing.v1 import AppTest
+    engine, _, path, _, url = http_game
+    monkeypatch.setenv('B_API_URL', url)
+    monkeypatch.setenv('C_B_REVISION', '3898b95')
+    monkeypatch.setenv('C_RUNS_DIR', str(path))
+    monkeypatch.setenv('C_JOURNAL_DIR', str(path/'journals'))
+    monkeypatch.delenv('C_SERVICE_CONTRACT', raising=False)
+    app = AppTest.from_file(str(Path(__file__).resolve().parents[1]/'app/ui.py')).run(timeout=15)
+    next(x for x in app.radio if x.label == '对局模式').set_value('真人参与').run(timeout=15)
+    next(x for x in app.selectbox if x.label == '真人席位').select(1).run(timeout=15)
+    next(x for x in app.selectbox if x.label == '真人身份（新局生效）').select(role).run(timeout=15)
+    next(x for x in app.button if x.label == '开始对局').click().run(timeout=15)
+    assert not app.exception
+    controller = app.session_state['controller']
+    state = engine.games[controller.game_id]
+    assert state.roles[1] == role
+    assert Counter(state.roles.values()) == Counter(ROLES.values())
+    from app.ui_helpers import ROLES as DISPLAY_ROLES
+    assert any(f'你的身份是：{DISPLAY_ROLES[role]}' in x.value for x in app.markdown)
+    cursor = state.event_id
+    next(x for x in app.button if x.label == '确认进入对局').click().run(timeout=15)
+    assert not app.exception and state.event_id == cursor
+    assert controller.client.identity(state.game_id, 1)['role'] == role
+    controller.close()

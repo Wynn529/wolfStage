@@ -153,16 +153,19 @@ def test_seer_night_death_still_keeps_private_inspection(tmp_path):
 def test_human_legal_hints_via_http_only_contain_witch_choices(tmp_path,monkeypatch):
     import socket, threading, time, uvicorn
     from urllib.request import Request, build_opener, ProxyHandler
-    import app.api as api
+    import app.integration_service as api
     e,s=game(tmp_path,5);s.pending={'kill_proposals':{1:7},'night_kill_target':7};s.night_done={1,2,3,'seer'}
-    e.advance_one_event(s.game_id);monkeypatch.setattr(api,'engine',e)
+    e.advance_one_event(s.game_id)
+    monkeypatch.setattr(api,'GameEngine',lambda *args,**kwargs:e)
+    application=api.create_app(tmp_path/'http-service')
+    token=application.state.sessions.bind(s.game_id,5)
     sock=socket.socket();sock.bind(('127.0.0.1',0));port=sock.getsockname()[1]
-    server=uvicorn.Server(uvicorn.Config(api.app,log_level='error',lifespan='off'))
+    server=uvicorn.Server(uvicorn.Config(application,log_level='error',lifespan='off'))
     thread=threading.Thread(target=server.run,kwargs={'sockets':[sock]},daemon=True);thread.start()
     opener=build_opener(ProxyHandler({}))
     def request(path,body=None):
         data=None if body is None else json.dumps(body).encode('utf-8')
-        with opener.open(Request(f'http://127.0.0.1:{port}'+path,data=data,headers={'Content-Type':'application/json'}),timeout=5) as response:
+        with opener.open(Request(f'http://127.0.0.1:{port}'+path,data=data,headers={'Content-Type':'application/json','Authorization':'Bearer '+token}),timeout=5) as response:
             return json.load(response)
     try:
         deadline=time.monotonic()+10
@@ -174,10 +177,10 @@ def test_human_legal_hints_via_http_only_contain_witch_choices(tmp_path,monkeypa
 
 
 def _exercise_witch_http(e,s,request):
-    identity=request(f'/games/{s.game_id}/players/5/identity')
-    assert 'roles' not in identity and {x['action'] for x in identity['legal_actions']}=={'save','poison','pass'}
-    pending=request(f'/games/{s.game_id}/pending-action')
-    response=request(f'/games/{s.game_id}/players/5/action',{'action_id':pending['action_id'],'expected_cursor':s.event_id,'action':{'action':'poison','target':8}})
+    identity=request(f'/games/{s.game_id}/status')
+    assert 'roles' not in identity and {x['action'] for x in identity['action_contract']['actions']}=={'save','poison','pass'}
+    pending=identity['pending_action']
+    response=request(f'/games/{s.game_id}/players/5/action',{'action_id':pending['action_id'],'expected_cursor':s.event_id,'operation_id':'witch-poison','action':{'action':'poison','target':8,'text':''}})
     assert response['status']=='running' and not s.witch_poison_available
     e.advance_one_event(s.game_id)
     assert 7 not in s.alive and 8 not in s.alive

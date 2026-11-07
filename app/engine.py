@@ -13,6 +13,8 @@ from .deepseek_client import ModelOutputError
 from .events import EventStore
 from .metrics import summarize
 from .rules import GameState, RULE_VERSION, assign_roles, check_action, tally_votes, winner
+from .seat_config import MatchConfig
+from .seat_router import EngineSeatAgent
 
 
 class GameEngine:
@@ -23,6 +25,7 @@ class GameEngine:
         self.games: dict[str, GameState] = {}
         base = agent or (DeepSeekAgent() if os.getenv("DEEPSEEK_API_KEY") else StubAgent(classifier))
         self.agent = SeatAgentRouter(base, agents) if agents else base
+        self.configured_agent = EngineSeatAgent()
         self.classifier = classifier
         self._locks: dict[str, threading.RLock] = defaultdict(threading.RLock)
         self._agent_lock = threading.RLock()
@@ -40,9 +43,18 @@ class GameEngine:
         self.store.append(state.game_id, event)
         return event
 
-    def create_game(self, seed: int | None = None, role_config: dict[int, str] | None = None, *, seat_controllers: dict[int, str] | None = None, seat_model_configs: dict[int, dict[str, Any]] | None = None, player_count: int = 10) -> dict[str, Any]:
+    def create_game(self, seed: int | None = None, role_config: dict[int, str] | None = None, *, seat_controllers: dict[int, str] | None = None, seat_model_configs: dict[int, dict[str, Any]] | None = None, player_count: int = 10, match_config: MatchConfig | None = None) -> dict[str, Any]:
         game_id = uuid.uuid4().hex[:12]
         roles = assign_roles(seed, role_config, player_count=player_count)
+        if match_config is not None:
+            from dataclasses import asdict
+            profiles = {p.profile_id: p for p in match_config.profiles}
+            seat_controllers = {s.seat_id: s.control_type for s in match_config.seats}
+            seat_model_configs = {s.seat_id: asdict(profiles[s.model_profile_id]) for s in match_config.seats if s.control_type == "ai"}
+            if match_config.human_role:
+                human = next(s.seat_id for s in match_config.seats if s.control_type == "human")
+                other = next(p for p, role in roles.items() if role == match_config.human_role)
+                roles[human], roles[other] = roles[other], roles[human]
         controllers = {p: "ai" for p in roles}
         if seat_controllers:
             controllers.update({int(k): v for k, v in seat_controllers.items()})
@@ -50,6 +62,8 @@ class GameEngine:
             raise ValueError("this local mode supports one human seat only")
         if any(v not in {"ai", "human"} for v in controllers.values()):
             raise ValueError("seat_controllers values must be ai or human")
+        if set(controllers) != set(roles) or sum(v == "human" for v in controllers.values()) > 1:
+            raise ValueError("controllers must match seats with at most one human")
         state = GameState(game_id, seed, roles, seat_controllers=controllers, seat_model_configs=seat_model_configs or {}, rules_version=RULE_VERSION if len(roles) == 10 else "rules-v1.0")
         self.games[game_id] = state
         self._event(state, "game_created", "host", roles=state.roles, alive=sorted(state.alive), seat_controllers=state.seat_controllers, model_configs=state.seat_model_configs)
@@ -58,6 +72,10 @@ class GameEngine:
 
     def pause_game(self, game_id: str) -> dict[str, Any]:
         state = self.games[game_id]
+        if state.status == "waiting_model":
+            state.pause_requested = True
+            self.store.write_state(game_id, state.to_dict())
+            return {"game_id": game_id, "status": state.status, "pause_requested": True}
         with self._locks[game_id]:
             if state.status in {"waiting_model", "waiting_human"}:
                 state.pause_requested = True; self.store.write_state(game_id, state.to_dict())
@@ -75,7 +93,10 @@ class GameEngine:
     def _call_agent(self, state: GameState, actor: int) -> dict[str, Any]:
         events = self.store.read(state.game_id); role = state.roles[actor]; context = build_context(state, events, actor, role)
         config = state.seat_model_configs.get(actor, {})
+        agent = self.configured_agent if config.get("profile_id") else self.agent
         base = {"game_id": state.game_id, "event_id": state.event_id + 1, "phase": state.phase, "caller_type": "player", "agent_id": actor, "seat_id": actor, "model_name": config.get("model_name") or config.get("model") or getattr(self.agent, "model_name", "unknown"), "model_version": config.get("model_version") or getattr(self.agent, "model_version", "unknown"), "prompt_version": config.get("prompt_version", f"{role}-v1"), "input_visibility": actor, "input_event_ids": [e["event_id"] for e in context["events"]], "fallback": False}
+        if getattr(agent, "action_protocol_version", None):
+            base["prompt_version"] += "+" + agent.action_protocol_version
         used = sum(1 for c in self.store.read_calls(state.game_id) if c.get("caller_type") == "player")
         if used >= self.max_player_calls:
             state.status = "failed"; self._event(state, "budget_exceeded", [actor, "host", "god"], actor=actor, caller_type="player", limit=self.max_player_calls)
@@ -84,27 +105,22 @@ class GameEngine:
             state.status = "waiting_model"; metadata: dict[str, Any] = {}
             try:
                 with self._agent_lock:
-                    action = self.agent.act(state, actor, context)
-                    metadata = dict(getattr(self.agent, "last_metadata", {}) or {})
+                    action = agent.act(state, actor, context)
+                    metadata = dict(getattr(agent, "last_metadata", {}) or {})
                 error = check_action(state, actor, action); retryable = error is not None; stage = "action_validation" if error else None
             except Exception as exc:
-                action = {"action": "pass", "target": None, "text": "", "reason": str(exc)}; metadata = dict(getattr(self.agent, "last_metadata", {}) or {}); metadata.update(getattr(exc, "metadata", {}) or {}); error = str(exc); retryable = isinstance(exc, ModelOutputError); stage = "output_parsing" if retryable else "request"
-                retryable = retryable or any(token in error.lower() for token in
-                                             ("500", "502", "503", "504", "timed out", "ssl", "unexpected_eof"))
+                action = {"action": "pass", "target": None, "text": "", "reason": str(exc)}; metadata = dict(getattr(agent, "last_metadata", {}) or {}); metadata.update(getattr(exc, "metadata", {}) or {}); error = str(exc); retryable = isinstance(exc, ModelOutputError); stage = "output_parsing" if retryable else "request"
             call = dict(base, attempt=attempt, success=error is None, validation_error=error, failure_stage=stage, latency_ms=metadata.get("latency_ms"), input_tokens=metadata.get("input_tokens"), output_tokens=metadata.get("output_tokens"), model_name=metadata.get("model_name", base["model_name"]), model_version=metadata.get("model_version", base["model_version"]))
-            for key in ("prompt_hash", "response_id", "returned_model", "request_evidence", "request_sha256"):
+            call["call_id"] = f"{state.game_id}:player:{state.event_id + 1}:{actor}:{attempt}"
+            for key in ("provider", "model_profile_id", "requested_model", "http_status", "provider_error_code", "prompt_hash", "response_id", "returned_model", "request_evidence", "request_sha256"):
                 if key in metadata: call[key] = metadata[key]
             self.store.append_call(state.game_id, call)
             if error is None:
                 state.status = "waiting_model" if state.pause_requested else "running"; return action
             self.store.append_error(state.game_id, {"event_id": state.event_id + 1, "actor": actor, "attempt": attempt, "error": error, "failure_stage": stage})
             if attempt == 1 and retryable:
-                context = dict(context, validation_error=error); continue
-            fallback = self._fallback_action(state, actor, error)
-            state.status = "running"
-            self._event(state, "model_fallback", [actor, "host", "god"], actor=actor,
-                        error=error, action=fallback["action"], target=fallback.get("target"))
-            return fallback
+                context = dict(context, validation_error=error, validation_feedback={"previous_action": action, "error": error}); continue
+            state.status = "failed"; self._event(state, "model_failure", [actor], actor=actor, error=error); return {"action": "pass", "target": None, "text": "", "reason": error}
         return {"action": "pass", "target": None, "text": "", "reason": "unreachable"}
 
     def _fallback_action(self, state: GameState, actor: int, error: str) -> dict[str, Any]:
@@ -135,6 +151,8 @@ class GameEngine:
     def submit_human_action(self, game_id: str, actor: int, action: dict[str, Any], *, action_id: str | None = None, expected_cursor: int | None = None, operation_id: str | None = None) -> dict[str, Any]:
         with self._locks[game_id]:
             state = self.games[game_id]
+            if operation_id and operation_id in state.operation_results:
+                return state.operation_results[operation_id]
             if state.seat_controllers.get(actor) != "human": return {"game_id": game_id, "status": "rejected", "error": "seat_is_not_human"}
             if expected_cursor is not None and expected_cursor != state.event_id: return {"game_id": game_id, "status": "conflict", "error": "cursor_conflict", "cursor": state.event_id}
             pending = state.pending_action or {}
@@ -149,7 +167,11 @@ class GameEngine:
                     self._event(state, "wolf_discussion", wolves + ["host", "god"], actor=actor,
                                 text=discussion, source="human")
             self.store.write_state(game_id, state.to_dict())
-            return self._advance_one_event_locked(game_id, operation_id)
+            result = self._advance_one_event_locked(game_id, operation_id)
+            if operation_id:
+                state.operation_results[operation_id] = result
+                self.store.write_state(game_id, state.to_dict())
+            return result
 
     def submit_wolf_discussion(self, game_id: str, actor: int, text: str, *, expected_cursor: int | None = None) -> dict[str, Any]:
         with self._locks[game_id]:
@@ -170,10 +192,16 @@ class GameEngine:
 
     def _consume_action(self, state: GameState, actor: int) -> dict[str, Any] | None:
         action = state.pending.pop("submitted_action", None)
-        return action if action is not None else self._action_for(state, actor)
+        action = action if action is not None else self._action_for(state, actor)
+        return None if state.status == "failed" else action
+
+    def _source(self, state, actor):
+        if state.seat_controllers.get(actor) == "human":
+            return "human"
+        return state.seat_model_configs.get(actor, {}).get("model", getattr(self.agent, "model_name", "stub"))
 
     def _record_reason(self, state: GameState, actor: int, event: dict[str, Any], action: dict[str, Any], source: str) -> None:
-        if action.get("reason"):
+        if action.get("reason") and state.seat_controllers.get(actor) != "human":
             self._event(state, "agent_reason", [actor, "host", "god"], actor=actor, source_event_id=event["event_id"], reason=action.get("reason"), source=source)
 
     def _check_end(self, state: GameState, check_limit: bool = True) -> bool:
@@ -189,7 +217,7 @@ class GameEngine:
         proposals = state.pending.get("kill_proposals", {}); targets = list(proposals.values()); kill_target = None
         if targets:
             counts = {p: targets.count(p) for p in set(targets)}; high = max(counts.values()); leaders = sorted(p for p, n in counts.items() if n == high); kill_target = random.Random((state.seed or 0) + state.day).choice(leaders)
-            if len(leaders) > 1 or len(set(targets)) > 1: self._event(state, "wolf_negotiation", [p for p in state.alive if state.roles[p] == "wolf"], proposals=proposals, resolved_target=kill_target, resolution="majority_seeded_tie")
+            if len(leaders) > 1 or len(set(targets)) > 1: self._event(state, "wolf_negotiation", [p for p in state.alive if state.roles[p] == "wolf"], proposals=proposals, resolved_target=kill_target, resolution="seeded_rule" if len(state.roles) == 6 else "majority_seeded_tie")
         state.pending["night_kill_target"] = kill_target
         deaths = {}
         if kill_target and not state.pending.get("saved"):
@@ -215,7 +243,13 @@ class GameEngine:
             try:
                 result = self.classifier(state.game_id, event["event_id"], actor, event["text"]); state.classification_by_event[event["event_id"]] = result; self.store.append_call(state.game_id, {"call_id": f"{state.game_id}:small:{event['event_id']}", "game_id": state.game_id, "event_id": event["event_id"], "phase": state.phase, "caller_type": "small_model", "agent_id": actor, "model_name": getattr(self.classifier, "model_name", "small-model"), "model_version": result.get("model_version"), "input_visibility": "public", "input_event_ids": [event["event_id"]], "attempt": 1, "success": True, "fallback": False})
                 self._event(state, "utterance_classification", "public", source_event_id=event["event_id"], result=result, source=getattr(self.classifier, "model_name", "a-classifier"))
-            except Exception as exc: self.store.append_error(state.game_id, {"event_id": event["event_id"], "error": str(exc), "caller_type": "a_classifier"}); self._event(state, "utterance_classification_failed", "public", source_event_id=event["event_id"], error="分类服务暂不可用", fallback=True)
+            except Exception as exc:
+                self.store.append_error(state.game_id, {"event_id": event["event_id"], "error": str(exc), "caller_type": "a_classifier"})
+                self.store.append_call(state.game_id, {"call_id": f"{state.game_id}:small:{event['event_id']}", "game_id": state.game_id,
+                    "event_id": event['event_id'], "caller_type": "small_model", "agent_id": actor,
+                    "attempt": 1, "success": False, "fallback": False, "validation_error": str(exc)})
+                state.status = "failed"
+                self._event(state, "utterance_classification_failed", "public", source_event_id=event["event_id"], error="分类服务暂不可用", fallback=False)
 
     def _start_day(self, state: GameState) -> None:
         state.night_done.clear(); state.day += 1; state.phase = "day_speak"
@@ -252,7 +286,7 @@ class GameEngine:
             if action.get("action") == "shoot" and action.get("target") in state.alive:
                 target = action["target"]; state.alive.remove(target); state.death_reasons[target] = "hunter_shot"; self._event(state, "hunter_shot", "public", actor=actor, target=target)
             else: self._event(state, "hunter_pass", "public", actor=actor)
-            self._record_reason(state, actor, self.store.read(state.game_id)[-1], action, "human" if state.seat_controllers.get(actor) == "human" else getattr(self.agent, "model_name", "stub"))
+            self._record_reason(state, actor, self.store.read(state.game_id)[-1], action, "human" if state.seat_controllers.get(actor) == "human" else self._source(state, actor))
             resume = state.pending.get("hunter_resume", "after_night")
             state.hunter_processed = True; state.pending_action = None
             if resume == "after_vote":
@@ -266,7 +300,7 @@ class GameEngine:
             action = self._consume_action(state, actor)
             if action is None: return self._response(state, operation_id)
             event = self._event(state, "last_words", "public", actor=actor,
-                                text=action.get("text", ""), source="human" if state.seat_controllers.get(actor) == "human" else getattr(self.agent, "model_name", "stub"))
+                                text=action.get("text", ""), source="human" if state.seat_controllers.get(actor) == "human" else self._source(state, actor))
             self._record_reason(state, actor, event, action, event["source"])
             self._classify_speech(state, event, actor)
             state.pending_last_words = None
@@ -279,7 +313,7 @@ class GameEngine:
                 actor = wolves[0]; action = self._consume_action(state, actor)
                 if action is None: return self._response(state, operation_id)
                 if action.get("action") == "kill":
-                    state.pending.setdefault("kill_proposals", {})[actor] = action["target"]; event = self._event(state, "wolf_proposal", [p for p in state.alive if state.roles[p] == "wolf"], actor=actor, target=action["target"], source=getattr(self.agent, "model_name", "stub")); self._record_reason(state, actor, event, action, getattr(self.agent, "model_name", "stub"))
+                    state.pending.setdefault("kill_proposals", {})[actor] = action["target"]; event = self._event(state, "wolf_proposal", [p for p in state.alive if state.roles[p] == "wolf"], actor=actor, target=action["target"], source=self._source(state, actor)); self._record_reason(state, actor, event, action, self._source(state, actor))
                 state.night_done.add(actor); return self._response(state, operation_id)
             if "night_kill_target" not in state.pending:
                 proposals = state.pending.get("kill_proposals", {})
@@ -299,14 +333,14 @@ class GameEngine:
                 elif action.get("action") == "poison": state.witch_poison_available = False; state.pending["poison_target"] = action.get("target"); state.pending["witch_used"] = True; self._event(state, "witch_poison", [actor, "host", "god"], actor=actor, target=action.get("target"))
                 state.night_done.add("witch"); return self._response(state, operation_id)
             self._resolve_night(state)
-            if self._check_end(state, check_limit=False): return self._response(state, operation_id)
+            if state.phase != "hunter_action" and self._check_end(state, check_limit=False): return self._response(state, operation_id)
             return self._response(state, operation_id)
         if state.phase == "day_speak":
             remaining = [p for p in sorted(state.alive) if p not in state.day_speakers]
             if remaining:
                 actor = remaining[0]; action = self._consume_action(state, actor)
                 if action is None: return self._response(state, operation_id)
-                state.day_speakers.append(actor); event = self._event(state, "public_speech", "public", actor=actor, text=action.get("text", ""), source="human" if state.seat_controllers.get(actor) == "human" else getattr(self.agent, "model_name", "stub")); self._record_reason(state, actor, event, action, event["source"])
+                state.day_speakers.append(actor); event = self._event(state, "public_speech", "public", actor=actor, text=action.get("text", ""), source="human" if state.seat_controllers.get(actor) == "human" else self._source(state, actor)); self._record_reason(state, actor, event, action, event["source"])
                 self._classify_speech(state, event, actor)
                 return self._response(state, operation_id)
             state.phase = "day_vote"; return self._response(state, operation_id)
@@ -317,14 +351,19 @@ class GameEngine:
                 if action is None: return self._response(state, operation_id)
                 state.day_voted.add(actor); target = action.get("target") if action.get("action") == "vote" else None; valid = target is None or target in state.alive and target != actor
                 if valid and target is not None: state.votes[actor] = target
-                self._event(state, "vote", "public", actor=actor, target=target, valid=valid, source="human" if state.seat_controllers.get(actor) == "human" else getattr(self.agent, "model_name", "stub")); return self._response(state, operation_id)
+                self._event(state, "vote", "public", actor=actor, target=target, valid=valid, source="human" if state.seat_controllers.get(actor) == "human" else self._source(state, actor)); return self._response(state, operation_id)
             target, counts = tally_votes(state.votes); self._event(state, "vote_tally", "public", counts=counts, target=target, revote=state.revote)
-            if target is None and not state.revote:
+            if target is None and not state.revote and len(state.roles) <= 6:
                 if counts:
                     state.pending["revote_candidates"] = sorted(p for p, n in counts.items() if n == max(counts.values())); state.revote = True; state.day_voted.clear(); state.votes.clear(); return self._response(state, operation_id)
                 self._event(state, "no_valid_votes", "public", resolution="no_exile")
             elif target in state.alive:
                 state.alive.remove(target); state.death_reasons[target] = "exile"; self._event(state, "exile", "public", target=target)
+                if len(state.roles) == 6:
+                    self._event(state, "last_words", [target, "host", "god"], actor=target, text="")
+                    if not self._check_end(state):
+                        state.phase = "night"; state.night_done.clear(); state.pending.clear(); state.revote = False
+                    return self._response(state, operation_id)
                 if state.roles.get(target) == "hunter" and not state.hunter_processed:
                     self._start_hunter(state, target, "after_vote")
                 else:
@@ -350,7 +389,7 @@ class GameEngine:
         return {"game_id": state.game_id, "operation_id": operation_id, "new_event": state.event_id if new_events else None, "new_events": new_events, "cursor": state.event_id, "phase": state.phase, "status": state.status, "pending_action": state.pending_action, "summary": summary}
 
     def get_status(self, game_id: str) -> dict[str, Any]:
-        s = self.games[game_id]; return {"game_id": game_id, "status": s.status, "pause_requested": s.pause_requested, "phase": s.phase, "day": s.day, "cursor": s.event_id, "winner": s.winner, "pending_action": s.pending_action, "seat_controllers": s.seat_controllers, "restricted": self.human_restricted(game_id), "human_player_id": self.human_seat(game_id)}
+        s = self.games[game_id]; return {"game_id": game_id, "status": s.status, "pause_requested": s.pause_requested, "phase": s.phase, "day": s.day, "cursor": s.event_id, "last_event_id": s.event_id, "in_flight": s.status == "waiting_model", "winner": s.winner, "pending_action": s.pending_action, "seat_controllers": s.seat_controllers, "restricted": self.human_restricted(game_id), "human_player_id": self.human_seat(game_id)}
 
     def get_player_identity(self, game_id: str, player_id: int) -> dict[str, Any]:
         s = self.games[game_id]

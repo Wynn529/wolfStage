@@ -7,7 +7,7 @@ from typing import Any
 
 
 class AHttpClassifier:
-    """Adapter for A's model.server_v031 /classify endpoint."""
+    """Adapter for A's /classify endpoint (ten-player deployments use server_v04)."""
 
     model_name = "small-intent-v0.1"
 

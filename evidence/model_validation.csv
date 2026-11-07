@@ -1,0 +1,11 @@
+provider,requested_model,status,validation_date,test_or_game_id,notes
+mimo,mimo-v2.6-pro,passed_synthetic_json_vote,2026-11-06,.local/model_checks/20261106T165637182625Z_mimo.json,live_single_vote_only_not_full_game
+tokenhub,hy4-preview,passed_synthetic_json_vote,2026-11-06,.local/model_checks/20261106T165901423586Z_tokenhub.json,live_single_vote_only_not_full_game
+minimax,MiniMax-M3.1-Flash,passed_synthetic_json_vote,2026-11-06,.local/model_checks/20261106T170322629839Z_minimax.json,live_single_vote_only_not_full_game
+kimi,kimi-k3.1-pro,passed_synthetic_json_vote,2026-11-06,.local/model_checks/20261106T170816400958Z_kimi.json,live_single_vote_only_not_full_game
+ark,doubao-seed-2-1-pro-260915,blocked_model_not_open,2026-11-06,.local/model_checks/20261106T171537079283Z_ark.json,HTTP404_ModelNotOpen_activate_model_service_before_retry
+ark,doubao-seed-2-1-lite-260915,passed_synthetic_json_vote,2026-11-06,.local/model_checks/20261106T173413556523Z_ark.json,live_single_vote_only_not_full_game
+qianfan,ernie-5.1,passed_synthetic_json_vote,2026-11-06,.local/model_checks/20261106T173912618971Z_qianfan.json,normal_API_endpoint_passed_previous_tokenplan_401_log_retained
+zhipu,glm-5.3,passed_synthetic_json_vote,2026-11-06,.local/model_checks/20261106T175054653792Z_zhipu.json,user_confirmed_existing_key_passed_after_identity_verification
+deepseek,deepseek-flash,passed_synthetic_json_vote,2026-11-06,.local/model_checks/20261106T175305290024Z_deepseek.json,live_single_vote_only_not_full_game
+bailian,qwen3.8-max-0902,passed_synthetic_json_vote,2026-11-06,.local/model_checks/20261106T175700309803Z_bailian.json,live_single_vote_only_not_full_game

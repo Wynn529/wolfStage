@@ -6,3 +6,8 @@ __pycache__/
 runs/*/
 .venv/
 .local/
+.restart-runs/
+slides/.build_defense/
+.env
+.env.*
+!.env.example

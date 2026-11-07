@@ -23,10 +23,21 @@ if app:
     async def permission_denied(request, exc):
         return JSONResponse(status_code=403, content={"detail": "human game access is restricted"})
 
+    @app.middleware("http")
+    async def restrict_legacy_human_games(request, call_next):
+        from fastapi.responses import JSONResponse
+        parts = request.url.path.split("/")
+        if len(parts) > 2 and parts[1] == "games" and parts[2] in engine.games:
+            if "human" in engine.games[parts[2]].seat_controllers.values():
+                return JSONResponse({"detail": "Human games require app.integration_service session authentication"}, status_code=409)
+        return await call_next(request)
+
     @app.post("/games")
     def create_game(payload: dict[str, Any] | None = None):
         """创建十人游戏；可按席位指定真人控制器和模型配置。"""
         payload = payload or {}
+        if "human" in (payload.get("seat_controllers") or {}).values():
+            raise HTTPException(409, "Use app.integration_service for authenticated human games")
         try:
             return engine.create_game(payload.get("seed"), payload.get("role_config"),
                                       seat_controllers=payload.get("seat_controllers"),

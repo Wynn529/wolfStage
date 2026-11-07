@@ -15,6 +15,7 @@ if str(ROOT) not in sys.path:
 
 import streamlit as st
 from app.ui_client import GameClient, BRevisionClient, ServiceError
+from app.ui_integration_client import IntegrationClient
 from app.ui_contract import ServiceContract, TERMINAL
 from app.ui_controller import SessionController
 from app.ui_helpers import (LABELS, ROLES, STATUS, PHASES, project,
@@ -56,7 +57,18 @@ if 'events' not in ss:
 runs = Path(os.getenv('C_RUNS_DIR', str(ROOT / 'runs')))
 journals = Path(os.getenv('C_JOURNAL_DIR', str(ROOT / '.local/c_operations')))
 real_mode = os.getenv('C_LIVE_MODE') == '1'
-Client = BRevisionClient if os.getenv('C_B_REVISION')=='3898b95' else GameClient
+integration_mode = os.getenv('C_SERVICE_MODE') == 'integration'
+Client = IntegrationClient if integration_mode else BRevisionClient if os.getenv('C_B_REVISION')=='3898b95' else GameClient
+
+def make_client(address):
+    if integration_mode:
+        existing = ss.get('integration_client')
+        if isinstance(existing, IntegrationClient) and existing.base_url == address.rstrip('/'):
+            return existing
+        existing = IntegrationClient(address, contract=contract)
+        ss.integration_client = existing
+        return existing
+    return Client(address, contract=contract)
 try:
     contract = ServiceContract.load(os.getenv('C_SERVICE_CONTRACT'))
 except (OSError, TypeError, ValueError) as exc:
@@ -69,6 +81,8 @@ if mode=='历史回放':
     st.info('历史回放：查看已保存的过程，播放或移动进度条都不会重新调用模型，也不会产生新的API费用。')
 elif real_mode:
     st.info('真实模型模式：建局只分配身份；单步推进才可能调用付费模型。一次点击可能含多次请求。')
+if integration_mode and os.getenv('C_OFFLINE_PREVIEW') == '1':
+    st.warning('九模型接口离线联调：名牌是配置型号，行动由固定测试替身产生；未发送真实模型请求，不产生API费用。')
 
 with st.expander('第一次使用：怎么看、怎么操作', expanded=False):
     st.markdown('1．开始前：选“现场对局”，确认测试额度，再点“开始对局”分配十个身份。')
@@ -83,25 +97,44 @@ with st.sidebar:
                            help='相同 seed 会复现同一局；更换 seed 可改变身份和首夜目标。')
     play_mode = st.radio('对局模式', ['全 AI', '真人参与'], horizontal=True)
     human_seat = st.selectbox('真人席位', list(range(1, 11)), disabled=play_mode == '全 AI')
-    human_role_mode = st.radio('真人身份', ['随机', '指定'], horizontal=True, disabled=play_mode == '全 AI')
-    human_role = st.selectbox('指定身份', ['wolf', 'seer', 'witch', 'hunter', 'villager'],
-                              format_func=lambda value: ROLES[value], disabled=play_mode == '全 AI' or human_role_mode == '随机')
+    human_role_choice = st.selectbox('真人身份（新局生效）', ['random', 'wolf', 'seer', 'witch', 'hunter', 'villager'],
+        format_func=lambda value: '随机分配' if value == 'random' else ROLES[value],
+        disabled=play_mode == '全 AI', help='选择后点击“开始对局”新建一局；不会改变已经开始的对局身份。')
+    human_role_mode = '随机' if human_role_choice == 'random' else '指定'
+    human_role = human_role_choice if human_role_mode == '指定' else None
     human_seats = [human_seat] if play_mode == '真人参与' else []
     if play_mode == '真人参与' and human_role_mode == '随机':
         st.caption('随机模式：真人席位从完整十人角色池随机分配，不固定为平民。')
-    default_model = os.getenv('DEEPSEEK_MODEL', 'default-model')
-    configured_models = [item.strip() for item in os.getenv('MODEL_LIST', default_model).split(',') if item.strip()]
-    model_name = st.selectbox('AI 默认模型', configured_models, help='统一设置全部 AI；重复型号合法。')
+    url = st.text_input('B 服务地址', os.getenv('B_API_URL', 'http://127.0.0.1:18083' if integration_mode else 'http://127.0.0.1:8000'))
+    profiles = []
+    if integration_mode:
+        try:
+            profiles = make_client(url).models()
+        except (ServiceError, ValueError) as exc:
+            st.error('无法读取新版服务模型列表：' + str(exc))
+            st.stop()
+        configured_models = [p['profile_id'] for p in profiles]
+        profile_names = {p['profile_id']: f"{p['display_name']} · {p['provider']}" for p in profiles}
+        st.caption(f'已登记 {len(profiles)} 个型号；登记不等于本局已成功调用。')
+    else:
+        configured_models = [item.strip() for item in os.getenv('MODEL_LIST', os.getenv('DEEPSEEK_MODEL', 'default-model')).split(',') if item.strip()]
+        profile_names = {}
+    model_name = st.selectbox('AI 默认模型', configured_models, format_func=lambda value: profile_names.get(value, value), help='统一设置全部 AI；重复型号合法。')
+    assignment = st.radio('模型分配', ['统一后逐席调整', '按登记列表轮流分配']) if integration_mode else '统一后逐席调整'
     with st.expander('逐席位模型设置', expanded=False):
-        seat_models = {str(i): st.text_input(f'{i} 号模型', model_name, key=f'model_{i}')
-                       for i in range(1, 11) if i not in human_seats}
-
-    url = st.text_input('B 服务地址', os.getenv('B_API_URL', 'http://127.0.0.1:8000'))
+        seat_models = {}
+        for index, i in enumerate(i for i in range(1, 11) if i not in human_seats):
+            if integration_mode:
+                default = configured_models[index % len(configured_models)] if assignment == '按登记列表轮流分配' else model_name
+                seat_models[str(i)] = st.selectbox(f'{i} 号模型', configured_models, index=configured_models.index(default),
+                    format_func=lambda value: profile_names[value], key=f'profile_{i}_{assignment}_{model_name}_{human_seats}')
+            else:
+                seat_models[str(i)] = st.text_input(f'{i} 号模型', model_name, key=f'model_{i}')
     st.caption('默认端口：A分类8765、B游戏8000、网页8501；自定义时以启动输出及B地址为准。')
-    st.caption('B适配：3898b95（部分能力）' if Client is BRevisionClient else 'B适配：旧版兼容')
+    st.caption('B适配：九模型整合服务 · 真人会话鉴权' if integration_mode else 'B适配：3898b95（部分能力）' if Client is BRevisionClient else 'B适配：旧版兼容')
     st.caption(f'契约：{contract.version}；确认人：{contract.confirmed_by or "尚无增强能力确认"}')
     if not contract.ready:
-        if Client is BRevisionClient:
+        if issubclass(Client, BRevisionClient):
             st.caption('逐步自动运行：每步确认后继续。暂停会等待本步结束；请在一个页面控制当前局。')
         else:
             st.warning('旧版服务尚未确认操作查询，当前仅开放单步；请使用新版联调启动脚本。')
@@ -114,12 +147,12 @@ with st.sidebar:
                     raise ValueError('当前仍有待确认操作，先核对当前局')
                 if ss.controller:
                     ss.controller.close()
-                ss.controller = SessionController.restore(Client(url, contract=contract), record_path)
+                ss.controller = SessionController.restore(make_client(url), record_path)
             except (ServiceError, ValueError, OSError, KeyError) as exc:
                 st.error(str(exc))
 
 try:
-    client = Client(url, contract=contract)
+    client = make_client(url)
 except ValueError as exc:
     st.error(str(exc))
     st.stop()
@@ -227,6 +260,9 @@ def render_details(events, status, phase, metrics, game_id, live):
     with stats_tab:
         if human_view:
             st.info('真人局进行中不提供原始调用、逐席位统计或上帝日志。')
+        elif integration_mode:
+            st.caption('新版服务统计原件；未知用量保持未知，不能用调用次数推算费用。')
+            st.json(metrics, expanded=False)
         elif live:
             st.write('B服务返回原件')
             st.json(metrics, expanded=False)
@@ -290,6 +326,8 @@ def render_events(events, status, phase, metrics, game_id, live, cursor=None, hu
     controller = ss.controller if live else None
     render_scene(events,status=status,phase=actual_phase,metrics=metrics,game_id=game_id,
                  instance_key=f':{game_id}:{bool(ss.get(f"identity_ack_{game_id}"))}',
+                 seat_labels=getattr(controller.client, 'seat_labels', {}).get(game_id, {}) if controller else {},
+                 own_role=getattr(controller.client, 'own_roles', {}).get(game_id) if controller else None,
                  replay=not live,busy=bool(controller and controller.busy), cursor=cursor,
                  message=controller.message if controller else '',
                  human_player_id=human_player_id)
@@ -376,7 +414,22 @@ def show_identity_dialog(game_id, role):
 
 def render_human_action(controller):
     """真人席位只提交服务端允许动作；不收集或展示“依据”字段。"""
-    if not controller or controller.status != 'waiting_human':
+    if not controller:
+        return
+    uncertain_key = 'human_uncertain_' + controller.game_id
+    uncertain = ss.get(uncertain_key)
+    if integration_mode and uncertain:
+        try:
+            known = controller.client.human_operation(controller.game_id, uncertain)
+            if known.get('status') == 'completed':
+                del ss[uncertain_key]
+                controller.refresh()
+                st.rerun()
+        except ServiceError:
+            pass
+        st.warning('上次真人操作结果尚未确认，正在只读查询；不会重新提交。')
+        return
+    if controller.status != 'waiting_human':
         return
     try:
         pending = controller.client.pending_action(controller.game_id)
@@ -424,7 +477,7 @@ def render_human_action(controller):
         if actor_role == 'wolf' and phase == 'night':
             discussion = st.text_area('狼队讨论（仅狼人和主持可见，可留空）',
                                       key=f'human_wolf_discussion_{controller.game_id}_{pending.get("action_id")}')
-            if st.button('发送狼队讨论', key=f'wolf_discussion_{controller.game_id}_{pending.get("action_id")}'):
+            if not integration_mode and st.button('发送狼队讨论', key=f'wolf_discussion_{controller.game_id}_{pending.get("action_id")}'):
                 try:
                     result = controller.client.wolf_discussion(controller.game_id, actor, discussion,
                                                                expected_cursor=controller.cursor)
@@ -437,9 +490,13 @@ def render_human_action(controller):
         action = {'action': kind, 'target': target, 'text': discussion, 'reason': discussion}
     if st.button('提交真人操作', type='primary', key=f'human_submit_{controller.game_id}_{pending.get("action_id")}'):
         try:
+            operation_id = uuid.uuid4().hex
+            if integration_mode:
+                ss[uncertain_key] = operation_id
             result = controller.client.human_action(controller.game_id, actor, action,
                 action_id=pending.get('action_id', ''), expected_cursor=controller.cursor,
-                operation_id=uuid.uuid4().hex)
+                operation_id=operation_id)
+            ss.pop(uncertain_key, None)
             if result.get('status') in {'rejected', 'conflict'}:
                 st.error('服务拒绝本次操作：' + str(result.get('error', '请刷新待操作')))
             else:
@@ -461,15 +518,23 @@ def live_panel():
         # 旧契约也可通过独立待操作接口识别真人等待，避免前端以持续推进绕过真人输入。
         try:
             pending = client.pending_action(controller.game_id)
-            if isinstance(pending, dict) and isinstance(pending.get('actor'), int):
+            if isinstance(pending, dict) and isinstance(pending.get('actor'), int) and controller.status not in TERMINAL | {'paused'}:
                 controller.status = 'waiting_human'
                 controller.phase = pending.get('phase') or controller.phase
                 controller.human_game = True
                 controller.human_player_id = pending['actor']
         except ServiceError:
             pass
+    if play_mode == '真人参与':
+        st.info(f'新局设置：你坐 {human_seat} 号，身份为' +
+                ('随机分配' if human_role_mode == '随机' else ROLES[human_role]) +
+                '。点击“开始对局”才会生效，已有局身份不变。')
+    if model_name == 'stub' and all(value == 'stub' for value in seat_models.values()):
+        st.caption('离线示例：AI使用固定测试逻辑，狼人优先选择编号最小的非狼人，女巫默认不救人；不代表真实大模型策略。')
+    if controller and integration_mode and ss.get('human_uncertain_' + controller.game_id):
+        render_human_action(controller)
     controls = st.columns([1.35,1,1,1,1,1,1])
-    if controls[0].button('开始对局',type='primary',disabled=bool(ss.create_uncertain or (controller and controller.busy)),help='创建一场新局并分配身份，不调用付费模型；已有对局记录会保留。'):
+    if controls[0].button('开始对局',type='primary',disabled=bool(ss.create_uncertain or (controller and (controller.busy or ss.get('human_uncertain_' + controller.game_id)))),help='创建一场新局并分配身份，不调用付费模型；已有对局记录会保留。'):
         try:
             # 在POST前保存意图；页面重运行不能再次提交结果尚未确认的建局。
             ss.create_operation_id=uuid.uuid4().hex
@@ -540,7 +605,7 @@ def live_panel():
         st.caption('待确认操作：' + ', '.join(op.action+':'+op.operation_id for op in controller.unresolved))
     buttons=controls[1:]
     action=None
-    locked=controller.fatal or bool(controller.error)
+    locked=controller.fatal or bool(controller.error) or bool(ss.get('human_uncertain_' + controller.game_id))
     if buttons[0].button('单步推进',disabled=locked or controller.busy or controller.auto or controller.pause_intent or controller.status!='running' or not controller.synced,help='推进当前一步；可能调用多次模型并产生费用，等待完成后再操作。'):
         action='advance'
     if buttons[1].button('暂停',disabled=locked or controller.pause_intent or controller.status not in {'running','pending'} or (controller.busy and not contract.ready and not getattr(controller.client,'advance_query_supported',False)),help='停止安排下一步，等待当前一步完成后暂停；不会取消已经发出的模型请求。'):
@@ -575,6 +640,22 @@ def live_panel():
 
 @st.fragment(run_every=1)
 def replay_panel():
+    if integration_mode:
+        source = st.radio('回放来源', ['新版服务', '旧版日志（历史六人局）'], horizontal=True)
+        if source == '新版服务':
+            game = st.text_input('回放对局编号', value=ss.controller.game_id if ss.controller else '')
+            if not game:
+                st.info('填写已保存的对局编号；真人局必须结束后才能回放。')
+                return
+            try:
+                original = client.replay(game)
+                last = max((e['event_id'] for e in original), default=0)
+                cursor = st.slider('回放到 event_id', 0, max(last, 1), value=last, key='integration_cursor_'+game)
+                visible = [e for e in original if e['event_id'] <= cursor]
+                render_events(visible, project(visible)['status'], None, {}, game, False, cursor=cursor)
+            except ServiceError as exc:
+                st.warning('新版回放不可用；真人局结束前不开放上帝回放。' if exc.code == 403 else str(exc))
+            return
     requested = st.query_params.get('game')
     if requested and not replay_allowed(runs, requested):
         st.warning('该对局尚未结束或无法确认权限，不能打开上帝回放与原始导出。')

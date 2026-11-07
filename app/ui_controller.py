@@ -211,6 +211,9 @@ class SessionController:
                 try:
                     info = access(self.game_id)
                 except ServiceError:
+                    if getattr(self.client, 'integration', False):
+                        self.events = []; self.metrics = {}; self.snapshot = None
+                        raise
                     info = {}
                 if info.get('restricted'):
                     actor = info.get('human_player_id')
@@ -221,7 +224,9 @@ class SessionController:
                     self.metrics = {}; self.snapshot = None
             snapshot = self.client.state(self.game_id) if self.client.contract.ready else None
             event_view = str(self.human_player_id) if self.human_game and self.human_player_id else 'god'
-            incoming = self.client.events(self.game_id, self.cursor, view=event_view,
+            # A control cursor may include filtered or just-completed events not yet read.
+            read_cursor = int(self.events[-1]['event_id']) if self.events else 0
+            incoming = self.client.events(self.game_id, read_cursor, view=event_view,
                                           player_id=self.human_player_id if event_view != 'god' else None)
             merged = merge_events(self.events, incoming, self.game_id)
             ids = [int(e['event_id']) for e in merged]
@@ -265,13 +270,21 @@ class SessionController:
                     self.pause_intent = False
             elif getattr(self.client, 'advance_query_supported', False):
                 b_state = self.client.service_status(self.game_id)
-                self.status, self.phase = b_state['status'], b_state['phase']
+                resolved_operation = False
                 for op in list(self.unresolved):
                     if op.action != 'advance':
                         continue  # B未登记暂停/继续操作；超时后保持锁定，不以快照猜测成功。
                     response = self.client.operation(self.game_id, op.operation_id)
                     if response['state'] == 'succeeded':
                         self._completed(op)
+                        resolved_operation = True
+                if resolved_operation:
+                    # The operation can complete between the first status read and query.
+                    b_state = self.client.service_status(self.game_id)
+                if not self.human_game and (not self.events or self.events[-1]['event_id'] < b_state['cursor']):
+                    after = self.events[-1]['event_id'] if self.events else 0
+                    self.events = merge_events(self.events, self.client.events(self.game_id, after, view=event_view), self.game_id)
+                self.status, self.phase = b_state['status'], b_state['phase']
                 # 真人局事件按权限过滤，公开事件可能跳过私密 event_id；控制游标必须跟随服务端。
                 self.server_cursor = b_state['cursor']
                 self.synced = not self.fatal and not self.unresolved and self.cursor == b_state['cursor']
@@ -289,6 +302,8 @@ class SessionController:
                 self.error = ''
             if any(e['type'] == 'model_failure' for e in self.events):
                 self.fail('对局含模型/分类失败，请人工核对后交B处理', fatal=True)
+            if self.status == 'waiting_human':
+                self.auto = False
             if self.status in TERMINAL:
                 self.auto = False
                 self.pause_intent = False
