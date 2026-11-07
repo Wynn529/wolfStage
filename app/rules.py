@@ -119,6 +119,7 @@ def check_action(state: GameState, actor: int, action: dict[str, Any]) -> str | 
     if kind not in allowed: return f"action {kind!r} is not allowed in phase {state.phase}"
     text, reason = action.get("text", ""), action.get("reason", "")
     if not isinstance(text, str) or len(text) > 500 or not isinstance(reason, str) or len(reason) > 300: return "text/reason must be strings within length limits"
+    if kind == "speak" and not text.strip(): return "speak text must not be empty"
     target = action.get("target")
     if state.phase == "hunter_action":
         if state.roles.get(actor) != "hunter": return "only hunter can shoot"

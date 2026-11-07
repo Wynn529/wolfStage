@@ -66,3 +66,27 @@ def display_call_rows(rows):
                'retries':'重试尝试', 'success':'B记录通过', 'failed':'B记录失败', 'fallback':'回退尝试'}
     return [{label:(names.get(row[key],row[key]) if key=='caller_type' else row[key])
              for key,label in columns.items()} for row in rows]
+
+
+def display_call_rows_by_seat(calls):
+    """按席位和型号展示原始调用，未知用量保持明确标记。"""
+    groups = {}
+    for call in calls or []:
+        seat = call.get('seat_id', call.get('agent_id', 'unknown'))
+        model = call.get('model_name') or '未提供'
+        key = (seat, model)
+        row = groups.setdefault(key, {'席位': seat, '模型': model, '调用次数': 0,
+                                      '成功': 0, '失败': 0, '输入token': 0,
+                                      '输出token': 0, '缺失用量': 0})
+        row['调用次数'] += 1
+        row['成功' if call.get('success') is True else '失败'] += 1
+        missing = False
+        for source, target in (('input_tokens', '输入token'), ('output_tokens', '输出token')):
+            value = call.get(source)
+            if type(value) is int and value >= 0:
+                row[target] += value
+            elif call.get('caller_type') != 'small_model' and model != 'stub':
+                missing = True
+        if missing:
+            row['缺失用量'] += 1
+    return list(groups.values())

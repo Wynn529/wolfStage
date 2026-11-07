@@ -167,7 +167,7 @@ def serve(args):
     RUNS.mkdir(parents=True,exist_ok=True)
     environments = child_environments(args.model,args.a_port,args.b_port)
     commands = [
-        ('a',['-m','model.server_v031','--port',str(args.a_port)],f'http://127.0.0.1:{args.a_port}/health'),
+        ('a',['-m','model.server_v04','--port',str(args.a_port)],f'http://127.0.0.1:{args.a_port}/health'),
         ('b',['-m','uvicorn','app.c_live_service:app','--host','127.0.0.1','--port',str(args.b_port)],f'http://127.0.0.1:{args.b_port}/c/ready'),
         ('ui',['-m','streamlit','run','app/ui.py','--server.address','127.0.0.1','--server.port',str(args.ui_port),
                '--server.headless','true','--browser.gatherUsageStats','false'],f'http://127.0.0.1:{args.ui_port}/_stcore/health')]
@@ -187,6 +187,7 @@ def serve(args):
             RECORD.write_text(json.dumps({'session':session,'launcher_pid':os.getpid(),
                 'children':records,'logs':str(logs),'runs':str(RUNS),'url':f'http://127.0.0.1:{args.ui_port}'},indent=2),encoding='utf-8')
             deadline=time.monotonic()+45
+            last_error = ''
             while True:
                 if proc.poll() is not None:
                     raise RuntimeError(f'{name} exited; inspect its local log.')
@@ -198,9 +199,10 @@ def serve(args):
                                     or value.get('model')!=args.model or value.get('runs_dir')!=str(RUNS)):
                                 raise RuntimeError('Backend real-mode identity check failed.')
                         break
-                except (OSError,ValueError):
+                except (OSError,ValueError) as exc:
+                    last_error = str(exc)
                     if time.monotonic()>deadline:
-                        raise RuntimeError(f'{name} health check timed out; inspect its local log.') from None
+                        raise RuntimeError(f'{name} health check failed at {health}: {last_error}; inspect {logs / (name + ".err.log")}') from None
                     time.sleep(.25)
         print(f'Real mode ready: http://127.0.0.1:{args.ui_port}',flush=True)
         print('No DeepSeek request has been sent by startup. Manual advance may incur charges.',flush=True)
@@ -253,9 +255,9 @@ def main():
         return 0
     except KeyboardInterrupt:
         return 0
-    except Exception:
-        # 不回显第三方异常/环境，避免包含凭据；日志仅包含本机服务诊断。
-        print('Real-mode startup failed. Check local configuration, ports and .local/real_api session logs.',file=sys.stderr)
+    except Exception as exc:
+        # 只回显本机启动诊断，不回显第三方响应正文或凭据。
+        print(f'Real-mode startup failed: {exc}',file=sys.stderr)
         return 1
 
 if __name__=='__main__':

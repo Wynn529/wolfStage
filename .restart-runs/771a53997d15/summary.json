@@ -1,0 +1,32 @@
+{
+  "by_seat": [
+    {
+      "calls": 1,
+      "failed": 0,
+      "input_tokens_known": 0,
+      "input_tokens_missing": 1,
+      "model_name": "stub",
+      "model_version": "stub-v1",
+      "output_tokens_known": 0,
+      "output_tokens_missing": 1,
+      "seat_id": 4,
+      "success": 1
+    }
+  ],
+  "call_count": 1,
+  "event_count": 3,
+  "failed_calls": 0,
+  "game_id": "771a53997d15",
+  "input_tokens": null,
+  "input_tokens_known": 0,
+  "input_tokens_missing_calls": 0,
+  "input_tokens_not_applicable_calls": 1,
+  "output_tokens": null,
+  "output_tokens_known": 0,
+  "output_tokens_missing_calls": 0,
+  "output_tokens_not_applicable_calls": 1,
+  "retries": 0,
+  "rules_version": "rules-v2.0-ten",
+  "successful_calls": 1,
+  "winner": null
+}

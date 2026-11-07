@@ -1,4 +1,4 @@
-"""C受控真实请求：沿用一元授权，保留已知用量与未决预留。"""
+"""C受控真实请求：沿用十元授权，保留已知用量与未决预留。"""
 from __future__ import annotations
 import hashlib
 import json
@@ -15,10 +15,11 @@ def cost_bound(input_tokens, output_tokens):
 
 
 class SmokeClient(DeepSeekClient):
-    max_attempts = 64
+    # 请求次数不再先于已授权金额硬截断；实际支出仍受 maximum_reserved_cny 保护。
+    max_attempts = 256
     max_input_bytes = 200000
     max_tokens = 512
-    maximum_reserved_cny = Decimal('0.98')
+    maximum_reserved_cny = Decimal('10')
 
     def __init__(self, ledger: Path, **kwargs):
         super().__init__(**kwargs)
@@ -29,9 +30,9 @@ class SmokeClient(DeepSeekClient):
         self.lock = threading.Lock()
 
     def _load(self):
-        value = json.loads(self.ledger.read_text(encoding='utf-8')) if self.ledger.exists() else {'attempts':0,'reserved_cny':0,'authorized_cny':1}
+        value = json.loads(self.ledger.read_text(encoding='utf-8')) if self.ledger.exists() else {'attempts':0,'reserved_cny':0,'authorized_cny':10}
         count=value['attempts']
-        if type(count) is not int or count<0 or value.get('authorized_cny')!=1:
+        if type(count) is not int or count<0 or value.get('authorized_cny')!=10:
             raise RuntimeError('C budget ledger is invalid; no request was sent.')
         if value.get('version')!=2:
             old=Decimal(str(value.get('reserved_cny',count*.15)))
@@ -46,7 +47,7 @@ class SmokeClient(DeepSeekClient):
             if not old.is_finite() or old<0:
                 raise RuntimeError('C budget ledger is invalid; no request was sent.')
             settled=sum((cost_bound(u['input_tokens'],u['output_tokens']) for u in usage),Decimal(0)) if known else old
-            value={'version':2,'attempts':count,'authorized_cny':1,'model':self.model,
+            value={'version':2,'attempts':count,'authorized_cny':10,'model':self.model,
                    'legacy_snapshot':value,'legacy_settlement_known':known,
                    'legacy_held_cny':str(settled),'entries':{},'reserved_cny':float(settled)}
         start=value['legacy_snapshot']['attempts']

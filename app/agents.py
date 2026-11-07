@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import hashlib
+import random
 import threading
 from pathlib import Path
 from typing import Any, Callable
@@ -25,18 +26,45 @@ def visible_events(events: list[dict[str, Any]], viewer: int | str) -> list[dict
 def build_context(state: GameState, events: list[dict[str, Any]], agent_id: int, viewer_role: str) -> dict[str, Any]:
     """为角色代理组装只包含其可见事件、阶段和存活玩家的上下文。"""
     visible = visible_events(events, agent_id)
+    # 只把最近记录和截短后的公开文本送入模型，避免整局长发言不断扩大请求延迟。
+    model_events = []
+    for event in visible[-24:]:
+        compact = dict(event)
+        if isinstance(compact.get("text"), str):
+            compact["text"] = compact["text"][:400]
+        if isinstance(compact.get("reason"), str):
+            compact["reason"] = compact["reason"][:200]
+        model_events.append(compact)
     context: dict[str, Any] = {
         "agent_id": agent_id,
         "role": viewer_role,
         "alive_players": sorted(state.alive),
         "phase": state.phase,
         "day": state.day,
-        "events": visible,
+        "events": model_events,
     }
     if viewer_role == "wolf":
-        context["wolf_teammates"] = [p for p, role in state.roles.items() if role == "wolf" and p != agent_id]
+        teammates = [p for p, role in sorted(state.roles.items()) if role == "wolf" and p != agent_id]
+        context["wolf_teammates"] = teammates
+        context["wolf_teammate_info"] = [
+            {"player_id": p, "role": "wolf", "alive": p in state.alive} for p in teammates
+        ]
+        context["wolf_kill_proposals"] = dict(state.pending.get("kill_proposals", {}))
+    if viewer_role == "seer":
+        context["inspection_results"] = {
+            int(event["target"]): event.get("result")
+            for event in visible if event.get("type") == "inspection"
+            and isinstance(event.get("target"), int)
+        }
     if viewer_role == "witch":
         context["night_kill_target"] = state.pending.get("night_kill_target")
+        context["witch_save_available"] = state.witch_save_available
+        context["witch_poison_available"] = state.witch_poison_available
+        context["witch_self_save_used"] = state.witch_self_save_used
+    if viewer_role == "hunter":
+        context["hunter_triggered"] = state.hunter_triggered
+        context["hunter_processed"] = state.hunter_processed
+        context["hunter_cause"] = state.death_reasons.get(agent_id)
     context["seat_controller"] = state.seat_controllers.get(agent_id, "ai")
     context["model_config"] = state.seat_model_configs.get(agent_id, {})
     context["legal_actions"] = legal_actions_for(state, agent_id)
@@ -48,7 +76,11 @@ def legal_actions_for(state: GameState, agent_id: int) -> list[dict[str, Any]]:
     role = state.roles.get(agent_id)
     if state.phase == "night":
         if role == "wolf":
-            return [{"action": "kill", "targets": [p for p in sorted(state.alive) if p != agent_id and state.roles[p] != "wolf"]}]
+            targets = [p for p in sorted(state.alive) if p != agent_id and state.roles[p] != "wolf"]
+            # 不把最低编号席位永远放在提示列表第一项；相同 seed 仍可复现，
+            # 但不会因为模型偏好“选第一个”而固定首夜击杀 1 号。
+            random.Random((state.seed or 0) * 100 + state.day * 10 + agent_id).shuffle(targets)
+            return [{"action": "kill", "targets": targets}]
         if role == "seer":
             return [{"action": "inspect", "targets": [p for p in sorted(state.alive) if p != agent_id and p not in state.inspection_history]}]
         if role == "witch":

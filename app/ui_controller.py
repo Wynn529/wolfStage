@@ -24,6 +24,7 @@ class Operation:
 
 class SessionController:
     def __init__(self, client, game_id, *, seed=None, journal=None, interval=.5,
+                 human_game=False, human_player_id=None,
                  max_steps=500, no_progress_limit=12):
         self.client = client
         self.game_id = game_id
@@ -42,6 +43,9 @@ class SessionController:
         self.error = ''
         self.fatal = False
         self.synced = False
+        self.server_cursor = None
+        self.human_game = bool(human_game)
+        self.human_player_id = human_player_id if type(human_player_id) is int else None
         self.interval = interval
         self.next_due = 0
         self.max_steps = max_steps
@@ -49,11 +53,14 @@ class SessionController:
         self.steps = 0
         self.no_progress = 0
         self.journal = Path(journal) if journal else None
-        self._log('session', game_id=game_id, seed=seed, service=client.base_url,
+        self._log('session', game_id=game_id, seed=seed, human_game=self.human_game,
+                  human_player_id=self.human_player_id, service=client.base_url,
                   contract=client.contract.version, confirmed_commit=client.contract.confirmed_commit)
 
     @property
     def cursor(self):
+        if self.server_cursor is not None:
+            return self.server_cursor
         return max((int(e['event_id']) for e in self.events), default=0)
 
     @property
@@ -200,16 +207,27 @@ class SessionController:
     def refresh(self):
         try:
             snapshot = self.client.state(self.game_id) if self.client.contract.ready else None
-            incoming = self.client.events(self.game_id, self.cursor)
+            event_view = str(self.human_player_id) if self.human_game and self.human_player_id else 'god'
+            incoming = self.client.events(self.game_id, self.cursor, view=event_view,
+                                          player_id=self.human_player_id if event_view != 'god' else None)
             merged = merge_events(self.events, incoming, self.game_id)
             ids = [int(e['event_id']) for e in merged]
-            if ids and ids != list(range(1, max(ids)+1)):
-                raise ValueError('事件编号不连续，停止控制并保留原局证据')
+            if ids and ids != list(range(1, max(ids)+1)) and not (
+                    getattr(self.client, 'allows_filtered_event_gaps', False) or self.human_game):
+                detector = getattr(self.client, 'game_has_human', None)
+                if callable(detector):
+                    try:
+                        self.human_game = bool(detector(self.game_id))
+                    except (ServiceError, OSError, ValueError, TypeError):
+                        self.human_game = False
+                if not self.human_game:
+                    raise ValueError('事件编号不连续，停止控制并保留原局证据')
             self.events = merged
             if snapshot:
                 self.snapshot = snapshot
                 self.status = snapshot['status']
                 self.phase = snapshot['phase']
+                self.server_cursor = snapshot['last_event_id']
                 self.synced = self.cursor == snapshot['last_event_id']
                 for op in list(self.unresolved):
                     try:
@@ -241,6 +259,8 @@ class SessionController:
                     response = self.client.operation(self.game_id, op.operation_id)
                     if response['state'] == 'succeeded':
                         self._completed(op)
+                # 真人局事件按权限过滤，公开事件可能跳过私密 event_id；控制游标必须跟随服务端。
+                self.server_cursor = b_state['cursor']
                 self.synced = not self.fatal and not self.unresolved and self.cursor == b_state['cursor']
                 if self.status == 'paused' and not self.busy:
                     self.pause_intent = False
@@ -254,7 +274,7 @@ class SessionController:
             self.metrics = self.client.metrics(self.game_id)
             if not self.fatal and not self.unresolved:
                 self.error = ''
-            if any(e['type'] in {'utterance_classification_failed', 'model_failure'} for e in self.events):
+            if any(e['type'] == 'model_failure' for e in self.events):
                 self.fail('对局含模型/分类失败，请人工核对后交B处理', fatal=True)
             if self.status in TERMINAL:
                 self.auto = False
@@ -296,7 +316,9 @@ class SessionController:
         if (header['service'] != client.base_url or header['contract'] != client.contract.version
                 or header.get('confirmed_commit','') != client.contract.confirmed_commit):
             raise ValueError('控制记录与当前服务/契约不一致')
-        controller = cls(client, header['game_id'], seed=header.get('seed'), journal=journal)
+        controller = cls(client, header['game_id'], seed=header.get('seed'), journal=journal,
+                         human_game=header.get('human_game', False),
+                         human_player_id=header.get('human_player_id'))
         for row in rows:
             if row['kind'] == 'operation':
                 controller.operations[row['operation_id']] = Operation(

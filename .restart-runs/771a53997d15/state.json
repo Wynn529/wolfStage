@@ -1,0 +1,72 @@
+{
+  "game_id": "771a53997d15",
+  "seed": 9,
+  "roles": {
+    "10": "wolf",
+    "9": "wolf",
+    "4": "wolf",
+    "3": "seer",
+    "1": "witch",
+    "7": "hunter",
+    "2": "villager",
+    "5": "villager",
+    "6": "villager",
+    "8": "villager"
+  },
+  "alive": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+  ],
+  "phase": "night",
+  "day": 0,
+  "status": "running",
+  "event_id": 3,
+  "pending": {
+    "kill_proposals": {
+      "4": 1
+    }
+  },
+  "votes": {},
+  "revote": false,
+  "winner": null,
+  "night_done": [
+    4
+  ],
+  "day_speakers": [],
+  "day_voted": [],
+  "classification_by_event": {},
+  "operation_results": {},
+  "pause_requested": false,
+  "operation_start_event_id": null,
+  "rules_version": "rules-v2.0-ten",
+  "seat_controllers": {
+    "10": "ai",
+    "9": "ai",
+    "4": "ai",
+    "3": "ai",
+    "1": "ai",
+    "7": "ai",
+    "2": "ai",
+    "5": "ai",
+    "6": "ai",
+    "8": "ai"
+  },
+  "seat_model_configs": {},
+  "witch_save_available": true,
+  "witch_poison_available": true,
+  "witch_self_save_used": false,
+  "inspection_history": [],
+  "death_reasons": {},
+  "hunter_triggered": false,
+  "hunter_processed": false,
+  "pending_last_words": null,
+  "pending_action": null
+}

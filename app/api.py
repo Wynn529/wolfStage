@@ -56,6 +56,14 @@ if app:
         if game_id not in engine.games: raise HTTPException(404, "unknown game")
         return engine.get_status(game_id).get("pending_action")
 
+    @app.get("/games/{game_id}/players/{player_id}/identity")
+    def player_identity(game_id: str, player_id: int):
+        if game_id not in engine.games: raise HTTPException(404, "unknown game")
+        try:
+            return engine.get_player_identity(game_id, player_id)
+        except ValueError as exc:
+            raise HTTPException(403, str(exc))
+
     @app.post("/games/{game_id}/players/{player_id}/action")
     def human_action(game_id: str, player_id: int, payload: dict[str, Any] | None = None):
         if game_id not in engine.games: raise HTTPException(404, "unknown game")
@@ -66,6 +74,13 @@ if app:
                                           action_id=payload.get("action_id"),
                                           expected_cursor=payload.get("expected_cursor"),
                                           operation_id=payload.get("operation_id"))
+
+    @app.post("/games/{game_id}/players/{player_id}/wolf-discussion")
+    def wolf_discussion(game_id: str, player_id: int, payload: dict[str, Any] | None = None):
+        if game_id not in engine.games: raise HTTPException(404, "unknown game")
+        payload = payload or {}
+        return engine.submit_wolf_discussion(game_id, player_id, payload.get("text", ""),
+                                             expected_cursor=payload.get("expected_cursor"))
 
     @app.get("/games/{game_id}/status")
     def status(game_id: str):

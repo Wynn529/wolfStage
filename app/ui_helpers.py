@@ -36,7 +36,9 @@ def merge_events(existing, incoming, game_id):
 
 
 def project(events):
-    state = {'roles': {}, 'alive': set(), 'winner': None, 'status': 'unknown', 'classifications': {}}
+    # 真人局进行中的事件会按权限过滤，首条 game_created（包含完整 alive）
+    # 可能不可见。默认按十人规则初始化存活席位，避免仅凭公开事件把所有人画成出局。
+    state = {'roles': {}, 'alive': set(range(1, 11)), 'winner': None, 'status': 'unknown', 'classifications': {}}
     for event in events:
         kind = event['type']
         if kind == 'game_created':
@@ -77,6 +79,15 @@ def read_events(root: Path, game_id: str):
     path = game_dir(root, game_id) / 'events.jsonl'
     values = [json.loads(line) for line in path.read_text(encoding='utf-8').splitlines() if line.strip()]
     return merge_events([], values, game_id)
+
+
+def read_state_snapshot(root: Path, game_id: str):
+    """读取本地B状态快照，仅用于主持界面展示，不参与控制。"""
+    path = game_dir(root, game_id) / 'state.json'
+    if not path.is_file():
+        return None
+    value = json.loads(path.read_text(encoding='utf-8'))
+    return value if isinstance(value, dict) and value.get('game_id') == game_id else None
 
 
 def evidence_zip(root: Path, game_id: str):

@@ -7,11 +7,12 @@ EVENT_NAMES = {
     'public_speech': '公开发言', 'utterance_classification': '发言分类',
     'vote': '投票', 'vote_tally': '计票结果', 'exile': '放逐公告',
     'game_over': '对局结束', 'game_limit': '达到对局上限',
-    'game_paused': '暂停记录', 'game_resumed': '继续记录',
-    'agent_reason': '角色私密自述', 'wolf_negotiation': '狼人分歧裁决',
+    'game_paused': '暂停记录', 'game_resumed': '继续记录', 'night_waiting': '夜间行动',
+    'agent_reason': '角色私密自述', 'wolf_negotiation': '狼人分歧裁决', 'wolf_discussion': '狼队讨论',
     'witch_save': '女巫使用解药', 'witch_poison': '女巫使用毒药',
     'hunter_triggered': '猎人触发', 'hunter_shot': '猎人开枪', 'hunter_pass': '猎人放弃开枪',
     'last_words': '遗言', 'waiting_human': '等待真人行动', 'human_action_submitted': '真人提交行动',
+    'model_fallback': '规则兜底行动',
     'wolf_proposal': '狼人击杀提案', 'inspection': '预言家查验',
     'model_failure': '模型调用失败',
     'utterance_classification_failed': '发言分类失败',
@@ -91,11 +92,12 @@ def failure_notice(event):
               'next_step':'保留本局记录，核对后再复测；不要反复点击推进。', 'raw':raw}
     if event['type'] == 'utterance_classification_failed':
         result.update(title='小模型分类未完成', summary='这条发言没有取得可用分类结果，不能当作已分类。',
-                      next_step='保留原句和错误记录，请A/B核对分类服务与接口后复测。')
+                      next_step='原句已保留，对局继续推进；请A/B稍后核对分类服务与接口。')
     elif ((raw.startswith('action ') and 'is not allowed in phase' in raw)
           or raw in {'action must be an object', 'target must be an integer',
                      'target must be alive player 1..6', 'self target is not allowed',
                      'only wolves can kill', 'only seer can inspect', 'speak target must be null',
+                     'speak text must not be empty',
                      'text/reason must be strings within length limits'}):
         result.update(title='行动格式未通过规则检查',
                       summary='模型已返回内容，但行动名称、目标或字段不符合当前游戏协议。',
@@ -107,9 +109,14 @@ def failure_notice(event):
                       next_step='先核对操作状态与原始记录，不要重复发送这一步。')
     elif any(value in raw.lower() for value in ('401', 'unauthorized', '402', 'insufficient balance')):
         result.update(title='模型服务拒绝了请求', summary='请在本机核对API密钥或账户额度，具体原因见原始错误。')
+    elif 'budget exhausted' in raw.lower() or 'request budget' in raw.lower():
+        result.update(title='受控模型预算已用尽',
+                      summary='本次没有发出新的模型请求，当前受控请求预算或次数上限已达到。',
+                      next_step='重启B真实服务后新建对局；费用仍受已授权金额上限保护。')
     return result
 
 
 def latest_failure(events):
+    """返回会阻断现场控制的失败；分类失败只影响标注，不阻断对局。"""
     return next((failure_notice(e) for e in reversed(events)
-                 if e.get('type') in {'model_failure','utterance_classification_failed'}), None)
+                 if e.get('type') == 'model_failure'), None)

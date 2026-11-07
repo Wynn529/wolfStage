@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import inspect
 import os
 from pathlib import Path
 import sys
@@ -16,10 +17,11 @@ from app.ui_client import GameClient, BRevisionClient, ServiceError
 from app.ui_contract import ServiceContract, TERMINAL
 from app.ui_controller import SessionController
 from app.ui_helpers import (LABELS, ROLES, STATUS, PHASES, project,
-                            local_games, read_events, evidence_zip)
-from app.ui_metrics import read_calls, summarize_calls, display_call_rows
+                            local_games, read_events, read_state_snapshot, evidence_zip)
+from app.ui_metrics import read_calls, summarize_calls, display_call_rows, display_call_rows_by_seat
 from app.ui_scene import render_scene
 from app.ui_presenter import EVENT_NAMES, WINNERS, describe_public, player as player_label, tally_rows, vote_rounds, vote_validity, latest_failure
+from app.rules import assign_roles
 
 st.set_page_config(page_title='狼境 · AI圆桌', page_icon='🐺', layout='wide', initial_sidebar_state='collapsed')
 st.markdown("""
@@ -39,7 +41,7 @@ st.markdown("""
 .stButton>button:hover{border-color:#61947b;color:#326a50}
 .stButton>button:focus:not(:active){border-color:#61947b;box-shadow:0 0 0 .1rem #61947b33}
 @media(max-width:800px){[data-testid="stMainBlockContainer"]{padding:1rem .7rem}.brand p{display:none}.brand h1{font-size:20px}}
-</style><div class="brand"><h1>狼境 <span>AI ROUND TABLE</span></h1><p>六位 AI · 一场推理 · 由你观察</p></div>
+</style><div class="brand"><h1>狼境 <span>WOLF STAGE</span></h1><p>十人协同 · AI 与真人共同推理</p></div>
 """,unsafe_allow_html=True)
 ss = st.session_state
 if 'controller' not in ss:
@@ -65,7 +67,7 @@ mode = st.radio('观看方式', ['现场对局', '历史回放'],index=1 if st.q
 if mode=='历史回放':
     st.info('历史回放：查看已保存的过程，播放或移动进度条都不会重新调用模型，也不会产生新的API费用。')
 elif real_mode:
-    st.info('真实 DeepSeek 模式：建局只分配身份；单步推进才可能调用付费模型。本阶段仅开放单步，一次点击可能含多次请求。')
+    st.info('真实模型模式：建局只分配身份；单步推进才可能调用付费模型。一次点击可能含多次请求。')
 
 with st.expander('第一次使用：怎么看、怎么操作', expanded=False):
     st.markdown('1．开始前：选“现场对局”，确认测试额度，再点“开始对局”分配十个身份。')
@@ -76,9 +78,22 @@ with st.expander('第一次使用：怎么看、怎么操作', expanded=False):
 
 with st.sidebar:
     st.header('运行与回放')
-    seed = st.number_input('随机种子 seed',min_value=0,max_value=2147483647,value=42,step=1)
-    human_seats = st.multiselect('真人席位（可多选）', list(range(1, 11)), default=[], help='这些席位轮到行动时会进入等待真人状态。')
-    model_name = st.text_input('AI 默认模型名', os.getenv('DEEPSEEK_MODEL', 'deepseek-flash'))
+    seed = st.number_input('随机种子 seed',min_value=0,max_value=2147483647,value=42,step=1,
+                           help='相同 seed 会复现同一局；更换 seed 可改变身份和首夜目标。')
+    play_mode = st.radio('对局模式', ['全 AI', '真人参与'], horizontal=True)
+    human_seat = st.selectbox('真人席位', list(range(1, 11)), disabled=play_mode == '全 AI')
+    human_role_mode = st.radio('真人身份', ['随机', '指定'], horizontal=True, disabled=play_mode == '全 AI')
+    human_role = st.selectbox('指定身份', ['wolf', 'seer', 'witch', 'hunter', 'villager'],
+                              format_func=lambda value: ROLES[value], disabled=play_mode == '全 AI' or human_role_mode == '随机')
+    human_seats = [human_seat] if play_mode == '真人参与' else []
+    if play_mode == '真人参与' and human_role_mode == '随机':
+        st.caption('随机模式：真人席位从完整十人角色池随机分配，不固定为平民。')
+    default_model = os.getenv('DEEPSEEK_MODEL', 'default-model')
+    configured_models = [item.strip() for item in os.getenv('MODEL_LIST', default_model).split(',') if item.strip()]
+    model_name = st.selectbox('AI 默认模型', configured_models, help='统一设置全部 AI；重复型号合法。')
+    with st.expander('逐席位模型设置', expanded=False):
+        seat_models = {str(i): st.text_input(f'{i} 号模型', model_name, key=f'model_{i}')
+                       for i in range(1, 11) if i not in human_seats}
 
     url = st.text_input('B 服务地址', os.getenv('B_API_URL', 'http://127.0.0.1:8000'))
     st.caption('默认端口：A分类8765、B游戏8000、网页8501；自定义时以启动输出及B地址为准。')
@@ -114,8 +129,11 @@ def render_details(events, status, phase, metrics, game_id, live):
         st.caption('当前游标尚无事件。')
         return
     state = project(events)
+    snapshot = read_state_snapshot(runs, game_id) if game_id else None
+    seat_controllers = snapshot.get('seat_controllers', {}) if isinstance(snapshot, dict) else {}
+    human_view = isinstance(seat_controllers, dict) and any(value == 'human' for value in seat_controllers.values())
     ids = [int(e['event_id']) for e in events]
-    if ids != list(range(1, max(ids)+1)):
+    if ids != list(range(1, max(ids)+1)) and not human_view:
         st.error('事件编号不连续：页面不会补造事件，请核对B原始记录。')
     sources = sorted({str(e.get('source', 'unknown')) for e in events})
     st.caption('事件来源：' + ' / '.join(sources) + '；含stub的局不能作为全真实API对局证据。')
@@ -124,11 +142,16 @@ def render_details(events, status, phase, metrics, game_id, live):
     cols[1].metric('阶段', PHASES.get(phase, str(phase or '按事件回放')))
     cols[2].metric('存活人数', len(state['alive']))
     cols[3].metric('最后显示 event_id', max(ids))
-    cards = st.columns(6)
-    for player, card in enumerate(cards, 1):
+    role_source = snapshot.get('roles') if isinstance(snapshot, dict) else state['roles']
+    player_count = len(role_source) if isinstance(role_source, dict) and role_source else (
+        10 if any(event.get('rules_version') == 'rules-v2.0-ten' for event in events) else 6)
+    cards = st.columns(5)
+    for player in range(1, player_count + 1):
+        card = cards[(player - 1) % len(cards)]
         with card:
             st.subheader(f'{player} 号')
-            st.write(ROLES.get(state['roles'].get(player), '身份未提供'))
+            role = role_source.get(str(player), role_source.get(player)) if isinstance(role_source, dict) else None
+            st.write(ROLES.get(role or state['roles'].get(player), '身份未提供'))
             st.caption('存活' if player in state['alive'] else '已出局')
     if state['winner']:
         st.success('终局：' + WINNERS.get(state['winner'],state['winner']))
@@ -211,6 +234,9 @@ def render_details(events, status, phase, metrics, game_id, live):
                 st.caption(check['notice'])
                 if check['rows']:
                     st.dataframe(display_call_rows(check['rows']),hide_index=True,use_container_width=True)
+                if calls:
+                    st.caption('按席位与实际型号核对调用；缺失用量不会显示为 0。')
+                    st.dataframe(display_call_rows_by_seat(calls), hide_index=True, use_container_width=True)
                 for key,info in check['usage'].items():
                     usage_name = {'input_tokens':'输入token用量','output_tokens':'输出token用量'}[key]
                     st.write(f'{usage_name}：{info["display"]}；缺失{info["missing"]}次；不适用{info["not_applicable"]}次')
@@ -226,7 +252,7 @@ def render_details(events, status, phase, metrics, game_id, live):
         st.json(events,expanded=False)
 
 
-def render_events(events, status, phase, metrics, game_id, live):
+def render_events(events, status, phase, metrics, game_id, live, cursor=None, human_player_id=None):
     actual_phase = phase or (events[-1].get('phase') if events else 'night')
     night = actual_phase == 'night'
     bg, fg = ('#101e2e','#e1eaf0') if night else ('#f2f4e9','#314737')
@@ -246,17 +272,157 @@ def render_events(events, status, phase, metrics, game_id, live):
         if notice['raw']:
             with st.expander('查看本步原始错误', expanded=False):
                 st.code(notice['raw'], language=None)
+    fallback = next((event for event in reversed(events) if event.get('type') == 'model_fallback'), None)
+    if fallback:
+        fallback_error = str(fallback.get('error') or '')
+        if 'budget exhausted' in fallback_error.lower() or 'request budget' in fallback_error.lower():
+            st.error('受控模型预算已用尽：本步没有发出新的 DeepSeek 请求，当前显示的是规则兜底发言。请重启真实服务并使用新的授权预算后再开始新局。')
+        else:
+            st.warning(f"模型未完成本步，已使用规则兜底继续（{fallback.get('action', 'pass')}）。原始原因已写入对局记录。")
     elif status=='paused':
         st.info('已暂停。点击“继续”解除暂停后，再选择下一步；不会自动发送模型请求。')
     elif status=='finished':
         st.success('本局已结束，可在历史回放中查看过程和导出原始记录。')
     controller = ss.controller if live else None
     render_scene(events,status=status,phase=actual_phase,metrics=metrics,game_id=game_id,
-                 replay=not live,busy=bool(controller and controller.busy),
-                 message=controller.message if controller else '')
+                 replay=not live,busy=bool(controller and controller.busy), cursor=cursor,
+                 message=controller.message if controller else '',
+                 human_player_id=human_player_id)
+    if live and game_id and not events and isinstance(cursor, int) and cursor > 0:
+        successful = metrics.get('successful_calls') if isinstance(metrics, dict) else None
+        if isinstance(successful, int) and successful > 0:
+            st.success(f'模型已返回 {successful} 次成功调用；当前服务端事件游标 {cursor}。私密行动按真人权限隐藏。')
+        else:
+            st.info(f'对局已推进到服务端事件游标 {cursor}；当前没有可公开显示的事件。')
+    if game_id:
+        render_speech_log(events)
+        render_identity_overview(game_id)
     if events:
         with st.expander('检查记录 · 完整事件 / 投票原件 / 调用统计', expanded=False):
             render_details(events,status,phase,metrics,game_id,live)
+
+
+def render_speech_log(events):
+    """给真人席位提供持续可查看的公开发言记录。"""
+    speeches = [event for event in events
+                if event.get('type') in {'public_speech', 'last_words'}
+                and event.get('visibility') == 'public'
+                and isinstance(event.get('text'), str)]
+    with st.expander('公开发言记录（所有玩家）', expanded=True):
+        if not speeches:
+            st.caption('暂时没有公开发言；夜间私密行动不会显示在这里。')
+            return
+        for event in speeches:
+            day = event.get('day', '?')
+            actor = event.get('actor', '?')
+            label = '遗言' if event.get('type') == 'last_words' else '公开发言'
+            st.markdown(f'**第{day}天 · {actor}号 · {label}**')
+            st.write(event['text'].strip() or '（空发言：原始记录未提供文本）')
+            st.divider()
+
+
+def render_identity_overview(game_id):
+    snapshot = read_state_snapshot(runs, game_id)
+    if not snapshot or not isinstance(snapshot.get('roles'), dict):
+        return
+    with st.expander('身份总览（主持视角）', expanded=False):
+        st.caption('仅用于主持和真人操作核对，不会写入其他玩家的模型上下文。')
+        columns = st.columns(5)
+        alive = set(snapshot.get('alive', []))
+        for index, (seat, role) in enumerate(sorted(snapshot['roles'].items(), key=lambda item: int(item[0]))):
+            seat_id = int(seat)
+            with columns[index % 5]:
+                st.markdown(f'**{seat_id}号** · {ROLES.get(role, role)}')
+                st.caption('存活' if seat_id in alive else '已出局')
+
+
+@st.dialog('身份确认')
+def show_identity_dialog(game_id, role):
+    st.markdown(f'### 你的身份是：{ROLES.get(role, role or "未提供")}')
+    st.caption('身份只对你本人显示。请确认后进入对局。')
+    if st.button('确认进入对局', type='primary', key=f'identity_ack_button_{game_id}'):
+        ss[f'identity_ack_{game_id}'] = True
+        st.rerun()
+
+
+def render_human_action(controller):
+    """真人席位只提交服务端允许动作；不收集或展示“依据”字段。"""
+    if not controller or controller.status != 'waiting_human':
+        return
+    try:
+        pending = controller.client.pending_action(controller.game_id)
+    except ServiceError as exc:
+        st.warning('真人待操作暂时无法读取：' + str(exc))
+        return
+    if not isinstance(pending, dict) or not isinstance(pending.get('actor'), int):
+        st.warning('服务正在等待真人，但未返回合法待操作信息；请刷新状态。')
+        return
+    actor = pending['actor']; phase = pending.get('phase', controller.phase)
+    controller.human_player_id = actor
+    st.subheader(f'你的回合 · {actor} 号玩家')
+    snapshot = read_state_snapshot(runs, controller.game_id) or {}
+    roles = {int(key): value for key, value in (snapshot.get('roles') or {}).items()}
+    alive = {int(value) for value in snapshot.get('alive', [])}
+    actor_role = roles.get(actor)
+    if actor_role == 'wolf':
+        teammates = [seat for seat, role in sorted(roles.items())
+                     if role == 'wolf' and seat != actor and seat in alive]
+        st.info('你的狼队队友：' + ('、'.join(f'{seat}号' for seat in teammates) if teammates else '暂无存活队友'))
+    identity = None
+    try:
+        identity = controller.client.identity(controller.game_id, actor)
+        st.success(f'你的身份：{ROLES.get(identity.get("role"), identity.get("role", "未提供"))} · '
+                   + ('存活' if identity.get('alive') else '已出局'))
+    except ServiceError:
+        st.caption('本人身份暂未读取成功；操作权限仍以服务端校验为准。')
+    st.info(f'当前阶段：{PHASES.get(phase, phase)}。提交成功后由服务继续推进；请勿重复点击。')
+    if phase in {'day_speak', 'last_words'}:
+        kind = 'speak' if phase == 'day_speak' else 'last_words'
+        text_value = st.text_area('公开发言' if kind == 'speak' else '遗言', key=f'human_text_{controller.game_id}_{pending.get("action_id")}')
+        action = {'action': kind, 'target': None, 'text': text_value, 'reason': ''}
+    else:
+        options = {'night': ['kill', 'inspect', 'save', 'poison', 'pass'],
+                   'day_vote': ['vote', 'pass'], 'hunter_action': ['shoot', 'pass']}.get(phase, ['pass'])
+        kind = st.selectbox('行动', options, format_func=lambda value: {
+            'kill':'狼人击杀提案', 'inspect':'预言家查验', 'save':'女巫使用解药',
+            'poison':'女巫使用毒药', 'vote':'投票', 'shoot':'猎人开枪', 'pass':'放弃/弃票'}[value],
+            key=f'human_kind_{controller.game_id}_{pending.get("action_id")}')
+        target = None
+        if kind in {'kill', 'inspect', 'poison', 'vote', 'shoot'}:
+            if actor_role == 'wolf' and kind == 'kill':
+                targets = [seat for seat in sorted(alive) if seat != actor and roles.get(seat) != 'wolf']
+            else:
+                targets = [seat for seat in range(1, 11) if seat in alive and seat != actor]
+            if not targets:
+                st.warning('当前没有合法目标，暂时只能选择放弃。')
+            target = st.selectbox('目标席位', targets or [actor], key=f'human_target_{controller.game_id}_{pending.get("action_id")}')
+        discussion = ''
+        if actor_role == 'wolf' and phase == 'night':
+            discussion = st.text_area('狼队讨论 / 行动理由（仅狼人和主持可见）',
+                                      key=f'human_wolf_discussion_{controller.game_id}_{pending.get("action_id")}')
+            if st.button('发送狼队讨论', key=f'wolf_discussion_{controller.game_id}_{pending.get("action_id")}'):
+                try:
+                    result = controller.client.wolf_discussion(controller.game_id, actor, discussion,
+                                                               expected_cursor=controller.cursor)
+                    if result.get('status') in {'rejected', 'conflict'}:
+                        st.error('狼队讨论未发送：' + str(result.get('error', '请刷新状态')))
+                    else:
+                        controller.refresh(); st.rerun()
+                except (ServiceError, ValueError, OSError) as exc:
+                    st.error('狼队讨论未确认：' + str(exc))
+        action = {'action': kind, 'target': target, 'text': discussion, 'reason': discussion}
+    if st.button('提交真人操作', type='primary', key=f'human_submit_{controller.game_id}_{pending.get("action_id")}'):
+        try:
+            result = controller.client.human_action(controller.game_id, actor, action,
+                action_id=pending.get('action_id', ''), expected_cursor=controller.cursor,
+                operation_id=uuid.uuid4().hex)
+            if result.get('status') in {'rejected', 'conflict'}:
+                st.error('服务拒绝本次操作：' + str(result.get('error', '请刷新待操作')))
+            else:
+                controller.error = ''
+                controller.refresh(); st.rerun()
+        except (ServiceError, ValueError, OSError) as exc:
+            st.error('真人操作未确认：' + str(exc))
 
 
 @st.fragment(run_every=.5)
@@ -268,6 +434,16 @@ def live_panel():
         return
     if controller:
         controller.tick(refresh=controller.needs_poll)
+        # 旧契约也可通过独立待操作接口识别真人等待，避免前端以持续推进绕过真人输入。
+        try:
+            pending = client.pending_action(controller.game_id)
+            if isinstance(pending, dict) and isinstance(pending.get('actor'), int):
+                controller.status = 'waiting_human'
+                controller.phase = pending.get('phase') or controller.phase
+                controller.human_game = True
+                controller.human_player_id = pending['actor']
+        except ServiceError:
+            pass
     controls = st.columns([1.35,1,1,1,1,1,1])
     if controls[0].button('开始对局',type='primary',disabled=bool(ss.create_uncertain or (controller and controller.busy)),help='创建一场新局并分配身份，不调用付费模型；已有对局记录会保留。'):
         try:
@@ -275,11 +451,28 @@ def live_panel():
             ss.create_operation_id=uuid.uuid4().hex
             ss.create_uncertain=True
             controllers = {str(i): ('human' if i in human_seats else 'ai') for i in range(1, 11)}
-            model_configs = {str(i): {'provider': 'deepseek', 'model': model_name, 'model_name': model_name, 'model_version': model_name} for i in range(1, 11) if i not in human_seats}
-            response = client.create(int(seed), seat_controllers=controllers, seat_model_configs=model_configs)
+            model_configs = {str(i): {'provider': 'configured', 'model': seat_models.get(str(i), model_name),
+                                      'model_name': seat_models.get(str(i), model_name),
+                                      'model_version': seat_models.get(str(i), model_name)}
+                             for i in range(1, 11) if i not in human_seats}
+            role_config = None
+            if play_mode == '真人参与' and human_role_mode == '指定':
+                # 服务端要求完整合法角色表；在本地只做席位交换，不改角色总量。
+                configured = assign_roles(int(seed))
+                holder = next(seat for seat, role in configured.items() if role == human_role)
+                configured[human_seat], configured[holder] = configured[holder], configured[human_seat]
+                role_config = {str(seat): role for seat, role in configured.items()}
+            create_kwargs = {'role_config': role_config, 'seat_controllers': controllers,
+                             'seat_model_configs': model_configs}
+            # 兼容旧联调替身只接受 seed 的建局函数；真实客户端始终使用完整配置。
+            if 'role_config' in inspect.signature(client.create).parameters:
+                response = client.create(int(seed), **create_kwargs)
+            else:
+                response = client.create(int(seed))
             if controller:
                 controller.close()
             controller = SessionController(client,response['game_id'],seed=int(seed),
+                human_game=bool(human_seats), human_player_id=human_seat if human_seats else None,
                 journal=journals/(response['game_id']+'_'+uuid.uuid4().hex[:8]+'.jsonl'))
             controller.status=response['status']
             controller.phase=response.get('phase')
@@ -300,12 +493,25 @@ def live_panel():
         return
     ss.game_id=controller.game_id
     ss.events=controller.events
+    if controller.human_game and controller.human_player_id and not ss.get(f'identity_ack_{controller.game_id}'):
+        try:
+            initial_identity = controller.client.identity(controller.game_id, controller.human_player_id)
+            show_identity_dialog(controller.game_id, initial_identity.get('role'))
+        except ServiceError:
+            pass
     # 让等待和暂停状态直接可见，不必打开检查记录。
     if controller.busy or controller.pause_intent:
         st.info(controller.message + ' 当前一步仍在处理，请勿重复点击；页面会自动更新。')
+    elif controller.status == 'waiting_human':
+        st.warning('现在轮到真人行动。单步推进已暂停，请在下方“你的回合”区域提交行动。')
     else:
-        st.caption('真实模式准备就绪：确认额度后再单步测试；自动运行暂未开放'
-                   if real_mode and controller.status=='running' else '本局已停止，请查看下面的具体原因' if latest_failure(controller.events) else controller.message)
+        notice = latest_failure(controller.events)
+        if notice and (controller.fatal or controller.status in TERMINAL):
+            st.caption('本局已停止，请查看下面的具体原因')
+        elif notice:
+            st.warning(f'{notice["title"]}，原句已保留，对局继续推进。')
+        else:
+            st.caption(controller.message)
     if controller.error and not latest_failure(controller.events):
         st.error(controller.error)
         st.caption('先刷新事件或核对控制记录；结果未确认前不要重复提交。')
@@ -341,7 +547,9 @@ def live_panel():
         except (ValueError,OSError) as exc:
             controller.fail(str(exc))
         st.rerun()
-    render_events(controller.events,controller.status,controller.phase,controller.metrics,controller.game_id,True)
+    render_events(controller.events,controller.status,controller.phase,controller.metrics,controller.game_id,True,
+                  cursor=controller.cursor, human_player_id=controller.human_player_id)
+    render_human_action(controller)
 
 
 @st.fragment(run_every=1)

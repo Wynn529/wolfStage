@@ -1,0 +1,29 @@
+{
+  "game_id": "44f687056f02",
+  "date": "2026-11-07",
+  "mode": "in_process_real_api",
+  "model": "deepseek-flash",
+  "human_seat": 1,
+  "human_role": "wolf",
+  "human_action": {
+    "target": 7,
+    "action": "kill"
+  },
+  "human_wait_status": "waiting_human",
+  "human_submit_status": "running",
+  "ai_actor": 2,
+  "ai_call_success": true,
+  "ai_event_type": "wolf_proposal",
+  "ai_event_target": 7,
+  "ai_response_id": "fd9d62b2-3141-4b3d-9a44-5d9e6f274bb3",
+  "input_tokens": 531,
+  "output_tokens": 39,
+  "event_types": [
+    "game_created",
+    "waiting_human",
+    "human_action_submitted",
+    "wolf_proposal",
+    "wolf_proposal",
+    "agent_reason"
+  ]
+}

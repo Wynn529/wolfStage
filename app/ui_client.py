@@ -39,8 +39,9 @@ class GameClient:
         except (URLError, TimeoutError, OSError, ValueError) as exc:
             raise ServiceError('请求未确认完成；不会自动重发控制请求，请只读查询恢复。') from exc
 
-    def create(self, seed: int, *, seat_controllers=None, seat_model_configs=None):
+    def create(self, seed: int, *, role_config=None, seat_controllers=None, seat_model_configs=None):
         payload = {'seed': seed}
+        if role_config is not None: payload['role_config'] = role_config
         if seat_controllers is not None: payload['seat_controllers'] = seat_controllers
         if seat_model_configs is not None: payload['seat_model_configs'] = seat_model_configs
         result = self._request('POST', '/games', payload)
@@ -65,8 +66,11 @@ class GameClient:
             raise ServiceError('控制响应局号不匹配或格式无效；结果需查询确认。')
         return result
 
-    def events(self, game_id: str, after: int = 0):
-        query = urlencode({'view': 'god', 'after_event_id': after})
+    def events(self, game_id: str, after: int = 0, *, view: str = 'god', player_id: int | None = None):
+        query_values = {'view': view, 'after_event_id': after}
+        if player_id is not None:
+            query_values['player_id'] = player_id
+        query = urlencode(query_values)
         result = self._request('GET', f'/games/{quote(game_id, safe="")}/events?{query}')
         if not isinstance(result, list):
             raise ServiceError('事件响应必须是列表')
@@ -78,9 +82,39 @@ class GameClient:
             raise ServiceError('统计响应局号不匹配或格式无效')
         return result
 
+    def pending_action(self, game_id: str):
+        result = self._request('GET', f'/games/{quote(game_id, safe="")}/pending-action')
+        if result is not None and not isinstance(result, dict):
+            raise ServiceError('待操作响应必须是对象或空值')
+        return result
+
+    def game_has_human(self, game_id: str):
+        """只读探测席位控制器，用于识别真人局的权限过滤事件。"""
+        result = self._request('GET', f'/games/{quote(game_id, safe="")}/status')
+        controllers = result.get('seat_controllers') if isinstance(result, dict) else None
+        return isinstance(controllers, dict) and any(value == 'human' for value in controllers.values())
+
+    def identity(self, game_id: str, player_id: int):
+        result = self._request('GET', f'/games/{quote(game_id, safe="")}/players/{player_id}/identity')
+        if not isinstance(result, dict) or result.get('game_id') != game_id:
+            raise ServiceError('本人身份响应无效')
+        return result
+
+    def models(self):
+        """读取可用模型清单；服务未提供时由页面使用本地配置兜底。"""
+        result = self._request('GET', '/models')
+        if not isinstance(result, (list, dict)):
+            raise ServiceError('模型列表响应必须是列表或对象')
+        return result
+
     def human_action(self, game_id: str, player_id: int, action: dict, *, action_id: str, expected_cursor: int, operation_id: str):
         return self._request('POST', f'/games/{quote(game_id, safe="")}/players/{player_id}/action', {
             'action': action, 'action_id': action_id, 'expected_cursor': expected_cursor, 'operation_id': operation_id
+        })
+
+    def wolf_discussion(self, game_id: str, player_id: int, text: str, *, expected_cursor: int):
+        return self._request('POST', f'/games/{quote(game_id, safe="")}/players/{player_id}/wolf-discussion', {
+            'text': text, 'expected_cursor': expected_cursor
         })
 
     def state(self, game_id):
@@ -106,6 +140,9 @@ class GameClient:
 class BRevisionClient(GameClient):
     """B 3898b95 的部分兼容；推进可查询，暂停/继续没有操作查询保证。"""
     advance_query_supported = True
+    # 真人局进行中的上帝视角会过滤私密事件，因此返回事件编号可能有间隔；
+    # 控制游标仍以 /status 返回的服务端 cursor 为准。
+    allows_filtered_event_gaps = True
 
     def control(self, game_id, action, *, operation_id=None, expected_event_id=None):
         if action not in {'advance', 'pause', 'resume'}:
@@ -127,7 +164,7 @@ class BRevisionClient(GameClient):
     def service_status(self, game_id):
         value = self._request('GET', f'/games/{quote(game_id, safe="")}/status')
         if (not isinstance(value, dict) or value.get('game_id') != game_id
-                or value.get('status') not in {'running','waiting_model','paused','finished','failed','incomplete'}
+                or value.get('status') not in {'running','waiting_model','waiting_human','paused','finished','failed','incomplete'}
                 or type(value.get('cursor')) is not int or value['cursor'] < 0
                 or not isinstance(value.get('phase'), str) or not value['phase']):
             raise ServiceError('B状态响应无效。')

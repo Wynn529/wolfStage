@@ -87,6 +87,8 @@ class GameEngine:
                 error = check_action(state, actor, action); retryable = error is not None; stage = "action_validation" if error else None
             except Exception as exc:
                 action = {"action": "pass", "target": None, "text": "", "reason": str(exc)}; metadata = dict(getattr(self.agent, "last_metadata", {}) or {}); metadata.update(getattr(exc, "metadata", {}) or {}); error = str(exc); retryable = isinstance(exc, ModelOutputError); stage = "output_parsing" if retryable else "request"
+                retryable = retryable or any(token in error.lower() for token in
+                                             ("500", "502", "503", "504", "timed out", "ssl", "unexpected_eof"))
             call = dict(base, attempt=attempt, success=error is None, validation_error=error, failure_stage=stage, latency_ms=metadata.get("latency_ms"), input_tokens=metadata.get("input_tokens"), output_tokens=metadata.get("output_tokens"), model_name=metadata.get("model_name", base["model_name"]), model_version=metadata.get("model_version", base["model_version"]))
             for key in ("prompt_hash", "response_id", "returned_model", "request_evidence", "request_sha256"):
                 if key in metadata: call[key] = metadata[key]
@@ -96,8 +98,31 @@ class GameEngine:
             self.store.append_error(state.game_id, {"event_id": state.event_id + 1, "actor": actor, "attempt": attempt, "error": error, "failure_stage": stage})
             if attempt == 1 and retryable:
                 context = dict(context, validation_error=error); continue
-            state.status = "failed"; self._event(state, "model_failure", [actor], actor=actor, error=error); return {"action": "pass", "target": None, "text": "", "reason": error}
+            fallback = self._fallback_action(state, actor, error)
+            state.status = "running"
+            self._event(state, "model_fallback", [actor, "host", "god"], actor=actor,
+                        error=error, action=fallback["action"], target=fallback.get("target"))
+            return fallback
         return {"action": "pass", "target": None, "text": "", "reason": "unreachable"}
+
+    def _fallback_action(self, state: GameState, actor: int, error: str) -> dict[str, Any]:
+        """模型失败时生成当前阶段一定合法的最小行动。"""
+        role = state.roles.get(actor)
+        if state.phase == "day_speak":
+            return {"action": "speak", "target": None,
+                    "text": f"{actor}号暂按公开信息发言，等待更多玩家提供判断。", "reason": "model fallback"}
+        if state.phase == "day_vote":
+            return {"action": "pass", "target": None, "text": "", "reason": "model fallback"}
+        if state.phase == "night" and role == "wolf":
+            targets = [p for p in sorted(state.alive) if p != actor and state.roles.get(p) != "wolf"]
+            if targets:
+                target = targets[((state.seed or 0) + state.day + actor) % len(targets)]
+                return {"action": "kill", "target": target, "text": "", "reason": "model fallback"}
+        if state.phase == "night" and role == "seer":
+            targets = [p for p in sorted(state.alive) if p != actor and p not in state.inspection_history]
+            if targets:
+                return {"action": "inspect", "target": targets[0], "text": "", "reason": "model fallback"}
+        return {"action": "pass", "target": None, "text": "", "reason": "model fallback"}
 
     def _action_for(self, state: GameState, actor: int) -> dict[str, Any] | None:
         if state.seat_controllers.get(actor, "ai") == "human":
@@ -115,8 +140,31 @@ class GameEngine:
             error = check_action(state, actor, action)
             if error: self.store.append_error(game_id, {"actor": actor, "error": error, "source": "human"}); return {"game_id": game_id, "status": "rejected", "error": error}
             state.pending["submitted_action"] = action; state.pending_action = None; state.status = "running"; self._event(state, "human_action_submitted", [actor, "host", "god"], actor=actor, action=action, source="human")
+            if state.phase == "night" and state.roles.get(actor) == "wolf":
+                discussion = action.get("text") or action.get("reason")
+                if discussion:
+                    wolves = [p for p in state.alive if state.roles.get(p) == "wolf"]
+                    self._event(state, "wolf_discussion", wolves + ["host", "god"], actor=actor,
+                                text=discussion, source="human")
             self.store.write_state(game_id, state.to_dict())
             return self._advance_one_event_locked(game_id, operation_id)
+
+    def submit_wolf_discussion(self, game_id: str, actor: int, text: str, *, expected_cursor: int | None = None) -> dict[str, Any]:
+        with self._locks[game_id]:
+            state = self.games[game_id]
+            if state.seat_controllers.get(actor) != "human" or state.roles.get(actor) != "wolf":
+                return {"game_id": game_id, "status": "rejected", "error": "seat_is_not_human_wolf"}
+            if state.status != "waiting_human" or not state.pending_action or state.pending_action.get("actor") != actor:
+                return {"game_id": game_id, "status": "rejected", "error": "not_waiting_for_wolf"}
+            if expected_cursor is not None and expected_cursor != state.event_id:
+                return {"game_id": game_id, "status": "conflict", "error": "cursor_conflict", "cursor": state.event_id}
+            if not isinstance(text, str) or not text.strip() or len(text) > 500:
+                return {"game_id": game_id, "status": "rejected", "error": "discussion_text_invalid"}
+            wolves = [p for p in state.alive if state.roles.get(p) == "wolf"]
+            self._event(state, "wolf_discussion", wolves + ["host", "god"], actor=actor,
+                        text=text.strip(), source="human")
+            self.store.write_state(game_id, state.to_dict())
+            return {"game_id": game_id, "status": "accepted", "cursor": state.event_id}
 
     def _consume_action(self, state: GameState, actor: int) -> dict[str, Any] | None:
         action = state.pending.pop("submitted_action", None)
@@ -215,7 +263,7 @@ class GameEngine:
                     try:
                         result = self.classifier(state.game_id, event["event_id"], actor, event["text"]); state.classification_by_event[event["event_id"]] = result; self.store.append_call(state.game_id, {"call_id": f"{state.game_id}:small:{event['event_id']}", "game_id": state.game_id, "event_id": event["event_id"], "phase": state.phase, "caller_type": "small_model", "agent_id": actor, "model_name": getattr(self.classifier, "model_name", "small-model"), "model_version": result.get("model_version"), "input_visibility": "public", "input_event_ids": [event["event_id"]], "attempt": 1, "success": True, "fallback": False})
                         self._event(state, "utterance_classification", "public", source_event_id=event["event_id"], result=result, source=getattr(self.classifier, "model_name", "a-classifier"))
-                    except Exception as exc: self.store.append_error(game_id, {"event_id": event["event_id"], "error": str(exc), "caller_type": "a_classifier"}); self._event(state, "utterance_classification_failed", "host", source_event_id=event["event_id"], error=str(exc), fallback=True)
+                    except Exception as exc: self.store.append_error(game_id, {"event_id": event["event_id"], "error": str(exc), "caller_type": "a_classifier"}); self._event(state, "utterance_classification_failed", "public", source_event_id=event["event_id"], error="分类服务暂不可用", fallback=True)
                 return self._response(state, operation_id)
             state.phase = "day_vote"; return self._response(state, operation_id)
         if state.phase == "day_vote":
@@ -256,13 +304,24 @@ class GameEngine:
     def get_status(self, game_id: str) -> dict[str, Any]:
         s = self.games[game_id]; return {"game_id": game_id, "status": s.status, "pause_requested": s.pause_requested, "phase": s.phase, "day": s.day, "cursor": s.event_id, "winner": s.winner, "pending_action": s.pending_action, "seat_controllers": s.seat_controllers}
 
+    def get_player_identity(self, game_id: str, player_id: int) -> dict[str, Any]:
+        s = self.games[game_id]
+        if s.seat_controllers.get(player_id) != "human":
+            raise ValueError("seat_is_not_human")
+        return {"game_id": game_id, "player_id": player_id, "role": s.roles[player_id],
+                "alive": player_id in s.alive}
+
     def get_operation(self, game_id: str, operation_id: str) -> dict[str, Any]:
         s = self.games[game_id]
         return {"game_id": game_id, "operation_id": operation_id, "status": "completed" if operation_id in s.operation_results else "unknown", "result": s.operation_results.get(operation_id)}
 
     def get_events(self, game_id: str, after_event_id: int = 0, view: str = "god", player_id: int | None = None) -> list[dict[str, Any]]:
         s = self.games[game_id]; events = [e for e in self.store.read(game_id) if e["event_id"] > after_event_id]
-        if view == "god" and s.status not in {"finished", "incomplete"}: return [e for e in events if e.get("visibility") == "public"]
+        # 全 AI 观战可在进行中查看上帝信息；真人局进行中只返回公开事件，避免把私密理由放入客户端。
+        if view == "god" and s.status not in {"finished", "incomplete"}:
+            if any(controller == "human" for controller in s.seat_controllers.values()):
+                return [e for e in events if e.get("visibility") == "public"]
+            return events
         viewer = player_id if player_id is not None else (int(view) if str(view).isdigit() else None)
         if view == "god": return events
         if viewer is None: return [e for e in events if e.get("visibility") == "public"]
