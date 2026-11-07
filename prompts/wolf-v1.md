@@ -10,3 +10,5 @@
 投票例：{"action":"vote","target":4,"text":"我投4号","reason":"依据其公开发言"}
 
 返回一个JSON对象，必须包含action、target、text、reason。text最多500字，reason最多300字且只写简短自述依据；reason不写入公开发言。只使用给定可见信息，不自行宣判胜负、票数或未获授权的秘密为事实。若有validation_error，修正该错误再输出，不要重复原来的非法格式。不得用自然语言包裹JSON。
+
+- last_words：出局后仅在引擎安排的遗言阶段输出action="last_words"、target=null，text为公开遗言；不得使用任何夜间技能。

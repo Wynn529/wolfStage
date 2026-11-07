@@ -206,6 +206,19 @@ class SessionController:
 
     def refresh(self):
         try:
+            access = getattr(self.client, 'game_access', None)
+            if callable(access):
+                try:
+                    info = access(self.game_id)
+                except ServiceError:
+                    info = {}
+                if info.get('restricted'):
+                    actor = info.get('human_player_id')
+                    if type(actor) is not int: raise ValueError('服务端真人席位未确认')
+                    self.human_game = True; self.human_player_id = actor
+                    self.events = [e for e in self.events if e.get('visibility') == 'public' or
+                                   isinstance(e.get('visibility'), list) and actor in e['visibility']]
+                    self.metrics = {}; self.snapshot = None
             snapshot = self.client.state(self.game_id) if self.client.contract.ready else None
             event_view = str(self.human_player_id) if self.human_game and self.human_player_id else 'god'
             incoming = self.client.events(self.game_id, self.cursor, view=event_view,

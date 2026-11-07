@@ -127,7 +127,7 @@ def test_streamlit_controls_use_b_and_attach_actual_a_labels(tmp_path, monkeypat
     from app.agents import StubAgent
     from app.classifier import AHttpClassifier
     from app.engine import GameEngine
-    from model.server_v031 import make_server
+    from model.server_v04 import make_server
     from streamlit.testing.v1 import AppTest
 
     monkeypatch.delenv('C_SERVICE_CONTRACT',raising=False)
@@ -174,13 +174,17 @@ def test_streamlit_controls_use_b_and_attach_actual_a_labels(tmp_path, monkeypat
         click('暂停')
         assert engine.games[gid].status == 'paused'
         click('继续')
-        for _ in range(5):
+        for _ in range(25):
+            if any(e['type']=='utterance_classification' for e in app.session_state['controller'].events):
+                break
             click('单步推进')
         app.run(timeout=20)
         events = app.session_state['controller'].events
         assert any(e['type']=='utterance_classification' for e in events), (app.session_state['controller'].error, app.session_state['controller'].status, [e['type'] for e in events])
         label = next(e for e in events if e['type'] == 'utterance_classification')
-        assert label['result']['entity_rule_version'] == 'entity-rules-v0.3.1'
+        assert label['result']['entity_rule_version'] == 'entity-rules-v0.4'
+        assert label['result']['model_version'] == 'small-intent-v0.2-ten-player'
+        assert label['source_event_id'] in {e['event_id'] for e in events if e['type']=='public_speech'}
         assert label['result']['confidence'] is None
         before = len(engine.store.read_calls(gid))
         click('刷新事件')
@@ -188,7 +192,7 @@ def test_streamlit_controls_use_b_and_attach_actual_a_labels(tmp_path, monkeypat
         assert len({e['event_id'] for e in app.session_state['events']}) == len(app.session_state['events'])
 
         # 完整离线对局经同一网页控制完成，再切本机回放；不算真实API场次。
-        for _ in range(100):
+        for _ in range(250):
             if engine.games[gid].status != 'running':
                 break
             click('单步推进')
@@ -240,7 +244,7 @@ def test_streamlit_controls_use_b_and_attach_actual_a_labels(tmp_path, monkeypat
 def test_scene_projects_only_current_prefix_and_separates_action_from_speech():
     from app.ui_scene import scene_model
     values = [
-        event(1,'game_created',roles={'1':'villager','2':'wolf','3':'seer'},alive=[1,2,3],phase='night'),
+        event(1,'game_created',roles={'1':'villager','2':'wolf','3':'seer','4':'wolf','5':'wolf','6':'witch','7':'hunter','8':'villager','9':'villager','10':'villager'},alive=list(range(1,11)),phase='night'),
         event(2,'wolf_proposal',actor=2,target=1,visibility=[2],source='stub',phase='night'),
         event(3,'night_death',target=1,visibility='public',phase='night'),
         event(4,'public_speech',actor=2,text='<b>我是2号</b>',visibility='public',phase='day_speak'),
@@ -249,7 +253,7 @@ def test_scene_projects_only_current_prefix_and_separates_action_from_speech():
         event(7,'game_over',winner='villagers',visibility='public',phase='day_vote'),
     ]
     idle=scene_model([])
-    assert len(idle['players'])==6 and all(p['role'] is None and p['alive'] for p in idle['players'])
+    assert len(idle['players'])==10 and all(p['role'] is None and p['alive'] for p in idle['players'])
     night=scene_model(values[:2])
     assert night['night'] and night['current']['private'] and not night['current']['speech']
     assert night['current']['actor']==2 and night['current']['target']==1

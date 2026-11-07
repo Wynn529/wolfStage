@@ -123,7 +123,7 @@ def test_legacy_timeout_remains_locked_after_read_refresh(tmp_path):
         contract=ServiceContract()
         base_url='http://legacy-test'
         def control(self,*args,**kwargs):raise ServiceError('timeout')
-        def events(self,gid,after=0):
+        def events(self,gid,after=0,*,view="god",player_id=None):
             return [{'game_id':gid,'event_id':1,'type':'game_created','roles':{},'alive':[]} ] if after==0 else []
         def metrics(self,gid):return {'game_id':gid,'call_count':0}
     c=SessionController(LegacyClient(),'g',journal=tmp_path/'legacy.jsonl')
@@ -293,7 +293,7 @@ def test_streamlit_legacy_ambiguous_timeout_disables_controls(tmp_path,monkeypat
     monkeypatch.setenv('C_JOURNAL_DIR',str(tmp_path/'journals'))
     calls=[]
     def create(self,seed):return {'game_id':'g','status':'running','phase':'night'}
-    def events(self,gid,after=0):
+    def events(self,gid,after=0,*,view="god",player_id=None):
         return [{'game_id':'g','event_id':1,'type':'game_created','roles':{},'alive':[]}] if not after else []
     def control(self,gid,action,**kwargs):
         calls.append(action)

@@ -7,7 +7,7 @@ import threading
 from pathlib import Path
 from typing import Any, Callable
 
-from .rules import GameState
+from .rules import GameState, check_action
 from .deepseek_client import DeepSeekClient
 
 
@@ -74,21 +74,21 @@ def build_context(state: GameState, events: list[dict[str, Any]], agent_id: int,
 def legal_actions_for(state: GameState, agent_id: int) -> list[dict[str, Any]]:
     """Return engine-provided action hints; clients must not infer skill eligibility."""
     role = state.roles.get(agent_id)
-    if state.phase == "night":
-        if role == "wolf":
-            targets = [p for p in sorted(state.alive) if p != agent_id and state.roles[p] != "wolf"]
-            # 不把最低编号席位永远放在提示列表第一项；相同 seed 仍可复现，
-            # 但不会因为模型偏好“选第一个”而固定首夜击杀 1 号。
-            random.Random((state.seed or 0) * 100 + state.day * 10 + agent_id).shuffle(targets)
-            return [{"action": "kill", "targets": targets}]
-        if role == "seer":
-            return [{"action": "inspect", "targets": [p for p in sorted(state.alive) if p != agent_id and p not in state.inspection_history]}]
-        if role == "witch":
-            return [{"action": "save", "targets": []}] if state.witch_save_available else []
-        return [{"action": "pass", "targets": []}]
-    if state.phase == "day_speak": return [{"action": "speak", "targets": []}]
-    if state.phase == "day_vote": return [{"action": "vote", "targets": sorted(state.alive - {agent_id})}, {"action": "pass", "targets": []}]
-    return []
+    kinds = {"night": {"wolf": ["kill"], "seer": ["inspect", "pass"],
+                       "witch": ["save", "poison", "pass"]}.get(role, ["pass"]),
+             "day_speak": ["speak"], "day_vote": ["vote", "pass"],
+             "hunter_action": ["shoot", "pass"], "last_words": ["last_words", "pass"]}.get(state.phase, [])
+    result = []
+    for kind in kinds:
+        if kind in {"kill", "inspect", "poison", "vote", "shoot"}:
+            targets = [p for p in sorted(state.alive)
+                       if check_action(state, agent_id, {"action": kind, "target": p}) is None]
+            if kind == "kill":
+                random.Random((state.seed or 0) * 100 + state.day * 10 + agent_id).shuffle(targets)
+            if targets: result.append({"action": kind, "targets": targets})
+        elif check_action(state, agent_id, {"action": kind, "target": None, "text": "发言"}) is None:
+            result.append({"action": kind, "targets": []})
+    return result
 
 
 class SeatAgentRouter:
@@ -125,6 +125,8 @@ class StubAgent:
         """根据当前阶段返回 kill、inspect、speak 或 vote 行动 JSON。"""
         role = state.roles[agent_id]
         alive_others = [p for p in sorted(state.alive) if p != agent_id]
+        if state.phase == "last_words":
+            return {"action": "last_words", "target": None, "text": "我的遗言仅基于已知公开信息。", "reason": "stub last words"}
         if state.phase == "day_speak":
             return {"action": "speak", "target": None, "text": f"我是{agent_id}号，基于公开信息发言。", "reason": "stub decision"}
         if state.phase == "day_vote":

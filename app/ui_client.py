@@ -94,6 +94,11 @@ class GameClient:
         controllers = result.get('seat_controllers') if isinstance(result, dict) else None
         return isinstance(controllers, dict) and any(value == 'human' for value in controllers.values())
 
+    def game_access(self, game_id: str):
+        result = self._request('GET', f'/games/{quote(game_id, safe="")}/status')
+        if not isinstance(result, dict): raise ServiceError('权限状态无效')
+        return result
+
     def identity(self, game_id: str, player_id: int):
         result = self._request('GET', f'/games/{quote(game_id, safe="")}/players/{player_id}/identity')
         if not isinstance(result, dict) or result.get('game_id') != game_id:

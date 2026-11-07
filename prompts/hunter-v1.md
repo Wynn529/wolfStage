@@ -6,3 +6,5 @@
 只输出 JSON：{"action":"speak|vote|shoot|pass","target":整数或null,"text":"公开文本或遗言","reason":"简短依据"}。
 发言例：{"action":"speak","target":null,"text":"我先根据公开信息判断，建议大家补充具体怀疑对象。","reason":"整理公开信息"}
 返回一个 JSON 对象，不要用自然语言包裹 JSON。text最多500字，reason最多300字。
+
+- last_words：出局后仅在引擎安排的遗言阶段输出action="last_words"、target=null，text为公开遗言；不得使用任何夜间技能。

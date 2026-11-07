@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import html
 import inspect
 import os
 from pathlib import Path
@@ -17,13 +18,13 @@ from app.ui_client import GameClient, BRevisionClient, ServiceError
 from app.ui_contract import ServiceContract, TERMINAL
 from app.ui_controller import SessionController
 from app.ui_helpers import (LABELS, ROLES, STATUS, PHASES, project,
-                            local_games, read_events, read_state_snapshot, evidence_zip)
+                            local_games, read_events, replay_allowed, evidence_zip)
 from app.ui_metrics import read_calls, summarize_calls, display_call_rows, display_call_rows_by_seat
 from app.ui_scene import render_scene
 from app.ui_presenter import EVENT_NAMES, WINNERS, describe_public, player as player_label, tally_rows, vote_rounds, vote_validity, latest_failure
 from app.rules import assign_roles
 
-st.set_page_config(page_title='狼境 · AI圆桌', page_icon='🐺', layout='wide', initial_sidebar_state='collapsed')
+st.set_page_config(page_title='狼人杀', page_icon='🐺', layout='wide', initial_sidebar_state='collapsed')
 st.markdown("""
 <style>
 [data-testid="stMainBlockContainer"]{padding:1.1rem 1.6rem 2rem;max-width:1480px}
@@ -41,7 +42,7 @@ st.markdown("""
 .stButton>button:hover{border-color:#61947b;color:#326a50}
 .stButton>button:focus:not(:active){border-color:#61947b;box-shadow:0 0 0 .1rem #61947b33}
 @media(max-width:800px){[data-testid="stMainBlockContainer"]{padding:1rem .7rem}.brand p{display:none}.brand h1{font-size:20px}}
-</style><div class="brand"><h1>狼境 <span>WOLF STAGE</span></h1><p>十人协同 · AI 与真人共同推理</p></div>
+</style><div class="brand"><h1>狼人杀</h1><p>十人协同 · AI 与真人共同推理</p></div>
 """,unsafe_allow_html=True)
 ss = st.session_state
 if 'controller' not in ss:
@@ -129,9 +130,8 @@ def render_details(events, status, phase, metrics, game_id, live):
         st.caption('当前游标尚无事件。')
         return
     state = project(events)
-    snapshot = read_state_snapshot(runs, game_id) if game_id else None
-    seat_controllers = snapshot.get('seat_controllers', {}) if isinstance(snapshot, dict) else {}
-    human_view = isinstance(seat_controllers, dict) and any(value == 'human' for value in seat_controllers.values())
+    controller = ss.controller if live else None
+    human_view = bool(controller and controller.human_game)
     ids = [int(e['event_id']) for e in events]
     if ids != list(range(1, max(ids)+1)) and not human_view:
         st.error('事件编号不连续：页面不会补造事件，请核对B原始记录。')
@@ -142,7 +142,7 @@ def render_details(events, status, phase, metrics, game_id, live):
     cols[1].metric('阶段', PHASES.get(phase, str(phase or '按事件回放')))
     cols[2].metric('存活人数', len(state['alive']))
     cols[3].metric('最后显示 event_id', max(ids))
-    role_source = snapshot.get('roles') if isinstance(snapshot, dict) else state['roles']
+    role_source = state['roles']
     player_count = len(role_source) if isinstance(role_source, dict) and role_source else (
         10 if any(event.get('rules_version') == 'rules-v2.0-ten' for event in events) else 6)
     cards = st.columns(5)
@@ -214,16 +214,20 @@ def render_details(events, status, phase, metrics, game_id, live):
         for event in results:
             st.write(f'#{event["event_id"]} · day={event.get("day")} · {describe_public(event)}')
     with private_tab:
+        if human_view:
+            st.info('真人对局进行中不提供上帝信息，出局后也需等待对局结束。')
         st.caption('只供本地观察者；页面不回传玩家输入。reason是角色自述依据。')
         for event in events:
-            if event.get('visibility') != 'public' or event.get('reason'):
+            if not human_view and (event.get('visibility') != 'public' or event.get('reason')):
                 with st.container(border=True):
                     st.caption(f"#{event['event_id']} {event['type']} · {event.get('actor','系统')}")
                     if event.get('reason'):
                         st.write('角色自述依据：' + str(event['reason']))
                     st.json(event)
     with stats_tab:
-        if live:
+        if human_view:
+            st.info('真人局进行中不提供原始调用、逐席位统计或上帝日志。')
+        elif live:
             st.write('B服务返回原件')
             st.json(metrics, expanded=False)
             try:
@@ -285,6 +289,7 @@ def render_events(events, status, phase, metrics, game_id, live, cursor=None, hu
         st.success('本局已结束，可在历史回放中查看过程和导出原始记录。')
     controller = ss.controller if live else None
     render_scene(events,status=status,phase=actual_phase,metrics=metrics,game_id=game_id,
+                 instance_key=f':{game_id}:{bool(ss.get(f"identity_ack_{game_id}"))}',
                  replay=not live,busy=bool(controller and controller.busy), cursor=cursor,
                  message=controller.message if controller else '',
                  human_player_id=human_player_id)
@@ -296,7 +301,29 @@ def render_events(events, status, phase, metrics, game_id, live, cursor=None, hu
             st.info(f'对局已推进到服务端事件游标 {cursor}；当前没有可公开显示的事件。')
     if game_id:
         render_speech_log(events)
-        render_identity_overview(game_id)
+        if human_player_id is None:
+            render_identity_overview(game_id, events)
+    if events and human_player_id is None:
+        with st.expander('AI依据详情 · 完整原文与技能线索', expanded=False):
+            st.caption('仅查看本次传入的可见事件；自述不等于内部推理，技能宣称不等于技能已执行。')
+            for detail in reversed(events):
+                if detail.get('type') == 'agent_reason':
+                    actor = detail.get('actor')
+                    source_id = detail.get('source_event_id')
+                    action_event = next((e for e in events if e.get('event_id') == source_id), {})
+                    st.markdown(f'**{actor}号 · {PHASES.get(action_event.get("phase"), action_event.get("phase", "阶段未提供"))} · 对应事件 {source_id}**')
+                    model_label = action_event.get('returned_model') or action_event.get('model_version') or '本事件未记录实际型号'
+                    st.caption('实际模型：' + str(model_label))
+                    body = html.escape(str(detail.get('reason') or '未提供'))
+                    st.markdown('<div style="font-size:20px;line-height:1.6;overflow-wrap:anywhere;white-space:pre-wrap">'+body+'</div>', unsafe_allow_html=True)
+                elif detail.get('type') == 'utterance_classification':
+                    entities = (detail.get('result') or {}).get('extracted_entities') or {}
+                    result = detail.get('result') or {}
+                    for field in ('skill_claims',):
+                        values = entities.get(field, result.get(field))
+                        if values:
+                            st.write(f'发言事件 {detail.get("source_event_id")} · {field}（未核实公开线索）')
+                            st.json(values, expanded=True)
     if events:
         with st.expander('检查记录 · 完整事件 / 投票原件 / 调用统计', expanded=False):
             render_details(events,status,phase,metrics,game_id,live)
@@ -321,15 +348,17 @@ def render_speech_log(events):
             st.divider()
 
 
-def render_identity_overview(game_id):
-    snapshot = read_state_snapshot(runs, game_id)
-    if not snapshot or not isinstance(snapshot.get('roles'), dict):
+def render_identity_overview(game_id, events):
+    # Use only the displayed authorized prefix, never the final local state file.
+    snapshot = project(events)
+    roles = snapshot.get('roles') or {}
+    if not roles:
         return
     with st.expander('身份总览（主持视角）', expanded=False):
-        st.caption('仅用于主持和真人操作核对，不会写入其他玩家的模型上下文。')
+        st.caption('仅显示当前已授权事件中的身份和存活状态。')
         columns = st.columns(5)
-        alive = set(snapshot.get('alive', []))
-        for index, (seat, role) in enumerate(sorted(snapshot['roles'].items(), key=lambda item: int(item[0]))):
+        alive = snapshot.get('alive', set())
+        for index, (seat, role) in enumerate(sorted(roles.items(), key=lambda item: int(item[0]))):
             seat_id = int(seat)
             with columns[index % 5]:
                 st.markdown(f'**{seat_id}号** · {ROLES.get(role, role)}')
@@ -360,45 +389,40 @@ def render_human_action(controller):
     actor = pending['actor']; phase = pending.get('phase', controller.phase)
     controller.human_player_id = actor
     st.subheader(f'你的回合 · {actor} 号玩家')
-    snapshot = read_state_snapshot(runs, controller.game_id) or {}
-    roles = {int(key): value for key, value in (snapshot.get('roles') or {}).items()}
-    alive = {int(value) for value in snapshot.get('alive', [])}
-    actor_role = roles.get(actor)
-    if actor_role == 'wolf':
-        teammates = [seat for seat, role in sorted(roles.items())
-                     if role == 'wolf' and seat != actor and seat in alive]
-        st.info('你的狼队队友：' + ('、'.join(f'{seat}号' for seat in teammates) if teammates else '暂无存活队友'))
-    identity = None
     try:
         identity = controller.client.identity(controller.game_id, actor)
-        st.success(f'你的身份：{ROLES.get(identity.get("role"), identity.get("role", "未提供"))} · '
-                   + ('存活' if identity.get('alive') else '已出局'))
     except ServiceError:
-        st.caption('本人身份暂未读取成功；操作权限仍以服务端校验为准。')
+        st.warning('本人状态暂未读取成功，请刷新待操作。')
+        return
+    actor_role = identity.get('role')
+    legal = identity.get('legal_actions') or []
+    if not legal:
+        st.warning('没有服务端确认的合法动作，请刷新待操作。')
+        return
+    st.success(f'你的身份：{ROLES.get(actor_role, actor_role)} · ' + ('存活' if identity.get('alive') else '已出局'))
+    if actor_role == 'wolf':
+        st.info('你的狼队队友：' + '、'.join(f'{p}号' for p in identity.get('wolf_teammates', [])))
     st.info(f'当前阶段：{PHASES.get(phase, phase)}。提交成功后由服务继续推进；请勿重复点击。')
     if phase in {'day_speak', 'last_words'}:
         kind = 'speak' if phase == 'day_speak' else 'last_words'
         text_value = st.text_area('公开发言' if kind == 'speak' else '遗言', key=f'human_text_{controller.game_id}_{pending.get("action_id")}')
         action = {'action': kind, 'target': None, 'text': text_value, 'reason': ''}
     else:
-        options = {'night': ['kill', 'inspect', 'save', 'poison', 'pass'],
-                   'day_vote': ['vote', 'pass'], 'hunter_action': ['shoot', 'pass']}.get(phase, ['pass'])
+        options = [item['action'] for item in legal]
         kind = st.selectbox('行动', options, format_func=lambda value: {
             'kill':'狼人击杀提案', 'inspect':'预言家查验', 'save':'女巫使用解药',
             'poison':'女巫使用毒药', 'vote':'投票', 'shoot':'猎人开枪', 'pass':'放弃/弃票'}[value],
             key=f'human_kind_{controller.game_id}_{pending.get("action_id")}')
         target = None
         if kind in {'kill', 'inspect', 'poison', 'vote', 'shoot'}:
-            if actor_role == 'wolf' and kind == 'kill':
-                targets = [seat for seat in sorted(alive) if seat != actor and roles.get(seat) != 'wolf']
-            else:
-                targets = [seat for seat in range(1, 11) if seat in alive and seat != actor]
+            targets = next((item.get('targets', []) for item in legal if item['action'] == kind), [])
             if not targets:
-                st.warning('当前没有合法目标，暂时只能选择放弃。')
-            target = st.selectbox('目标席位', targets or [actor], key=f'human_target_{controller.game_id}_{pending.get("action_id")}')
+                st.warning('服务端未提供合法目标，请刷新。')
+                return
+            target = st.selectbox('目标席位', targets, key=f'human_target_{controller.game_id}_{pending.get("action_id")}')
         discussion = ''
         if actor_role == 'wolf' and phase == 'night':
-            discussion = st.text_area('狼队讨论 / 行动理由（仅狼人和主持可见）',
+            discussion = st.text_area('狼队讨论（仅狼人和主持可见，可留空）',
                                       key=f'human_wolf_discussion_{controller.game_id}_{pending.get("action_id")}')
             if st.button('发送狼队讨论', key=f'wolf_discussion_{controller.game_id}_{pending.get("action_id")}'):
                 try:
@@ -480,6 +504,9 @@ def live_panel():
             ss.controller=controller
             ss.create_error=''
             ss.create_uncertain=False
+            if controller.human_game:
+                # Dialogs are fragments too: open from the app, never a timed fragment.
+                st.rerun(scope='app')
         except (ServiceError,ValueError,OSError) as exc:
             ss.create_error=str(exc)
             ss.create_uncertain=not isinstance(exc,ServiceError) or exc.ambiguous
@@ -493,12 +520,6 @@ def live_panel():
         return
     ss.game_id=controller.game_id
     ss.events=controller.events
-    if controller.human_game and controller.human_player_id and not ss.get(f'identity_ack_{controller.game_id}'):
-        try:
-            initial_identity = controller.client.identity(controller.game_id, controller.human_player_id)
-            show_identity_dialog(controller.game_id, initial_identity.get('role'))
-        except ServiceError:
-            pass
     # 让等待和暂停状态直接可见，不必打开检查记录。
     if controller.busy or controller.pause_intent:
         st.info(controller.message + ' 当前一步仍在处理，请勿重复点击；页面会自动更新。')
@@ -554,6 +575,10 @@ def live_panel():
 
 @st.fragment(run_every=1)
 def replay_panel():
+    requested = st.query_params.get('game')
+    if requested and not replay_allowed(runs, requested):
+        st.warning('该对局尚未结束或无法确认权限，不能打开上帝回放与原始导出。')
+        return
     games=local_games(runs)
     if not games:
         render_events([], 'unknown', 'night', {}, None, False)
@@ -595,6 +620,13 @@ def replay_panel():
 
 if mode=='现场对局':
     live_panel()
+    controller = ss.controller
+    if controller and controller.human_game and controller.human_player_id and not ss.get(f'identity_ack_{controller.game_id}'):
+        try:
+            initial_identity = controller.client.identity(controller.game_id, controller.human_player_id)
+            show_identity_dialog(controller.game_id, initial_identity.get('role'))
+        except ServiceError:
+            st.warning('本人身份暂未读取成功，请刷新页面。')
 else:
     if ss.controller:
         ss.controller.stop_auto()

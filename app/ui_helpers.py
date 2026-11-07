@@ -64,7 +64,7 @@ def project(events):
 def local_games(root: Path):
     if not root.exists():
         return []
-    return sorted([p.name for p in root.iterdir() if p.is_dir() and (p / 'events.jsonl').is_file()], reverse=True)
+    return sorted([p.name for p in root.iterdir() if p.is_dir() and (p / 'events.jsonl').is_file() and replay_allowed(root, p.name)], reverse=True)
 
 
 def game_dir(root: Path, game_id: str):
@@ -75,7 +75,32 @@ def game_dir(root: Path, game_id: str):
     return path
 
 
+def replay_allowed(root: Path, game_id: str) -> bool:
+    """Inspect access metadata server-side; never return the secret event stream."""
+    try:
+        folder = game_dir(root, game_id)
+        human = False; initialized = False; ended = False
+        with (folder / 'events.jsonl').open(encoding='utf-8') as stream:
+            for line in stream:
+                if not line.strip(): continue
+                event = json.loads(line)
+                if event.get('type') == 'game_created':
+                    initialized = True
+                    human = any(v == 'human' for v in (event.get('seat_controllers') or {}).values())
+                elif event.get('type') in {'game_over', 'game_limit'}:
+                    ended = True
+        return initialized and (not human or ended)
+    except (OSError, ValueError, TypeError, AttributeError):
+        return False
+
+
+def require_replay_access(root: Path, game_id: str):
+    if not replay_allowed(root, game_id):
+        raise ValueError('真人对局尚未结束或权限无法确认，不能读取上帝回放和原始导出')
+
+
 def read_events(root: Path, game_id: str):
+    require_replay_access(root, game_id)
     path = game_dir(root, game_id) / 'events.jsonl'
     values = [json.loads(line) for line in path.read_text(encoding='utf-8').splitlines() if line.strip()]
     return merge_events([], values, game_id)
@@ -92,6 +117,7 @@ def read_state_snapshot(root: Path, game_id: str):
 
 def evidence_zip(root: Path, game_id: str):
     """只拷贝 B 原始文件；不读取 state.json 或改写原件。"""
+    require_replay_access(root, game_id)
     folder = game_dir(root, game_id)
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, 'w', compression=zipfile.ZIP_DEFLATED) as archive:

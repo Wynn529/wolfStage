@@ -81,7 +81,7 @@ class GameState:
             value.get("pause_requested", False), value.get("operation_start_event_id"), value.get("rules_version", LEGACY_RULE_VERSION),
             {int(k): v for k, v in value.get("seat_controllers", {}).items()}, {int(k): v for k, v in value.get("seat_model_configs", {}).items()},
             value.get("witch_save_available", True), value.get("witch_poison_available", True), value.get("witch_self_save_used", False),
-            set(value.get("inspection_history", [])), value.get("death_reasons", {}), value.get("hunter_triggered", False),
+            set(value.get("inspection_history", [])), {int(k): v for k, v in value.get("death_reasons", {}).items()}, value.get("hunter_triggered", False),
             value.get("hunter_processed", False), value.get("pending_last_words"), value.get("pending_action"),
         )
 
@@ -111,7 +111,7 @@ def check_target(state: GameState, actor: int, target: Any, *, allow_self: bool 
 
 
 def check_action(state: GameState, actor: int, action: dict[str, Any]) -> str | None:
-    if actor not in state.alive and not (state.phase == "hunter_action" and state.roles.get(actor) == "hunter"):
+    if actor not in state.alive and not (state.phase == "hunter_action" and state.roles.get(actor) == "hunter") and not (state.phase == "last_words" and state.pending_last_words == actor):
         return "dead player cannot act"
     if not isinstance(action, dict): return "action must be an object"
     kind = action.get("action")
@@ -123,19 +123,23 @@ def check_action(state: GameState, actor: int, action: dict[str, Any]) -> str | 
     target = action.get("target")
     if state.phase == "hunter_action":
         if state.roles.get(actor) != "hunter": return "only hunter can shoot"
-        if kind == "pass": return None
+        if not state.hunter_triggered or state.hunter_processed or state.pending.get("hunter_actor") != actor or state.death_reasons.get(actor) not in {"wolf_kill", "exile"}: return "hunter is not eligible to shoot"
+        if kind == "pass": return None if target is None else "target must be null"
         return check_target(state, actor, target)
     if kind == "kill":
         if state.roles.get(actor) != "wolf": return "only wolves can kill"
         err = check_target(state, actor, target); return err or ("wolf cannot kill wolf teammate" if state.roles.get(target) == "wolf" else None)
     if kind == "inspect":
         if state.roles.get(actor) != "seer": return "only seer can inspect"
+        err = check_target(state, actor, target)
+        if err: return err
         if target in state.inspection_history: return "seer cannot inspect the same player twice"
         return check_target(state, actor, target)
     if kind == "save":
         if state.roles.get(actor) != "witch" or not state.witch_save_available or state.pending.get("witch_used"): return "save potion unavailable"
         if target is not None: return "save target must be null"
-        if state.pending.get("night_kill_target") == actor and state.day > 0 and state.witch_self_save_used: return "witch cannot self-save after first night"
+        if state.pending.get("night_kill_target") not in state.alive: return "no player to save"
+        if state.pending.get("night_kill_target") == actor and state.day > 0: return "witch cannot self-save after first night"
         return None
     if kind == "poison":
         if state.roles.get(actor) != "witch" or not state.witch_poison_available or state.pending.get("witch_used"): return "poison potion unavailable"
@@ -146,6 +150,7 @@ def check_action(state: GameState, actor: int, action: dict[str, Any]) -> str | 
         if err: return err
         candidates = state.pending.get("revote_candidates") if state.revote else None
         return None if candidates is None or target in candidates else "revote target must be one of tied candidates"
+    if state.phase == "last_words" and state.pending_last_words != actor: return "not this player last words"
     if kind in {"speak", "last_words", "pass"} and target is not None: return "target must be null"
     return None
 
@@ -168,7 +173,7 @@ def winner(state: GameState) -> str | None:
         return None
     gods = sum(state.roles[p] in {"seer", "witch", "hunter"} for p in state.alive)
     villagers = sum(state.roles[p] == "villager" for p in state.alive)
+    if wolves == 0 and (gods == 0 or villagers == 0): return "draw"
     if wolves == 0: return "villagers"
-    if gods == 0 and villagers == 0: return "draw"
     if gods == 0 or villagers == 0: return "wolves"
     return None

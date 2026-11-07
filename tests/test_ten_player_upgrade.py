@@ -26,6 +26,8 @@ def test_human_seat_waits_and_submits(tmp_path):
 def test_witch_and_seer_constraints():
     roles = {1: "wolf", 2: "wolf", 3: "wolf", 4: "seer", 5: "witch", 6: "hunter", 7: "villager", 8: "villager", 9: "villager", 10: "villager"}
     state = GameState("g", 1, roles)
+    assert check_action(state, 5, {"action": "save", "target": None}) == "no player to save"
+    state.pending["night_kill_target"] = 7
     assert check_action(state, 5, {"action": "save", "target": None}) is None
     state.witch_save_available = False
     assert check_action(state, 5, {"action": "save", "target": None})

@@ -74,7 +74,7 @@ def scene_model(events, *, status='unknown', phase=None, metrics=None, game_id=N
         'players':[{'id':i,'role':state['roles'].get(i),
                     'role_name':ROLES.get(state['roles'].get(i),'玩家'),
                     'is_human':i == human_player_id,
-                    'alive':i in state['alive'] if events else True} for i in range(1,11)],
+                    'alive':i in state['alive'] if events else True} for i in (sorted(state['roles']) if state['roles'] else range(1,11))],
         'current':{'id':current.get('event_id',0),'kind':kind,'title':title,'body':body,
                    'actor':actor,'target':target,'speech':kind=='public_speech',
                    'private':bool(current and current.get('visibility')!='public'),
@@ -94,5 +94,5 @@ def scene_model(events, *, status='unknown', phase=None, metrics=None, game_id=N
         'metrics':metrics or {}, 'human_player_id': human_player_id,
     }
 
-def render_scene(events, **kwargs):
-    _SCENE_COMPONENT(model=scene_model(events,**kwargs), key='c_robot_scene', default=None)
+def render_scene(events, *, instance_key='', **kwargs):
+    _SCENE_COMPONENT(model=scene_model(events,**kwargs), key='c_robot_scene'+instance_key, default=None)

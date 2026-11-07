@@ -17,14 +17,23 @@ app = FastAPI(title="Werewolf Game Service", version="1.0.0") if FastAPI else No
 
 
 if app:
+    from fastapi.responses import JSONResponse
+
+    @app.exception_handler(PermissionError)
+    async def permission_denied(request, exc):
+        return JSONResponse(status_code=403, content={"detail": "human game access is restricted"})
+
     @app.post("/games")
     def create_game(payload: dict[str, Any] | None = None):
         """创建十人游戏；可按席位指定真人控制器和模型配置。"""
         payload = payload or {}
-        return engine.create_game(payload.get("seed"), payload.get("role_config"),
-                                  seat_controllers=payload.get("seat_controllers"),
-                                  seat_model_configs=payload.get("seat_model_configs"),
-                                  player_count=payload.get("player_count", 10))
+        try:
+            return engine.create_game(payload.get("seed"), payload.get("role_config"),
+                                      seat_controllers=payload.get("seat_controllers"),
+                                      seat_model_configs=payload.get("seat_model_configs"),
+                                      player_count=payload.get("player_count", 10))
+        except ValueError as exc:
+            raise HTTPException(422, "invalid local game configuration") from exc
 
     @app.post("/games/{game_id}/advance")
     def advance(game_id: str, payload: dict[str, Any] | None = None):
