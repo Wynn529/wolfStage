@@ -470,6 +470,9 @@ def render_human_action(controller):
     if actor_role == 'wolf':
         st.info('你的狼队队友：' + '、'.join(f'{p}号' for p in identity.get('wolf_teammates', [])))
     st.info(f'当前阶段：{PHASES.get(phase, phase)}。提交成功后由服务继续推进；请勿重复点击。')
+    if actor_role == 'witch' and phase == 'night' and 'night_kill_target' in identity:
+        knife_target = identity['night_kill_target']
+        st.info('今晚没有刀口。' if knife_target is None else f'今晚刀口：{knife_target} 号')
     if phase in {'day_speak', 'last_words'}:
         kind = 'speak' if phase == 'day_speak' else 'last_words'
         text_value = st.text_area('公开发言' if kind == 'speak' else '遗言', key=f'human_text_{controller.game_id}_{pending.get("action_id")}')

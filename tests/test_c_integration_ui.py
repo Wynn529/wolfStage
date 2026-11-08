@@ -69,6 +69,48 @@ def test_registered_nine_models_and_human_role_dialog(integration_http, role):
     controller.close()
 
 
+@pytest.mark.parametrize(('role', 'target', 'save_available', 'message'), [
+    ('witch', 5, True, '今晚刀口：5 号'),
+    ('witch', None, True, '今晚没有刀口。'),
+    ('witch', 5, False, None),
+    ('seer', 5, True, None),
+])
+def test_night_target_is_shown_only_to_authorized_witch(
+        integration_http, role, target, save_available, message):
+    service, url, _ = integration_http
+    app = AppTest.from_file(str(ROOT/'app/ui.py')).run(timeout=20)
+    radio(app, '对局模式').set_value('真人参与').run(timeout=20)
+    select(app, '真人身份（新局生效）').select(role).run(timeout=20)
+    button(app, '开始对局').click().run(timeout=20)
+    controller = app.session_state['controller']
+    try:
+        button(app, '确认进入对局').click().run(timeout=20)
+        gid = controller.game_id
+        engine = service.state.engine
+        state = engine.games[gid]
+        state.night_done.update(p for p in state.roles if state.roles[p] == 'wolf')
+        if role == 'witch':
+            state.night_done.add('seer')
+        state.pending['night_kill_target'] = target
+        state.witch_save_available = save_available
+        assert 'night_kill_target' not in controller.client.identity(gid, 1)
+
+        engine.advance_one_event(gid)
+        controller.refresh()
+        assert controller.status == 'waiting_human'
+        app.run(timeout=20)
+        assert not app.exception
+        assert select(app, '行动')
+        hints = [entry.value for entry in app.info if entry.value.startswith('今晚')]
+        assert hints == ([message] if message else [])
+        with pytest.raises(ServiceError):
+            IntegrationClient(url).identity(gid, 1)
+        with pytest.raises(ServiceError):
+            controller.client.identity(gid, 2)
+    finally:
+        controller.close()
+
+
 def create(client, human=True, role='seer'):
     profiles = client.models()
     return client.create(42, role_config={'10':role} if human else None,

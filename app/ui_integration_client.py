@@ -77,10 +77,16 @@ class IntegrationClient(BRevisionClient):
         if ctx.get('agent_id') != player_id:
             raise ServiceError('本人会话失效或席位不匹配，不能读取身份。', code=403, ambiguous=False)
         self.own_roles[game_id] = ctx.get('role')
-        return {'game_id': game_id, 'player_id': player_id, 'role': ctx.get('role'),
+        identity = {'game_id': game_id, 'player_id': player_id, 'role': ctx.get('role'),
                 'alive': player_id in ctx.get('alive_players', []),
                 'wolf_teammates': ctx.get('wolf_teammates', []),
                 'legal_actions': (value.get('action_contract') or {}).get('actions', [])}
+        pending = value.get('pending_action') or {}
+        if (ctx.get('role') == 'witch' and value.get('status') == 'waiting_human'
+                and pending.get('actor') == player_id and pending.get('phase') == 'night'
+                and 'night_kill_target' in ctx):
+            identity['night_kill_target'] = ctx['night_kill_target']
+        return identity
 
     def human_action(self, game_id, player_id, action, **kwargs):
         clean = {k: action.get(k) for k in ('action', 'target', 'text')}
