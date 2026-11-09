@@ -369,6 +369,8 @@ class GameEngine:
                 state.alive.remove(target)
                 state.death_reasons[target] = reason
                 self._event(state, "night_death", "public", target=target)
+        if not deaths:
+            self._event(state, "peaceful_night", "public")
         hunter = next((p for p, reason in deaths.items() if state.roles.get(p) == "hunter"
                        and reason == "wolf_kill" and not state.hunter_processed), None)
         if hunter is not None:

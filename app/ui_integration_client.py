@@ -6,8 +6,9 @@ from app.ui_client import BRevisionClient, ServiceError
 class IntegrationClient(BRevisionClient):
     integration = True
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    # One advance can make two 300-second attempts after a format error.
+    def __init__(self, base_url, timeout=630, contract=None, read_timeout=3):
+        super().__init__(base_url, timeout=timeout, contract=contract, read_timeout=read_timeout)
         self._sessions = {}
         self._human_seats = {}
         self.seat_models = {}

@@ -7,6 +7,30 @@ import streamlit.components.v1 as components
 
 _SCENE_COMPONENT = components.declare_component('c_robot_scene', path=str(Path(__file__).parent/'scene'))
 
+
+def latest_announcement(events):
+    """仅用当前可见的公开事件。旧局以进入白天且无死亡公告识别平安夜。"""
+    night_results = {}
+    latest = None
+    for event in events:
+        if event.get('visibility') != 'public':
+            continue
+        kind, day = event['type'], event.get('day')
+        if kind in {'night_death', 'peaceful_night'}:
+            results = night_results.setdefault(day, [])
+            results.append(describe_public(event))
+            latest = (event['event_id'], '天亮公告 · ' + ' '.join(results))
+        elif kind == 'public_speech' and type(day) is int and day > 0 and day - 1 not in night_results:
+            body = describe_public({'type': 'peaceful_night', 'visibility': 'public'})
+            night_results[day - 1] = [body]
+            latest = (None, '天亮公告 · ' + body)
+        elif kind in {'vote_tally', 'exile', 'hunter_shot'}:
+            body = describe_public(event)
+            if body:
+                latest = (event['event_id'], EVENT_NAMES[kind] + ' · ' + body)
+    return latest
+
+
 def scene_model(events, *, status='unknown', phase=None, metrics=None, game_id=None,
                 replay=False, busy=False, message='', cursor=None, human_player_id=None, seat_labels=None, own_role=None):
     state = project(events)
@@ -22,10 +46,6 @@ def scene_model(events, *, status='unknown', phase=None, metrics=None, game_id=N
         if not current:
             current = {'event_id': latest.get('event_id', 0), 'type': 'night_waiting',
                        'phase': 'night', 'day': latest_day, 'visibility': 'public'}
-            waiting = next((e for e in reversed(events)
-                            if e.get('type') == 'waiting_human' and e.get('phase') == 'night'), None)
-            if waiting:
-                current['actor'] = waiting.get('actor')
     else:
         current = next((e for e in reversed(events) if e['type'] not in ignored), {})
     speech = next((e for e in reversed(events) if e['type']=='public_speech'), None)
@@ -33,7 +53,7 @@ def scene_model(events, *, status='unknown', phase=None, metrics=None, game_id=N
     kind = current.get('type', '')
     title = EVENT_NAMES.get(kind, kind or '等待开局')
     body = describe_public(current) if current else None
-    if kind == 'public_speech':
+    if kind in {'public_speech', 'last_words'}:
         body = current.get('text') or '发言内容未提供'
     elif kind == 'wolf_proposal':
         body = f'我提议今晚选择 {current.get("target", "未提供")} 号作为击杀目标。'
@@ -69,10 +89,14 @@ def scene_model(events, *, status='unknown', phase=None, metrics=None, game_id=N
     if type(target) is not int or target not in range(1,11): target = None
     source = '离线联调' if any(e.get('source')=='stub' for e in events) else '真实模型记录' if any(e.get('source')=='deepseek' for e in events) else '服务记录' if events else '准备开始'
     discussion_event = next((e for e in reversed(events) if e.get('type') == 'wolf_discussion'), None)
+    announcement = latest_announcement(events)
     return {
         'game_id':game_id or '', 'cursor':visible_cursor, 'day':latest.get('day',0),
         'night':phase=='night', 'phase':phase, 'status':status,
         'replay':replay, 'busy':busy, 'message':message, 'source':source,
+        'announcement':announcement[1] if announcement and (
+            busy or announcement[0] != current.get('event_id') or kind in {'night_death', 'night_waiting'}
+        ) else '',
         'players':[{'id':i,'role':visible_role(i),
                     'role_name':ROLES.get(visible_role(i),'玩家'),
                     'is_human':i == human_player_id, 'model_label': (seat_labels or {}).get(i, ''),

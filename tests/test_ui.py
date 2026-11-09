@@ -287,12 +287,25 @@ def test_scene_projects_only_current_prefix_and_separates_action_from_speech():
     day=scene_model(values[:5],replay=True)
     assert not day['night'] and day['current']['speech']
     assert day['current']['id']==4 and day['analysis']['event_id']==4
+    assert '1 号在夜间死亡' in day['announcement']
     assert day['analysis']['intent']=='身份声明' and day['analysis']['classified']
     assert day['analysis']['speech']=='<b>我是2号</b>'  # 原文由前端text转义，Python不改写。
     assert not day['players'][0]['alive'] and day['players'][1]['alive']
     assert day['winner']==''
     assert scene_model(values)['winner']=='好人胜'
+    assert '2 号被放逐' in scene_model(values, phase='night')['announcement']
     assert scene_model(values[:5])['players'][1]['alive']  # 回退不携带未来放逐。
+
+
+def test_scene_shows_legacy_peaceful_night_after_daylight_and_drops_old_witch_turn():
+    from app.ui_scene import scene_model
+    waiting = event(1, 'waiting_human', actor=6, phase='night', day=0, visibility=[6])
+    speech = event(2, 'public_speech', actor=1, text='早上好。', phase='day_speak', day=1, visibility='public')
+    assert not scene_model([waiting])['announcement']
+    day = scene_model([waiting, speech])
+    assert '平安夜' in day['announcement'] and day['current']['body'] == '早上好。'
+    night = scene_model([waiting, speech], phase='night')
+    assert night['current']['actor'] is None
 
 
 def test_scene_replay_play_pause_restart_never_requests_service(tmp_path,monkeypatch):

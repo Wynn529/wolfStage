@@ -113,6 +113,7 @@ def test_witch_same_night_action_then_resource_not_reusable(tmp_path):
     assert not s.witch_save_available and s.pending['saved']
     assert check_action(s,5,{'action':'poison','target':7}) is not None
     e.advance_one_event(s.game_id);assert 5 in s.alive
+    assert [event['type'] for event in e.get_events(s.game_id, view='public')] == ['peaceful_night']
 
 
 def test_private_god_information_does_not_become_public(tmp_path):

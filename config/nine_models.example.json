@@ -11,7 +11,7 @@
       "base_url": "https://api.xiaomimimo.com/v1",
       "api_protocol": "chat_completions",
       "request_options_json": "{\"max_completion_tokens\": 4096}",
-      "timeout": 120
+      "timeout": 300
     },
     {
       "profile_id": "tokenhub",
@@ -21,8 +21,8 @@
       "api_key_env": "TOKENHUB_API_KEY",
       "base_url": "https://tokenhub.tencentmaas.com/v1",
       "api_protocol": "chat_completions",
-      "request_options_json": "{}",
-      "timeout": 120
+      "request_options_json": "{\"thinking\": {\"type\": \"disabled\"}}",
+      "timeout": 300
     },
     {
       "profile_id": "minimax",
@@ -33,7 +33,7 @@
       "base_url": "https://api.minimax.cn/v1",
       "api_protocol": "chat_completions",
       "request_options_json": "{\"reasoning_effort\": \"low\", \"max_completion_tokens\": 8192}",
-      "timeout": 120
+      "timeout": 300
     },
     {
       "profile_id": "kimi",
@@ -44,7 +44,7 @@
       "base_url": "https://api.moonshot.cn/v1",
       "api_protocol": "chat_completions",
       "request_options_json": "{}",
-      "timeout": 120
+      "timeout": 300
     },
     {
       "profile_id": "ark",
@@ -54,8 +54,8 @@
       "api_key_env": "ARK_API_KEY",
       "base_url": "https://ark.cn-beijing.volces.com/api/v3",
       "api_protocol": "responses",
-      "request_options_json": "{}",
-      "timeout": 120
+      "request_options_json": "{\"thinking\": {\"type\": \"disabled\"}}",
+      "timeout": 300
     },
     {
       "profile_id": "qianfan",
@@ -66,7 +66,7 @@
       "base_url": "https://qianfan.baidubce.com/v2",
       "api_protocol": "chat_completions",
       "request_options_json": "{}",
-      "timeout": 120
+      "timeout": 300
     },
     {
       "profile_id": "zhipu",
@@ -76,8 +76,8 @@
       "api_key_env": "ZHIPU_API_KEY",
       "base_url": "https://open.bigmodel.cn/api/paas/v4",
       "api_protocol": "chat_completions",
-      "request_options_json": "{}",
-      "timeout": 120
+      "request_options_json": "{\"thinking\": {\"type\": \"enabled\"}, \"reasoning_effort\": \"low\"}",
+      "timeout": 300
     },
     {
       "profile_id": "deepseek",
@@ -87,8 +87,8 @@
       "api_key_env": "DEEPSEEK_API_KEY",
       "base_url": "https://api.deepseek.com",
       "api_protocol": "chat_completions",
-      "request_options_json": "{\"thinking\": {\"type\": \"enabled\"}, \"reasoning_effort\": \"high\"}",
-      "timeout": 120
+      "request_options_json": "{\"thinking\": {\"type\": \"disabled\"}}",
+      "timeout": 300
     },
     {
       "profile_id": "bailian",
@@ -98,8 +98,8 @@
       "api_key_env": "DASHSCOPE_API_KEY",
       "base_url": "https://ws-30abiia2jow0rwx2.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",
       "api_protocol": "chat_completions",
-      "request_options_json": "{}",
-      "timeout": 120
+      "request_options_json": "{\"reasoning_effort\": \"none\"}",
+      "timeout": 300
     }
   ],
   "seats": [

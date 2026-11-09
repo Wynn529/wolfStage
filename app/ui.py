@@ -316,6 +316,7 @@ def render_events(events, status, phase, metrics, game_id, live, cursor=None, hu
 [data-testid="stMain"] label p{{color:{fg}!important;font-size:11px}}
 [data-testid="stMain"] [role="radiogroup"]{{width:fit-content;padding:5px 12px;border:1px solid #7f9b7833;border-radius:12px}}
 [data-testid="stMain"] [data-testid="stExpander"]{{background:#172a3a;color:#d5e3e8;border-radius:14px}}
+.st-key-vote_publication [data-testid="stTable"] :is(th,td){{background:{bg}!important;color:{fg}!important;font-size:16px}}
 </style>''',unsafe_allow_html=True)
     if game_id:
         st.caption('当前对局：' + str(game_id) + (' · 现场记录' if live else ' · 历史回放，不调用模型'))
@@ -348,7 +349,7 @@ def render_events(events, status, phase, metrics, game_id, live, cursor=None, hu
     ballot = next((event for event in reversed(events) if event.get('visibility') == 'public'
                    and event['type'] in {'vote_open', 'vote_received', 'vote_tally', 'public_speech'}), None)
     if ballot and ballot['type'] == 'vote_tally' and 'resolution' in ballot:
-        with st.container(border=True):
+        with st.container(border=True, key='vote_publication'):
             st.subheader(f'第 {ballot["day"]} 天 · 投票公示')
             st.write(describe_public(ballot))
             st.table(tally_rows(ballot))
@@ -615,7 +616,10 @@ def live_panel():
     if controller.busy or controller.pause_intent:
         st.info(controller.message + ' 当前一步仍在处理，请勿重复点击；页面会自动更新。')
     elif controller.status == 'waiting_human':
-        st.warning('现在轮到真人行动。单步推进已暂停，请在下方“你的回合”区域提交行动。')
+        st.warning('现在轮到你行动，请在圆桌上方的“你的回合”区域提交。')
+    elif controller.phase == 'night' and controller.human_player_id is not None and controller.status in {'running', 'paused'}:
+        next_step = '先点“继续”，再点“单步推进”' if controller.status == 'paused' else '点击“单步推进”'
+        st.info(f'{next_step}。轮到你时，行动按钮会显示在圆桌上方。')
     else:
         notice = latest_failure(controller.events)
         if notice and (controller.fatal or controller.status in TERMINAL):
@@ -666,9 +670,10 @@ def live_panel():
         except (ValueError,OSError) as exc:
             controller.fail(str(exc))
         st.rerun()
+    if not (integration_mode and ss.get('human_uncertain_' + controller.game_id)):
+        render_human_action(controller)
     render_events(controller.events,controller.status,controller.phase,controller.metrics,controller.game_id,True,
                   cursor=controller.cursor, human_player_id=controller.human_player_id)
-    render_human_action(controller)
 
 
 @st.fragment(run_every=1)

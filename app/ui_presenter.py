@@ -3,7 +3,7 @@ from __future__ import annotations
 
 WINNERS = {'wolves': '狼人胜', 'villagers': '好人胜'}
 EVENT_NAMES = {
-    'game_created': '建立对局', 'night_death': '天亮死亡公告',
+    'game_created': '建立对局', 'night_death': '天亮死亡公告', 'peaceful_night': '天亮公告',
     'public_speech': '公开发言', 'utterance_classification': '发言分类',
     'vote': '投票', 'vote_open': '秘密投票', 'vote_received': '收到密封选票',
     'vote_tally': '计票结果', 'exile': '放逐公告',
@@ -67,8 +67,12 @@ def describe_public(event):
         return f'{round_name}计票；{result}。是否放逐以放逐公告为准。'
     if kind == 'night_death':
         return f'{player(event.get("target"))}在夜间死亡。'
+    if kind == 'peaceful_night':
+        return '昨夜是平安夜，无人出局。'
     if kind == 'exile':
         return f'{player(event.get("target"))}被放逐。'
+    if kind == 'hunter_shot':
+        return f'{player(event.get("target"))}被猎人带走。'
     if kind == 'game_over':
         winner = event.get('winner')
         return WINNERS.get(winner, '胜方未提供' if winner is None else f'服务返回胜方：{winner}')
@@ -82,7 +86,8 @@ def tally_rows(event):
     counts = event.get('counts')
     if not isinstance(counts, dict):
         return None
-    return [{'目标': player(target), '票数（B原件）': count} for target, count in counts.items()]
+    targets = sorted(counts, key=lambda seat: (0, int(seat)) if str(seat).isdecimal() else (1, str(seat)))
+    return [{'目标': player(target), '票数（B原件）': counts[target]} for target in targets]
 
 
 def vote_rounds(events):
