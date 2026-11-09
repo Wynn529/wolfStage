@@ -116,11 +116,12 @@ def test_b_paused_means_operation_fully_committed(tmp_path,monkeypatch):
             entered.set();assert release.wait(3)
             return super().act(*args)
     e,gid=make(tmp_path,Slow());observed=[]
-    original=e.store.append
-    def append(game_id,event):
-        if event['type']=='wolf_proposal':observed.append(e.get_status(gid)['status'])
-        return original(game_id,event)
-    monkeypatch.setattr(e.store,'append',append)
+    original=e.store._replace
+    def replace(path,content):
+        original(path,content)
+        if path.name=='events.jsonl' and '"type": "wolf_proposal"' in content:
+            observed.append(e.get_status(gid)['status'])
+    monkeypatch.setattr(e.store,'_replace',replace)
     with ThreadPoolExecutor(1) as pool:
         f=pool.submit(e.advance_one_event,gid,'op',1)
         assert entered.wait(3)

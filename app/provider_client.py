@@ -38,6 +38,14 @@ class ProviderError(RuntimeError):
         self.meta = meta
 
 
+def is_request_timeout(exc):
+    if isinstance(exc, urllib.error.HTTPError):
+        return exc.code in {408, 504}
+    return isinstance(exc, TimeoutError) or (
+        isinstance(exc, urllib.error.URLError) and isinstance(exc.reason, TimeoutError)
+    )
+
+
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         # 防止鉴权头被转发至其他主机。
@@ -106,6 +114,8 @@ class ProviderClient:
         except Exception as exc:
             meta.update(latency_ms=round((time.perf_counter() - started) * 1000, 2),
                         success=False, error_type=type(exc).__name__)
+            if is_request_timeout(exc):
+                meta["request_timeout"] = True
             if isinstance(exc, urllib.error.HTTPError):
                 meta["http_status"] = exc.code
                 code = safe_http_error_code(exc)

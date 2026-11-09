@@ -55,6 +55,16 @@ def visible_events(events: list[dict[str, Any]], viewer: int | str) -> list[dict
 def build_context(state: GameState, events: list[dict[str, Any]], agent_id: int, viewer_role: str) -> dict[str, Any]:
     """为角色代理组装只包含其可见事件、阶段和存活玩家的上下文。"""
     visible = visible_events(events, agent_id)
+    # Old snapshots may have public ballots for the still-open round.
+    if state.phase == "day_vote":
+        last_tally = next((event["event_id"] for event in reversed(visible)
+                           if event.get("type") == "vote_tally"), 0)
+        visible = [event for event in visible if not (
+            event.get("type") == "vote" and event.get("day") == state.day and event["event_id"] > last_tally
+        )]
+    visible = [event for event in visible
+               if event.get("type") not in {"vote_received", "model_retry_started", "model_retry_interrupted",
+                                            "model_step_interrupted", "model_failure"}]
     # 只把最近记录和截短后的公开文本送入模型，避免整局长发言不断扩大请求延迟。
     model_events = []
     for event in visible[-24:]:

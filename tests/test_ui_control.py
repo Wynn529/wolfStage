@@ -122,6 +122,32 @@ def test_c_stops_after_repeated_no_progress(tmp_path):
         finally:c.close()
 
 
+def test_auto_counts_progress_seen_before_operation_completion(monkeypatch):
+    from types import SimpleNamespace
+
+    client = SimpleNamespace(base_url='http://test', contract=reference_contract())
+    controller = SessionController(client, 'g', no_progress_limit=1)
+    try:
+        controller.server_cursor = 1
+        controller.phase = 'day_vote'
+        controller.status = 'running'
+        controller.synced = True
+        controller.snapshot = {'in_flight': True, 'pause_requested': False}
+        controller.start_auto()
+        monkeypatch.setattr(controller, 'collect', lambda: None)
+        controller.server_cursor = 2
+        controller.tick(refresh=False)
+
+        def complete():
+            controller.steps += 1
+
+        monkeypatch.setattr(controller, 'collect', complete)
+        controller.tick(refresh=False)
+        assert controller.auto and not controller.fatal and controller.no_progress == 0
+    finally:
+        controller.close()
+
+
 def test_legacy_timeout_remains_locked_after_read_refresh(tmp_path):
     class LegacyClient:
         contract=ServiceContract()

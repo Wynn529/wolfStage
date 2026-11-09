@@ -150,10 +150,11 @@ class BRevisionClient(GameClient):
     allows_filtered_event_gaps = True
 
     def control(self, game_id, action, *, operation_id=None, expected_event_id=None):
-        if action not in {'advance', 'pause', 'resume'}:
+        if action not in {'advance', 'pause', 'resume'} and not (
+                action == 'retry-model' and getattr(self, 'integration', False)):
             raise ValueError('unsupported control')
         payload = None
-        if action == 'advance':
+        if action in {'advance', 'retry-model'}:
             if not operation_id or type(expected_event_id) is not int:
                 raise ValueError('推进缺少操作编号或游标')
             payload = {'operation_id': operation_id, 'expected_cursor': expected_event_id}
@@ -162,6 +163,8 @@ class BRevisionClient(GameClient):
             raise ServiceError('B控制响应局号不匹配；请只读核查。')
         if result.get('status') == 'conflict':
             raise ServiceError('游标已变化，本次推进被B拒绝；请刷新后核对。', ambiguous=False)
+        if action == 'retry-model' and result.get('status') == 'rejected':
+            raise ServiceError('当前没有可重试的模型超时。', ambiguous=False)
         if result.get('status') == 'waiting_model':
             result = {**result, 'status': 'pending'}
         return result

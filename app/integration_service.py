@@ -5,8 +5,9 @@ import os
 from pathlib import Path
 
 from fastapi import FastAPI, Header, HTTPException
+from fastapi.responses import JSONResponse
 from .agents import StubAgent, action_contract, build_context
-from .engine import GameEngine
+from .engine import GameEngine, InvalidGameRequest
 from .human_service import HumanService
 from .seat_config import MatchConfig
 
@@ -29,7 +30,13 @@ def create_app(runs_dir=None, profile_path=None, classifier=None):
     app.state.engine = engine
     app.state.sessions = sessions
 
+    @app.exception_handler(InvalidGameRequest)
+    async def invalid_game_request(request, exc):
+        return JSONResponse(status_code=422, content={"detail": str(exc)})
+
     def state(gid):
+        if gid in engine.unavailable_games:
+            raise HTTPException(409, "saved game requires recovery")
         if gid not in engine.games:
             raise HTTPException(404, "unknown game")
         return engine.games[gid]
@@ -92,6 +99,14 @@ def create_app(runs_dir=None, profile_path=None, classifier=None):
         authorize(gid, authorization, mutate=True)
         return engine.advance_one_event(gid, payload.get("operation_id"), payload.get("expected_cursor"))
 
+    @app.post("/games/{gid}/retry-model")
+    def retry_model(gid: str, payload: dict, authorization: str | None = Header(default=None)):
+        authorize(gid, authorization, mutate=True)
+        operation_id, cursor = payload.get("operation_id"), payload.get("expected_cursor")
+        if operation_id is None or cursor is None:
+            raise HTTPException(422, "operation_id and expected_cursor required")
+        return engine.advance_one_event(gid, operation_id, cursor, retry_model=True)
+
     @app.post("/games/{gid}/pause")
     def pause(gid: str, authorization: str | None = Header(default=None)):
         authorize(gid, authorization, mutate=True)
@@ -128,10 +143,10 @@ def create_app(runs_dir=None, profile_path=None, classifier=None):
         return engine.get_operation(gid, operation_id)
 
     @app.get("/games/{gid}/replay")
-    def replay(gid: str):
-        s = state(gid)
-        if any(c == "human" for c in s.seat_controllers.values()) and s.status != "finished":
-            raise HTTPException(403, "human replay requires finished game")
+    def replay(gid: str, authorization: str | None = Header(default=None)):
+        authorize(gid, authorization)
+        if engine.human_restricted(gid):
+            raise HTTPException(403, "human replay requires an ended game")
         return engine.replay_game(gid)
 
     return app

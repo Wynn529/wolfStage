@@ -5,7 +5,8 @@ WINNERS = {'wolves': '狼人胜', 'villagers': '好人胜'}
 EVENT_NAMES = {
     'game_created': '建立对局', 'night_death': '天亮死亡公告',
     'public_speech': '公开发言', 'utterance_classification': '发言分类',
-    'vote': '投票', 'vote_tally': '计票结果', 'exile': '放逐公告',
+    'vote': '投票', 'vote_open': '秘密投票', 'vote_received': '收到密封选票',
+    'vote_tally': '计票结果', 'exile': '放逐公告',
     'game_over': '对局结束', 'game_limit': '达到对局上限',
     'game_paused': '暂停记录', 'game_resumed': '继续记录', 'night_waiting': '夜间行动',
     'agent_reason': '角色私密自述', 'wolf_negotiation': '狼人分歧裁决', 'wolf_discussion': '狼队讨论',
@@ -15,6 +16,9 @@ EVENT_NAMES = {
     'model_fallback': '规则兜底行动',
     'wolf_proposal': '狼人击杀提案', 'inspection': '预言家查验',
     'model_failure': '模型调用失败',
+    'model_retry_started': '重试模型行动',
+    'model_retry_interrupted': '重试期间服务中断',
+    'model_step_interrupted': '模型请求期间服务中断',
     'utterance_classification_failed': '发言分类失败',
 }
 
@@ -39,7 +43,24 @@ def describe_public(event):
     if kind == 'vote':
         target = player(event.get('target'))
         return f'{player(event.get("actor"))} → {target}；{vote_validity(event.get("valid"))}'
+    if kind in {'vote_open', 'vote_received'}:
+        return '正在秘密投票。收齐选票后统一公布结果。'
+    if kind == 'model_retry_started':
+        return '正在重试超时的模型行动。'
+    if kind in {'model_retry_interrupted', 'model_step_interrupted'}:
+        return '服务中断，模型结果未入账。'
     if kind == 'vote_tally':
+        resolution = event.get('resolution')
+        if resolution == 'exile':
+            return f'{player(event.get("target"))}被放逐。弃权 {event["abstentions"]} 人。'
+        if resolution in {'revote', 'no_exile'}:
+            if resolution == 'revote':
+                result = '最高票平票，进入重投。'
+            elif any(event['counts'].values()):
+                result = '最高票平票，无人出局。'
+            else:
+                result = '全员弃权，无人出局。'
+            return f'{result}弃权 {event["abstentions"]} 人。'
         round_name = '重投' if event.get('revote') is True else '首轮' if event.get('revote') is False else '轮次未提供'
         target = event.get('target')
         result = f'计票目标：{player(target)}' if target is not None else '本次未产生唯一目标'
@@ -84,17 +105,24 @@ def vote_rounds(events):
 
 def failure_notice(event):
     """解释已记录的错误；不把未知失败推断成网络或模型内容错误。"""
+    if event and event.get('type') in {'model_retry_interrupted', 'model_step_interrupted'}:
+        return {'title': EVENT_NAMES[event['type']], 'summary': '模型响应未入账，上一次请求可能已产生费用。',
+                'next_step': '可以手动重试当前席位，保留同一局和此前已入账的行动。', 'raw': ''}
     if not event or event.get('type') not in {'model_failure', 'utterance_classification_failed'}:
         return None
     raw = str(event.get('error') or event.get('validation_error') or '')
     result = {'title':'本步未能完成',
               'summary':'当前记录不足以确认失败发生在哪一环，请查看原始错误。',
               'next_step':'保留本局记录，核对后再复测；不要反复点击推进。', 'raw':raw}
+    if event.get('request_timeout') is True:
+        return dict(result, title='模型请求超时', summary='当前席位的行动尚未入账。',
+                    next_step='现场可用“重试当前席位”时，可在原局重试这一行动。')
     if event['type'] == 'utterance_classification_failed':
         result.update(title='小模型分类未完成', summary='这条发言没有取得可用分类结果，不能当作已分类。',
                       next_step='原句已保留，对局继续推进；请A/B稍后核对分类服务与接口。')
     elif ((raw.startswith('action ') and 'is not allowed in phase' in raw)
-          or raw in {'action must be an object', 'target must be an integer',
+          or raw in {'action must be an object', 'action must be a string', 'vote target is required',
+                     'target must be an integer',
                      'target must be alive player 1..6', 'self target is not allowed',
                      'only wolves can kill', 'only seer can inspect', 'speak target must be null',
                      'speak text must not be empty',
@@ -118,5 +146,7 @@ def failure_notice(event):
 
 def latest_failure(events):
     """返回会阻断现场控制的失败；分类失败只影响标注，不阻断对局。"""
-    return next((failure_notice(e) for e in reversed(events)
-                 if e.get('type') == 'model_failure'), None)
+    latest = next((e for e in reversed(events)
+                   if e.get('type') in {'model_failure', 'model_retry_started', 'model_retry_interrupted',
+                                        'model_step_interrupted'}), None)
+    return failure_notice(latest)

@@ -244,7 +244,7 @@ def render_details(events, status, phase, metrics, game_id, live):
                     st.dataframe([{'事件':e['event_id'], '投票人':player_label(e.get('actor')),
                                    '目标':player_label(e.get('target')), '有效性':vote_validity(e.get('valid'))}
                                   for e in group['votes']],hide_index=True,use_container_width=True)
-                else:
+                elif group['tally'] is None or 'resolution' not in group['tally']:
                     st.caption('当前事件中没有这组逐票记录。')
                 tally = group['tally']
                 if tally is None:
@@ -345,6 +345,13 @@ def render_events(events, status, phase, metrics, game_id, live, cursor=None, hu
                  replay=not live,busy=bool(controller and controller.busy), cursor=cursor,
                  message=controller.message if controller else '',
                  human_player_id=human_player_id)
+    ballot = next((event for event in reversed(events) if event.get('visibility') == 'public'
+                   and event['type'] in {'vote_open', 'vote_received', 'vote_tally', 'public_speech'}), None)
+    if ballot and ballot['type'] == 'vote_tally' and 'resolution' in ballot:
+        with st.container(border=True):
+            st.subheader(f'第 {ballot["day"]} 天 · 投票公示')
+            st.write(describe_public(ballot))
+            st.table(tally_rows(ballot))
     if live and game_id and not events and isinstance(cursor, int) and cursor > 0:
         successful = metrics.get('successful_calls') if isinstance(metrics, dict) else None
         if isinstance(successful, int) and successful > 0:
@@ -470,6 +477,8 @@ def render_human_action(controller):
     if actor_role == 'wolf':
         st.info('你的狼队队友：' + '、'.join(f'{p}号' for p in identity.get('wolf_teammates', [])))
     st.info(f'当前阶段：{PHASES.get(phase, phase)}。提交成功后由服务继续推进；请勿重复点击。')
+    if phase == 'day_vote':
+        st.caption('本轮为秘密投票。收齐选票后统一公布得票和放逐结果。')
     if actor_role == 'witch' and phase == 'night' and 'night_kill_target' in identity:
         knife_target = identity['night_kill_target']
         st.info('今晚没有刀口。' if knife_target is None else f'今晚刀口：{knife_target} 号')
@@ -644,6 +653,13 @@ def live_panel():
     if buttons[5].button('停止自动调度',disabled=not controller.auto):
         controller.stop_auto()
         st.rerun()
+    if controller.can_retry_model:
+        if controller.events and controller.events[-1].get('type') in {'model_retry_interrupted', 'model_step_interrupted'}:
+            st.warning('模型请求期间服务中断，行动尚未入账。上一次请求可能已产生费用，再次重试会发出新的请求。')
+        else:
+            st.warning('模型请求已超时，当前行动尚未入账。重试会重新请求模型，可能产生费用。')
+        if st.button('重试当前席位', help='保留同一局、同一回合和已提交的行动，只重试这一席的当前行动。'):
+            action='retry-model'
     if action:
         try:
             controller.submit(action)
@@ -662,7 +678,7 @@ def replay_panel():
         if source == '新版服务':
             game = st.text_input('回放对局编号', value=ss.controller.game_id if ss.controller else '')
             if not game:
-                st.info('填写已保存的对局编号；真人局必须结束后才能回放。')
+                st.info('填写已保存的对局编号。真人局达到天数上限后，可用原会话回放。')
                 return
             try:
                 original = client.replay(game)
@@ -671,7 +687,7 @@ def replay_panel():
                 visible = [e for e in original if e['event_id'] <= cursor]
                 render_events(visible, project(visible)['status'], None, {}, game, False, cursor=cursor)
             except ServiceError as exc:
-                st.warning('新版回放不可用；真人局结束前不开放上帝回放。' if exc.code == 403 else str(exc))
+                st.warning('回放权限不足。进行中的真人局暂未开放回放，达到天数上限的真人局需要原会话。' if exc.code == 403 else str(exc))
             return
     requested = st.query_params.get('game')
     if requested and not replay_allowed(runs, requested):

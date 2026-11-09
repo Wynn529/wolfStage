@@ -115,6 +115,32 @@ def test_replay_vote_rounds_keep_b_tally_and_hide_future_results(tmp_path, monke
     assert '未提供' in describe_public(event(11,'vote',visibility='public'))
 
 
+def test_replay_shows_sealed_vote_summary_only_after_tally(tmp_path, monkeypatch):
+    from pathlib import Path
+    from streamlit.testing.v1 import AppTest
+
+    monkeypatch.delenv('C_SERVICE_CONTRACT', raising=False)
+    monkeypatch.setenv('C_RUNS_DIR', str(tmp_path))
+    monkeypatch.setenv('C_JOURNAL_DIR', str(tmp_path/'journals'))
+    fields = dict(visibility='public', day=1, phase='day_vote')
+    events = [event(1, 'game_created', visibility='host', alive=[1, 2, 3]),
+              event(2, 'vote_open', **fields), event(3, 'vote_received', **fields),
+              event(4, 'vote_tally', **fields, counts={'1': 0, '2': 2, '3': 0},
+                    target=2, resolution='exile', abstentions=1),
+              event(5, 'exile', **fields, target=2)]
+    folder = tmp_path/'g'
+    folder.mkdir()
+    (folder/'events.jsonl').write_text('\n'.join(json.dumps(e) for e in events), encoding='utf-8')
+    app = AppTest.from_file(str(Path(__file__).resolve().parents[1]/'app/ui.py')).run()
+    app.radio[0].set_value('历史回放').run()
+    app.slider[0].set_value(3).run()
+    assert not app.exception and not app.table
+    app.slider[0].set_value(5).run()
+    assert not app.exception
+    assert app.table[0].value['票数（B原件）'].tolist() == [0, 2, 0]
+    assert any('2 号被放逐。弃权 1 人。' in item.value for item in app.markdown)
+
+
 @pytest.mark.parametrize('b_revision',['legacy','3898b95'])
 def test_streamlit_controls_use_b_and_attach_actual_a_labels(tmp_path, monkeypatch, b_revision):
     """真实本地 A HTTP、B HTTP、Streamlit AppTest；玩家为 stub。"""

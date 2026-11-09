@@ -4,6 +4,10 @@ import json
 from pathlib import Path
 from urllib.parse import urlsplit
 
+import pytest
+
+from app.agents import StubAgent
+from app.engine import GameEngine
 from app.integration_service import create_app
 from app.provider_client import ProviderClient
 from app.seat_config import MatchConfig
@@ -45,6 +49,33 @@ def payload(human=True):
         config["mode"] = "all_ai"
         config["seats"][-1].update(control_type="ai", model_profile_id="mimo")
     return config
+
+
+@pytest.mark.parametrize("seed", ["42", True, 4.2, []])
+def test_invalid_seed_is_rejected_before_creating_game(tmp_path, seed):
+    app = create_app(tmp_path)
+    code, result = request(app, "POST", "/games", dict(payload(False), seed=seed))
+    assert code == 422 and result["detail"] == "seed must be an integer or null"
+    assert app.state.engine.games == {}
+    assert app.state.engine.store.list_games() == []
+
+
+def test_invalid_advance_controls_are_rejected_before_model_call(tmp_path):
+    app = create_app(tmp_path)
+    _, created = request(app, "POST", "/games", dict(payload(False), seed=42))
+    gid = created["game_id"]
+    engine = app.state.engine
+    engine.configured_agent = StubAgent()
+    path = f"/games/{gid}/advance"
+    for invalid in ({"operation_id": ["invalid"]}, {"operation_id": ""},
+                    {"expected_cursor": True}, {"expected_cursor": 1.0},
+                    {"expected_cursor": "1"}, {"expected_cursor": -1}):
+        body = {"operation_id": "probe", "expected_cursor": 1, **invalid}
+        assert request(app, "POST", path, body)[0] == 422
+        assert engine.get_status(gid)["cursor"] == 1
+        assert engine.store.read_calls(gid) == []
+    code, result = request(app, "POST", path, {"operation_id": "valid", "expected_cursor": 1})
+    assert code == 200 and result["cursor"] > 1 and len(engine.store.read_calls(gid)) == 1
 
 
 def test_session_privacy_and_restart(tmp_path):
@@ -102,6 +133,25 @@ def test_nine_model_configs_drive_engine_calls(tmp_path, monkeypatch):
     assert restored.state.engine.games[gid].seat_model_configs == state.seat_model_configs
 
 
+def test_human_replay_after_day_limit_requires_original_session(tmp_path):
+    app = create_app(tmp_path)
+    _, created = request(app, "POST", "/games", payload())
+    _, other = request(app, "POST", "/games", payload())
+    gid, token = created["game_id"], created["human_token"]
+    engine = app.state.engine
+    state = engine.games[gid]
+    state.phase, state.day, state.day_voted = "day_vote", 8, set(state.alive)
+    path = f"/games/{gid}"
+    assert request(app, "GET", path + "/replay", token=token)[0] == 403
+    _, result = request(app, "POST", path + "/advance", {"operation_id": "day-limit"}, token)
+    assert result["status"] == "incomplete"
+    assert request(app, "GET", path + "/replay")[0] == 403
+    assert request(app, "GET", path + "/replay", token=other["human_token"])[0] == 403
+    code, replay = request(app, "GET", path + "/replay", token=token)
+    assert code == 200 and replay[-1]["type"] == "game_limit"
+    assert engine.store.read_calls(gid) == []
+
+
 def test_human_submit_idempotent_and_no_model_call(tmp_path):
     app = create_app(tmp_path)
     _, created = request(app, "POST", "/games", payload())
@@ -117,10 +167,108 @@ def test_human_submit_idempotent_and_no_model_call(tmp_path):
     status, first = request(app, "POST", path, body, token)
     assert status == 200
     assert request(app, "POST", path, body, token)[1] == first
-    assert len([e for e in engine.store.read(gid) if e["type"] == "vote"]) == 1
+    events = engine.get_events(gid, view="public")
+    receipts = [e for e in events if e["type"] == "vote_received"]
+    assert len(receipts) == 1 and "actor" not in receipts[0] and "target" not in receipts[0]
+    assert not any(e["type"] in {"vote", "vote_tally"} for e in events)
     assert engine.store.read_calls(gid) == []
     body["action"]["reason"] = "fake"
     assert request(app, "POST", path, body, token)[0] == 422
+    engine.advance_one_event(gid)
+    tally = next(e for e in engine.get_events(gid, view="public") if e["type"] == "vote_tally")
+    assert tally["target"] == 2 and tally["resolution"] == "exile"
+    assert tally["counts"] == {str(p): int(p == 2) for p in range(1, 11)}
+
+
+def test_human_malformed_vote_is_rejected_without_consuming_turn(tmp_path):
+    app = create_app(tmp_path)
+    _, created = request(app, "POST", "/games", payload())
+    gid, token = created["game_id"], created["human_token"]
+    engine = app.state.engine
+    state = engine.games[gid]
+    state.phase = "day_vote"
+    state.day_voted = set(range(1, 10))
+    pending = engine.advance_one_event(gid)
+    path = f"/games/{gid}/players/10/action"
+    body = {"action_id": pending["pending_action"]["action_id"], "expected_cursor": pending["cursor"]}
+    for invalid in ({"action_id": []}, {"expected_cursor": False}, {"operation_id": {"id": "invalid"}}):
+        request_body = {**body, "operation_id": "probe", "action": {"action": "vote", "target": 2}, **invalid}
+        assert request(app, "POST", path, request_body, token)[0] == 422
+        assert 10 not in state.day_voted and state.event_id == pending["cursor"]
+    for index, (action, error) in enumerate([
+        ({"action": [], "target": None}, "action must be a string"),
+        ({"action": {}, "target": None}, "action must be a string"),
+        ({"action": "vote"}, "vote target is required"),
+    ]):
+        code, result = request(app, "POST", path, dict(body, operation_id=f"invalid-{index}", action=action), token)
+        assert code == 200 and result["status"] == "rejected" and result["error"] == error
+        assert 10 not in state.day_voted and state.event_id == pending["cursor"]
+    code, result = request(app, "POST", path,
+                           dict(body, operation_id="abstain", action={"action": "vote", "target": None}), token)
+    assert code == 200 and result["status"] == "running"
+    assert 10 in state.day_voted and state.votes[10] is None
+
+
+def test_damaged_saved_games_do_not_block_healthy_games(tmp_path, caplog):
+    engine = GameEngine(tmp_path, agent=StubAgent())
+    conflict, malformed, healthy = [engine.create_game(seed)["game_id"] for seed in range(3)]
+    engine._event(engine.games[conflict], "game_paused", "host", timestamp="2000-01-01T00:00:00Z")
+    engine = GameEngine(tmp_path, agent=StubAgent())
+    with pytest.raises(ValueError, match="Conflicting event commit"):
+        engine.pause_game(conflict)
+    broken_state = tmp_path / malformed / "state.json"
+    broken_state.write_text("{", encoding="utf-8")
+    paths = [broken_state, *(tmp_path / conflict).iterdir()]
+    before = {path: path.read_bytes() for path in paths}
+
+    app = create_app(tmp_path)
+    assert app.state.engine.unavailable_games == {conflict, malformed}
+    assert request(app, "GET", f"/games/{conflict}/status")[0] == 409
+    assert request(app, "GET", f"/games/{malformed}/replay")[0] == 409
+    assert request(app, "GET", f"/games/{healthy}/status")[1]["status"] == "running"
+    assert request(app, "POST", "/games", payload(False))[0] == 200
+    assert all(gid in caplog.text for gid in (conflict, malformed))
+    assert {path: path.read_bytes() for path in paths} == before
+
+
+@pytest.mark.parametrize("remaining", [b'{"event_id":', b""])
+def test_truncated_event_log_without_journal_is_isolated(tmp_path, remaining):
+    engine = GameEngine(tmp_path, agent=StubAgent())
+    damaged = engine.create_game(42)["game_id"]
+    healthy = engine.create_game()["game_id"]
+    log = tmp_path / damaged / "events.jsonl"
+    log.write_bytes(remaining)
+    assert not (log.parent / "vote_commit.json").exists()
+
+    app = create_app(tmp_path)
+    assert app.state.engine.unavailable_games == {damaged}
+    for endpoint in ("status", "events", "replay"):
+        assert request(app, "GET", f"/games/{damaged}/{endpoint}")[0] == 409
+    assert request(app, "GET", f"/games/{healthy}/status")[1]["status"] == "running"
+    assert log.read_bytes() == remaining
+
+
+@pytest.mark.parametrize("event_ids, cursor, overrides", [
+    ([3], 3, {}), ([2, 4], 4, {}), ([2], 3, {}), ([], 2, {}),
+    ([2], 2, {"seed": "invalid"}), ([2], 2, {"roles": []}),
+])
+def test_invalid_event_commit_is_isolated_before_modifying_files(tmp_path, event_ids, cursor, overrides):
+    engine = GameEngine(tmp_path, agent=StubAgent())
+    damaged = engine.create_game(42)["game_id"]
+    healthy = engine.create_game(43)["game_id"]
+    folder = tmp_path / damaged
+    state = dict(engine.games[damaged].to_dict(), status="paused", event_id=cursor, **overrides)
+    initial, = engine.store.read(damaged)
+    events = [dict(initial, type="game_paused", event_id=event_id) for event_id in event_ids]
+    journal = folder / "vote_commit.json"
+    journal.write_text(json.dumps({"state": state, "events": events, "summary": {}}), encoding="utf-8")
+    before = {file.name: file.read_bytes() for file in folder.iterdir()}
+
+    app = create_app(tmp_path)
+    assert app.state.engine.unavailable_games == {damaged}
+    assert request(app, "GET", f"/games/{damaged}/status")[0] == 409
+    assert request(app, "GET", f"/games/{healthy}/status")[1]["status"] == "running"
+    assert {file.name: file.read_bytes() for file in folder.iterdir()} == before
 
 
 def test_browser_cannot_supply_provider_secrets_or_multiple_humans(tmp_path):

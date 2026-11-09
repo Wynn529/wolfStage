@@ -89,7 +89,7 @@ class IntegrationClient(BRevisionClient):
         return identity
 
     def human_action(self, game_id, player_id, action, **kwargs):
-        clean = {k: action.get(k) for k in ('action', 'target', 'text')}
+        clean = {k: action[k] for k in ('action', 'target', 'text') if k in action}
         return super().human_action(game_id, player_id, clean, **kwargs)
 
     def wolf_discussion(self, *args, **kwargs):

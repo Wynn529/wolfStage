@@ -8,7 +8,7 @@ try:
 except ImportError:  # pragma: no cover
     FastAPI = None
 
-from .engine import GameEngine
+from .engine import GameEngine, InvalidGameRequest
 from .classifier import AHttpClassifier
 
 classifier = AHttpClassifier() if os.getenv("A_CLASSIFIER_URL") else None
@@ -23,12 +23,19 @@ if app:
     async def permission_denied(request, exc):
         return JSONResponse(status_code=403, content={"detail": "human game access is restricted"})
 
+    @app.exception_handler(InvalidGameRequest)
+    async def invalid_game_request(request, exc):
+        return JSONResponse(status_code=422, content={"detail": str(exc)})
+
     @app.middleware("http")
     async def restrict_legacy_human_games(request, call_next):
         from fastapi.responses import JSONResponse
         parts = request.url.path.split("/")
-        if len(parts) > 2 and parts[1] == "games" and parts[2] in engine.games:
-            if "human" in engine.games[parts[2]].seat_controllers.values():
+        if len(parts) > 2 and parts[1] == "games":
+            game_id = parts[2]
+            if game_id in engine.unavailable_games:
+                return JSONResponse({"detail": "saved game requires recovery"}, status_code=409)
+            if game_id in engine.games and "human" in engine.games[game_id].seat_controllers.values():
                 return JSONResponse({"detail": "Human games require app.integration_service session authentication"}, status_code=409)
         return await call_next(request)
 

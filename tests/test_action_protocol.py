@@ -94,3 +94,40 @@ def test_two_invalid_actions_still_fail_without_normalization(tmp_path):
     assert not any(e["type"] == "wolf_proposal" for e in engine.store.read(gid))
     engine.advance_one_event(gid)
     assert len(client.requests) == 2
+
+
+@pytest.mark.parametrize("malformed, expected", [
+    ({"action": [], "target": None}, "action must be a string"),
+    ({"action": {}, "target": None}, "action must be a string"),
+    ({"action": "vote"}, "vote target is required"),
+])
+def test_malformed_vote_retries_validation_without_recording_abstention(tmp_path, malformed, expected):
+    client = FakeClient([malformed, action("vote", 3)])
+    engine = GameEngine(tmp_path, agent=DeepSeekAgent(client))
+    gid = engine.create_game(42, ROLES)["game_id"]
+    state = engine.games[gid]
+    state.phase, state.day = "day_vote", 1
+    state.day_voted, state.votes = {1}, {1: 3}
+    result = engine.advance_one_event(gid, "vote")
+    assert result["status"] == "running" and state.votes == {1: 3, 2: 3}
+    first, retry = engine.store.read_calls(gid)
+    assert first["failure_stage"] == "action_validation" and first["validation_error"] == expected
+    assert retry["success"] is True
+    assert len([e for e in engine.store.read(gid) if e["type"] == "vote_received"]) == 1
+
+
+def test_day_speech_retries_wrong_phase_action_without_consuming_turn(tmp_path):
+    speech = dict(action("speak", None), text="A valid day speech.")
+    client = FakeClient([dict(action("last_words", None), text=""), speech])
+    engine = GameEngine(tmp_path, agent=DeepSeekAgent(client))
+    gid = engine.create_game(42, ROLES)["game_id"]
+    state = engine.games[gid]
+    state.phase, state.day = "day_speak", 1
+    result = engine.advance_one_event(gid, "speak")
+    assert result["status"] == "running" and state.day_speakers == [1]
+    first, retry = engine.store.read_calls(gid)
+    assert first["failure_stage"] == "action_validation"
+    assert first["validation_error"] == "action 'last_words' is not allowed in phase day_speak"
+    assert retry["success"] is True
+    event, = [e for e in engine.store.read(gid) if e["type"] == "public_speech"]
+    assert event["text"] == speech["text"]

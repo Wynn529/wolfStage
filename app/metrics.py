@@ -5,9 +5,9 @@ from typing import Any
 from .events import EventStore
 
 
-def summarize(store: EventStore, game_id: str) -> dict[str, Any]:
+def summarize(store: EventStore, game_id: str, *, staged_events: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     """从事件和调用原始日志重算调用次数、token、重试、失败和胜方。"""
-    events = store.read(game_id)
+    events = store.read(game_id) + (staged_events or [])
     calls = store.read_calls(game_id)
     summary = {
         "game_id": game_id,
@@ -38,5 +38,6 @@ def summarize(store: EventStore, game_id: str) -> dict[str, Any]:
         summary[key + "_missing_calls"] = missing
         summary[key + "_not_applicable_calls"] = len(calls) - len(applicable)
         summary[key] = None if missing or (calls and not applicable) else sum(known)
-    store.write_summary(game_id, summary)
+    if staged_events is None:
+        store.write_summary(game_id, summary)
     return summary

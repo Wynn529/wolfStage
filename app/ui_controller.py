@@ -9,6 +9,7 @@ from pathlib import Path
 import time
 import uuid
 
+from app.events import decode_jsonl
 from app.ui_client import ServiceError
 from app.ui_contract import STATUSES, TERMINAL
 from app.ui_helpers import merge_events, project
@@ -52,6 +53,8 @@ class SessionController:
         self.no_progress_limit = no_progress_limit
         self.steps = 0
         self.no_progress = 0
+        self.retry_model_available = False
+        self.last_completed_progress = (self.cursor, self.phase)
         self.journal = Path(journal) if journal else None
         self._log('session', game_id=game_id, seed=seed, human_game=self.human_game,
                   human_player_id=self.human_player_id, service=client.base_url,
@@ -121,7 +124,10 @@ class SessionController:
             if self.operations[operation_id].action != action:
                 raise ValueError('同一操作ID不能用于不同动作')
             return operation_id  # Streamlit重复触发同一操作不产生第二个POST。
-        if self.fatal or self.status in TERMINAL:
+        if action == 'retry-model':
+            if not self.can_retry_model:
+                raise ValueError('当前没有已确认且可重试的模型超时')
+        elif self.fatal or self.status in TERMINAL:
             raise ValueError('当前对局已终止或控制锁定，不能推进')
         if action == 'advance' and (self.busy or self.pause_intent or self.status != 'running' or not self.synced):
             raise ValueError('上一步结果未确认、正在暂停或状态未同步，不能再次推进')
@@ -144,7 +150,7 @@ class SessionController:
             if self.status not in {'running', 'pending'}:
                 raise ValueError('当前状态不能申请暂停')
             self.pause_intent = True
-        if action not in {'advance', 'pause', 'resume'}:
+        if action not in {'advance', 'pause', 'resume', 'retry-model'}:
             raise ValueError('未知控制动作')
         op = Operation(operation_id or uuid.uuid4().hex, action, self.cursor)
         self.operations[op.operation_id] = op
@@ -155,11 +161,17 @@ class SessionController:
             expected_event_id=op.expected_event_id)
         return op.operation_id
 
+    @property
+    def can_retry_model(self):
+        return (getattr(self.client, 'integration', False) and self.retry_model_available
+                and self.status == 'failed' and self.synced and not self.busy and not self.fatal)
+
     def start_auto(self):
         if not self.auto_ready or self.busy or self.status != 'running' or self.pause_intent:
             raise ValueError('B增强能力未确认或当前状态不允许自动运行')
         self.auto = True
         self.steps = self.no_progress = 0
+        self.last_completed_progress = (self.cursor, self.phase)
         self._log('auto_started', last_event_id=self.cursor)
 
     def stop_auto(self):
@@ -189,7 +201,7 @@ class SessionController:
             del self.futures[operation_id]
             try:
                 result = future.result()
-                if self.client.contract.ready or (getattr(self.client, 'advance_query_supported', False) and op.action=='advance'):
+                if self.client.contract.ready or (getattr(self.client, 'advance_query_supported', False) and op.action in {'advance', 'retry-model'}):
                     if op.state not in {'succeeded', 'failed', 'rejected'}:
                         op.state = 'accepted'
                         self._operation_log(op)
@@ -202,7 +214,7 @@ class SessionController:
                 definite = isinstance(exc, ServiceError) and not exc.ambiguous
                 op.state = 'rejected' if definite else 'uncertain'
                 self._operation_log(op)
-                self.fail(str(exc), fatal=not (self.client.contract.ready or (getattr(self.client, 'advance_query_supported', False) and op.action=='advance')) and not definite)
+                self.fail(str(exc), fatal=not (self.client.contract.ready or (getattr(self.client, 'advance_query_supported', False) and op.action in {'advance', 'retry-model'})) and not definite)
 
     def refresh(self):
         try:
@@ -272,7 +284,7 @@ class SessionController:
                 b_state = self.client.service_status(self.game_id)
                 resolved_operation = False
                 for op in list(self.unresolved):
-                    if op.action != 'advance':
+                    if op.action not in {'advance', 'retry-model'}:
                         continue  # B未登记暂停/继续操作；超时后保持锁定，不以快照猜测成功。
                     response = self.client.operation(self.game_id, op.operation_id)
                     if response['state'] == 'succeeded':
@@ -285,6 +297,7 @@ class SessionController:
                     after = self.events[-1]['event_id'] if self.events else 0
                     self.events = merge_events(self.events, self.client.events(self.game_id, after, view=event_view), self.game_id)
                 self.status, self.phase = b_state['status'], b_state['phase']
+                self.retry_model_available = b_state.get('can_retry_model') is True and getattr(self.client, 'integration', False)
                 # 真人局事件按权限过滤，公开事件可能跳过私密 event_id；控制游标必须跟随服务端。
                 self.server_cursor = b_state['cursor']
                 self.synced = not self.fatal and not self.unresolved and self.cursor == b_state['cursor']
@@ -300,7 +313,7 @@ class SessionController:
             self.metrics = self.client.metrics(self.game_id)
             if not self.fatal and not self.unresolved:
                 self.error = ''
-            if any(e['type'] == 'model_failure' for e in self.events):
+            if self.status == 'failed' and not self.retry_model_available and any(e['type'] == 'model_failure' for e in self.events):
                 self.fail('对局含模型/分类失败，请人工核对后交B处理', fatal=True)
             if self.status == 'waiting_human':
                 self.auto = False
@@ -312,13 +325,14 @@ class SessionController:
             self.fail(str(exc), fatal=isinstance(exc, ValueError))
 
     def tick(self, *, refresh=True):
-        before = (self.cursor, self.phase)
         previous_steps = self.steps
         self.collect()
         if refresh:
             self.refresh()
         if self.steps > previous_steps:
-            self.no_progress = self.no_progress + 1 if before == (self.cursor, self.phase) else 0
+            progress = (self.cursor, self.phase)
+            self.no_progress = self.no_progress + 1 if progress == self.last_completed_progress else 0
+            self.last_completed_progress = progress
         if self.auto and (self.steps >= self.max_steps or self.no_progress >= self.no_progress_limit):
             self.fail('达到C调度上限或连续无进展，已停止；不判定游戏胜负', fatal=True)
         if (self.deferred_pause and not self.busy and self.synced and not self.error
@@ -339,7 +353,7 @@ class SessionController:
 
     @classmethod
     def restore(cls, client, journal):
-        rows = [json.loads(line) for line in Path(journal).read_text(encoding='utf-8').splitlines() if line.strip()]
+        rows = decode_jsonl(Path(journal).read_text(encoding='utf-8'))
         header = next(row for row in rows if row['kind'] == 'session')
         if (header['service'] != client.base_url or header['contract'] != client.contract.version
                 or header.get('confirmed_commit','') != client.contract.confirmed_commit):
@@ -352,6 +366,6 @@ class SessionController:
                 controller.operations[row['operation_id']] = Operation(
                     row['operation_id'], row['action'], row['expected_event_id'], row['state'])
         if controller.unresolved:
-            controller.fail('已恢复待确认操作；只读查询结果，不重新提交', fatal=not (client.contract.ready or (getattr(client,'advance_query_supported',False) and all(op.action=='advance' for op in controller.unresolved))))
+            controller.fail('已恢复待确认操作；只读查询结果，不重新提交', fatal=not (client.contract.ready or (getattr(client,'advance_query_supported',False) and all(op.action in {'advance', 'retry-model'} for op in controller.unresolved))))
         controller.refresh()
         return controller

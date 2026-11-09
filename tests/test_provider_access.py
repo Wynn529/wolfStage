@@ -85,6 +85,19 @@ def test_http_failure_safe_and_no_retry(monkeypatch):
     assert requests == [1]
 
 
+def test_provider_keeps_wrapped_request_timeout_metadata(monkeypatch):
+    p = CONFIG.profiles[0]
+    monkeypatch.setenv(p.api_key_env, "test-key")
+
+    def timeout(*args):
+        raise urllib.error.URLError(TimeoutError("simulated timeout"))
+
+    monkeypatch.setattr(ProviderClient, "_send", timeout)
+    with pytest.raises(ModelAttemptError) as error:
+        SeatRouter(CONFIG).act(1, context={"agent_id": 1}, contract={}, prompt="", prompt_version="v")
+    assert error.value.meta["request_timeout"] is True
+
+
 @pytest.mark.parametrize("code,expected", [
     ("ModelNotOpen", "ModelNotOpen"),
     ("InvalidEndpointOrModel.NotFound", "InvalidEndpointOrModel.NotFound"),

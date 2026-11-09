@@ -139,7 +139,8 @@ def test_auth_waiting_human_and_idempotent_submission(integration_http):
         args=dict(action_id=pending['action_id'],expected_cursor=cursor,operation_id='single-human')
         first=client.human_action(gid,10,action,**args)
         assert client.human_action(gid,10,action,**args)==first
-        assert len([e for e in app.state.engine.store.read(gid) if e['type']=='vote' and e['actor']==10])==1
+        receipts = [e for e in client.events(gid) if e['type'] == 'vote_received']
+        assert len(receipts) == 1 and 'actor' not in receipts[0] and 'target' not in receipts[0]
         assert app.state.engine.store.read_calls(gid)==[]
         controller.refresh();assert controller.status=='running'
         restored=SessionController.restore(client,path/'control.jsonl')
@@ -154,6 +155,49 @@ def test_all_ai_pause_resume_and_server_replay(integration_http):
     assert client.control(gid,'resume',operation_id='resume',expected_event_id=2)['status']=='running'
     assert client.replay(gid)[0]['type']=='game_created'
     assert len(client.models())==9
+
+
+def test_timeout_retry_button_preserves_previous_ballots(integration_http, monkeypatch):
+    service, _, _ = integration_http
+    from app.seat_router import ModelAttemptError
+
+    app = AppTest.from_file(str(ROOT/'app/ui.py')).run(timeout=20)
+    button(app, '开始对局').click().run(timeout=20)
+    controller = app.session_state['controller']
+    gid = controller.game_id
+    engine = service.state.engine
+    state = engine.games[gid]
+    state.phase, state.day = 'day_vote', 1
+    state.day_voted, state.votes = {1}, {1: 3}
+    calls = []
+
+    def vote(state, actor, context):
+        calls.append(actor)
+        if len(calls) == 1:
+            error = ModelAttemptError({'request_timeout': True})
+            error.metadata = error.meta
+            raise error
+        return {'action': 'vote', 'target': 3}
+
+    monkeypatch.setattr(engine.configured_agent, 'act', vote)
+    from tests.test_ui_control import until
+    button(app, '单步推进').click().run(timeout=20)
+    until(controller, lambda: not controller.busy and controller.status == 'failed')
+    assert state.votes == {1: 3}
+    assert engine.advance_one_event(gid, 'ordinary-advance')['status'] == 'failed'
+    app.run(timeout=20)
+    assert not app.exception and controller.can_retry_model
+    button(app, '重试当前席位').click().run(timeout=20)
+    until(controller, lambda: not controller.busy and controller.status == 'running')
+    assert not controller.fatal and state.votes == {1: 3, 2: 3} and calls == [2, 2]
+    assert engine.get_status(gid)['can_retry_model'] is False
+    operation = next(op for op in controller.operations.values() if op.action == 'retry-model')
+    repeated = controller.client.control(gid, 'retry-model', operation_id=operation.operation_id,
+                                         expected_event_id=operation.expected_event_id)
+    assert repeated['status'] == 'running' and calls == [2, 2]
+    assert [e['type'] for e in engine.store.read(gid)][-3:] == [
+        'model_failure', 'model_retry_started', 'vote_received']
+    controller.close()
 
 
 def test_lost_human_session_discards_private_cache(integration_http):

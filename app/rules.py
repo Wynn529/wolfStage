@@ -11,6 +11,10 @@ PLAYERS = TEN_PLAYERS
 TEN_ROLE_COUNTS = {"wolf": 3, "seer": 1, "witch": 1, "hunter": 1, "villager": 4}
 
 
+def is_valid_seed(seed: Any) -> bool:
+    return seed is None or type(seed) is int
+
+
 @dataclass
 class GameState:
     game_id: str
@@ -46,6 +50,8 @@ class GameState:
     pending_action: dict[str, Any] | None = None
 
     def __post_init__(self) -> None:
+        if not is_valid_seed(self.seed):
+            raise ValueError("seed must be an integer or null")
         self.roles = {int(k): v for k, v in self.roles.items()}
         self.alive = set(self.roles) if self.alive is None else set(self.alive)
         self.seat_controllers = ({p: "ai" for p in self.roles} if not self.seat_controllers else {int(k): v for k, v in self.seat_controllers.items()})
@@ -115,7 +121,9 @@ def check_action(state: GameState, actor: int, action: dict[str, Any]) -> str | 
         return "dead player cannot act"
     if not isinstance(action, dict): return "action must be an object"
     kind = action.get("action")
-    allowed = {"night": {"kill", "inspect", "save", "poison", "pass"}, "day_speak": {"speak", "last_words"}, "day_vote": {"vote", "pass"}, "hunter_action": {"shoot", "pass"}, "last_words": {"last_words", "pass"}}.get(state.phase, set())
+    if not isinstance(kind, str):
+        return "action must be a string"
+    allowed = {"night": {"kill", "inspect", "save", "poison", "pass"}, "day_speak": {"speak"}, "day_vote": {"vote", "pass"}, "hunter_action": {"shoot", "pass"}, "last_words": {"last_words", "pass"}}.get(state.phase, set())
     if kind not in allowed: return f"action {kind!r} is not allowed in phase {state.phase}"
     text, reason = action.get("text", ""), action.get("reason", "")
     if not isinstance(text, str) or len(text) > 500 or not isinstance(reason, str) or len(reason) > 300: return "text/reason must be strings within length limits"
@@ -145,6 +153,8 @@ def check_action(state: GameState, actor: int, action: dict[str, Any]) -> str | 
         if state.roles.get(actor) != "witch" or not state.witch_poison_available or state.pending.get("witch_used"): return "poison potion unavailable"
         return check_target(state, actor, target)
     if kind == "vote":
+        if "target" not in action:
+            return "vote target is required"
         if target is None: return None
         err = check_target(state, actor, target)
         if err: return err

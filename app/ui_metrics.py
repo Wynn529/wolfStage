@@ -1,5 +1,5 @@
 """从B原始calls只读重算，缺失用量不伪装为0。"""
-import json
+from app.events import decode_jsonl
 from app.ui_helpers import game_dir
 
 
@@ -7,7 +7,7 @@ def read_calls(root, game_id):
     path = game_dir(root, game_id) / 'calls.jsonl'
     if not path.exists():
         return None
-    calls = [json.loads(line) for line in path.read_text(encoding='utf-8').splitlines() if line.strip()]
+    calls = decode_jsonl(path.read_text(encoding='utf-8'))
     if any(not isinstance(c, dict) or c.get('game_id') != game_id for c in calls):
         raise ValueError('调用日志包含错误局号或无效记录')
     return calls

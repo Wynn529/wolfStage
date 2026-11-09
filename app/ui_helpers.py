@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 import zipfile
 
+from app.events import decode_jsonl
+
 LABELS = {'role_claim': '身份声明', 'check_claim': '查验宣称', 'vote_intent': '投票意向',
           'low_info': '信息不足', 'discussion': '有效讨论', 'suspected_violation': '疑似违规/跑题'}
 ROLES = {'wolf': '狼人', 'seer': '预言家', 'witch': '女巫', 'hunter': '猎人', 'villager': '平民'}
@@ -52,11 +54,11 @@ def project(events):
             state.update(winner=event.get('winner'), status='finished')
         elif kind == 'game_limit':
             state['status'] = 'incomplete'
-        elif kind == 'model_failure':
+        elif kind in {'model_failure', 'model_retry_interrupted', 'model_step_interrupted'}:
             state['status'] = 'failed'
         elif kind == 'game_paused':
             state['status'] = 'paused'
-        elif kind == 'game_resumed':
+        elif kind in {'game_resumed', 'model_retry_started'}:
             state['status'] = 'running'
     return state
 
@@ -102,7 +104,7 @@ def require_replay_access(root: Path, game_id: str):
 def read_events(root: Path, game_id: str):
     require_replay_access(root, game_id)
     path = game_dir(root, game_id) / 'events.jsonl'
-    values = [json.loads(line) for line in path.read_text(encoding='utf-8').splitlines() if line.strip()]
+    values = decode_jsonl(path.read_text(encoding='utf-8'))
     return merge_events([], values, game_id)
 
 
